@@ -25,7 +25,7 @@ const ROADMAP = [
     color: "#52B788",
     items: [
       "Đăng ký / đăng nhập OTP",
-      "Đăng sản phẩm & tìm kiếm",
+      "Đăng sản phẩm &amp; tìm kiếm",
       "Xem giá thị trường cơ bản",
       "Chat trực tiếp người mua – bán",
       "Thí điểm 2–3 tỉnh thành",

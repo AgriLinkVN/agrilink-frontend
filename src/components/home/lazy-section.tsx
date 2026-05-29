@@ -15,7 +15,8 @@ export function LazySection({ children, fallback = null, rootMargin = "200px" }:
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const t = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
