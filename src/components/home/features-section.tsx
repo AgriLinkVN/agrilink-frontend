@@ -42,8 +42,33 @@ const FEATURES: { icon: LucideIcon; title: string; desc: string; accent: string 
 
 export function FeaturesSection() {
   return (
-    <section className="bg-surface-soft py-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="relative overflow-hidden bg-white py-20">
+      {/* Blob A */}
+      <div
+        className="absolute -top-24 -left-24 w-96 h-96 rounded-full opacity-15"
+        style={{
+          background: "radial-gradient(circle, #52B788, transparent 70%)",
+          animation: "blobA 12s ease-in-out infinite",
+        }}
+      />
+      {/* Blob B */}
+      <div
+        className="absolute top-1/2 -right-32 w-80 h-80 rounded-full opacity-10"
+        style={{
+          background: "radial-gradient(circle, #2D6A4F, transparent 70%)",
+          animation: "blobB 15s ease-in-out infinite",
+        }}
+      />
+      {/* Blob C */}
+      <div
+        className="absolute -bottom-16 left-1/3 w-72 h-72 rounded-full opacity-10"
+        style={{
+          background: "radial-gradient(circle, #40916C, transparent 70%)",
+          animation: "blobC 10s ease-in-out infinite",
+        }}
+      />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-14">
           <Badge variant="organic" className="mb-4">Tính năng nền tảng</Badge>
@@ -61,7 +86,7 @@ export function FeaturesSection() {
           {FEATURES.map(({ icon: Icon, title, desc, accent }) => (
             <div
               key={title}
-              className="group relative bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1"
+              className="group relative bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1"
               style={{
                 boxShadow: "0 2px 12px rgba(45,106,79,0.07), 0 1px 3px rgba(0,0,0,0.04)",
               }}

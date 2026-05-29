@@ -1,11 +1,34 @@
+"use client";
+
 import Link from "next/link";
 import { Leaf, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ParticlesBg } from "@/components/ui/particles-bg";
 
 export function FarmerCta() {
   return (
-    <section className="hero-gradient py-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <section className="relative py-20 overflow-hidden">
+      {/* Video background */}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+      >
+        <source src="/videos/hero-rice-field.mp4" type="video/mp4" />
+      </video>
+
+      {/* Dark green overlay */}
+      <div
+        className="absolute inset-0"
+        style={{ background: "linear-gradient(135deg, rgba(27,67,50,0.90) 0%, rgba(45,106,79,0.78) 100%)" }}
+      />
+
+      {/* Particles */}
+      <ParticlesBg count={35} color="255,255,255" className="z-0" />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 className="text-3xl font-bold text-white mb-4">
           Nông dân đăng ký hoàn toàn miễn phí
         </h2>

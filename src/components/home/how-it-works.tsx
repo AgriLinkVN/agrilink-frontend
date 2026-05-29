@@ -138,65 +138,79 @@ export function HowItWorks() {
   const role = ROLES[active];
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-      {/* Header */}
-      <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold text-ink mb-3">Hoạt động như thế nào?</h2>
-        <p className="text-muted text-sm">Chọn vai trò để xem hướng dẫn phù hợp</p>
-      </div>
+    <section
+      className="relative overflow-hidden py-20"
+      style={{ background: "#FAFDF7" }}
+    >
+      {/* Dot grid overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: "radial-gradient(circle, #2D6A4F18 1px, transparent 1px)",
+          backgroundSize: "28px 28px",
+        }}
+      />
 
-      {/* Role tabs */}
-      <div className="flex justify-center gap-2 flex-wrap mb-12">
-        {ROLE_KEYS.map((key) => {
-          const r = ROLES[key];
-          const RIcon = r.icon;
-          const isActive = active === key;
-          return (
-            <button
-              key={key}
-              onClick={() => setActive(key)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium border transition-all duration-200"
-              style={
-                isActive
-                  ? { background: r.bg, borderColor: r.border, color: r.color, boxShadow: `0 0 0 3px ${r.border}30` }
-                  : { background: "white", borderColor: "#E5E7EB", color: "#6B7280" }
-              }
-            >
-              <RIcon size={15} />
-              {r.label}
-            </button>
-          );
-        })}
-      </div>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-bold text-ink mb-3">Hoạt động như thế nào?</h2>
+          <p className="text-muted text-sm">Chọn vai trò để xem hướng dẫn phù hợp</p>
+        </div>
 
-      {/* Steps */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-        {/* Connector line (desktop) */}
-        <div
-          className="hidden md:block absolute top-10 left-[calc(16.67%+1rem)] right-[calc(16.67%+1rem)] h-px"
-          style={{ background: `linear-gradient(to right, ${role.border}60, ${role.border}20, ${role.border}60)` }}
-        />
-
-        {role.steps.map(({ step, icon: StepIcon, title, desc }) => (
-          <div key={step} className="flex flex-col items-center text-center relative">
-            {/* Step circle */}
-            <div
-              className="relative w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-all duration-300"
-              style={{ background: role.bg, border: `2px solid ${role.border}` }}
-            >
-              <StepIcon size={28} style={{ color: role.color }} />
-              {/* Step badge */}
-              <span
-                className="absolute -top-2 -right-2 w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center"
-                style={{ background: role.color }}
+        {/* Role tabs */}
+        <div className="flex justify-center gap-2 flex-wrap mb-12">
+          {ROLE_KEYS.map((key) => {
+            const r = ROLES[key];
+            const RIcon = r.icon;
+            const isActive = active === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setActive(key)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium border transition-all duration-200"
+                style={
+                  isActive
+                    ? { background: r.bg, borderColor: r.border, color: r.color, boxShadow: `0 0 0 3px ${r.border}30` }
+                    : { background: "white", borderColor: "#E5E7EB", color: "#6B7280" }
+                }
               >
-                {step}
-              </span>
+                <RIcon size={15} />
+                {r.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Steps */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+          {/* Connector line (desktop) */}
+          <div
+            className="hidden md:block absolute top-10 left-[calc(16.67%+1rem)] right-[calc(16.67%+1rem)] h-px"
+            style={{ background: `linear-gradient(to right, ${role.border}60, ${role.border}20, ${role.border}60)` }}
+          />
+
+          {role.steps.map(({ step, icon: StepIcon, title, desc }) => (
+            <div key={step} className="flex flex-col items-center text-center relative">
+              {/* Step circle */}
+              <div
+                className="relative w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-all duration-300"
+                style={{ background: role.bg, border: `2px solid ${role.border}` }}
+              >
+                <StepIcon size={28} style={{ color: role.color }} />
+                {/* Step badge */}
+                <span
+                  className="absolute -top-2 -right-2 w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center"
+                  style={{ background: role.color }}
+                >
+                  {step}
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-ink mb-2">{title}</h3>
+              <p className="text-sm text-muted leading-relaxed max-w-xs">{desc}</p>
             </div>
-            <h3 className="text-base font-bold text-ink mb-2">{title}</h3>
-            <p className="text-sm text-muted leading-relaxed max-w-xs">{desc}</p>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );

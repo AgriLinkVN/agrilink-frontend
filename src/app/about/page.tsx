@@ -3,58 +3,16 @@
 import Link from "next/link";
 import {
   Leaf, CheckCircle, LayoutDashboard,
-  TrendingDown, Users, Eye, Database, Wifi, Trash2,
-  ShieldCheck, MapPin, QrCode,
+  TrendingDown, Users, ShieldCheck, MapPin,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth, ROLE_LABELS, ROLE_DASHBOARD } from "@/lib/auth-context";
 import { RoleExplorer } from "./role-explorer";
 import { MissionTimeline } from "./mission-timeline";
+import { ProblemCurve } from "./problem-curve";
 import { ParticlesBg } from "@/components/ui/particles-bg";
-
-/* ─── Problem Statement ─────────────────────────────────────────── */
-
-const PROBLEMS = [
-  {
-    icon: TrendingDown,
-    stat: "4–6 tầng",
-    title: "Chuỗi trung gian quá dài",
-    desc: "Nông dân bán 2.000đ/kg thanh long, người tiêu dùng trả 25.000đ — chênh lệch 12 lần do chuỗi trung gian 4–6 tầng.",
-  },
-  {
-    icon: Eye,
-    stat: "0 minh bạch",
-    title: "Thiếu minh bạch giá cả",
-    desc: "Nông dân không biết giá thị trường thực tế. Thương lái độc quyền thông tin, ép giá mua thấp hơn thực tế 30–50%.",
-  },
-  {
-    icon: QrCode,
-    stat: "Không rõ nguồn gốc",
-    title: "Không truy xuất nguồn gốc",
-    desc: "Người tiêu dùng không biết nông sản đến từ đâu, ai trồng, canh tác thế nào — mở đường cho hàng giả, hàng không đạt chuẩn.",
-  },
-  {
-    icon: Database,
-    stat: "Manh mún",
-    title: "Dữ liệu nông nghiệp rời rạc",
-    desc: "Không có hệ thống tổng hợp dữ liệu sản lượng, giá cả, vùng trồng — khiến hoạch định chính sách và kinh doanh đều khó.",
-  },
-  {
-    icon: Wifi,
-    stat: "~70% nông thôn",
-    title: "Khoảng cách công nghệ",
-    desc: "Phần lớn nông dân Việt Nam ở vùng nông thôn thiếu công cụ số phù hợp, ngôn ngữ địa phương, giao diện thân thiện.",
-  },
-  {
-    icon: Trash2,
-    stat: "20–35% thất thoát",
-    title: "Thất thoát sau thu hoạch",
-    desc: "Thiếu kết nối logistics và thông tin thị trường khiến 20–35% nông sản bị hỏng hoặc bán dưới giá thành sau thu hoạch.",
-  },
-];
 
 
 /* ─── Roadmap ───────────────────────────────────────────────────── */
@@ -147,76 +105,53 @@ export default function AboutPage() {
       </section>
 
       {/* ── Problem Statement ── */}
-      <section className="bg-surface-soft border-y border-hairline py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <Badge variant="organic" className="mb-4">Bài toán cần giải</Badge>
-            <h2 className="text-3xl font-bold text-ink mb-4">
-              Nông nghiệp Việt Nam đang gặp phải gì?
-            </h2>
-            <p className="text-muted max-w-2xl mx-auto text-sm leading-relaxed">
-              53 tỷ USD giá trị xuất khẩu mỗi năm — nhưng nông dân vẫn là mắt xích thiệt thòi nhất.
-              AgriLink ra đời để giải quyết 6 vấn đề cốt lõi này.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {PROBLEMS.map(({ icon: Icon, stat, title, desc }) => (
-              <div
-                key={title}
-                className="bg-white rounded-2xl border border-hairline p-5 flex gap-4 hover:border-primary-light transition-colors"
-                style={{ boxShadow: "0 2px 12px rgba(45,106,79,0.05)" }}
-              >
-                <div className="w-10 h-10 rounded-xl bg-surface-green flex items-center justify-center shrink-0 mt-0.5">
-                  <Icon size={18} className="text-primary" />
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-primary uppercase tracking-wide">{stat}</span>
-                  <h3 className="text-sm font-bold text-ink mb-1 mt-0.5">{title}</h3>
-                  <p className="text-xs text-muted leading-relaxed">{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <ProblemCurve />
 
       {/* ── Mission & Values ── */}
       <MissionTimeline />
 
-      {/* ── Roadmap ── */}
-      <section className="bg-surface-soft border-y border-hairline py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ── Roadmap — video background ── */}
+      <section className="relative py-20 overflow-hidden">
+        {/* Video bg */}
+        <video autoPlay muted loop playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/videos/hero-rice-field.mp4" type="video/mp4" />
+        </video>
+        {/* Dark green overlay */}
+        <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(27,67,50,0.88) 0%, rgba(45,106,79,0.80) 100%)" }} />
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <Badge variant="organic" className="mb-4">Lộ trình phát triển</Badge>
-            <h2 className="text-3xl font-bold text-ink mb-4">Từ MVP đến hệ sinh thái đầy đủ</h2>
-            <p className="text-muted text-sm max-w-xl mx-auto">
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-white/15 text-white border border-white/30 mb-4">
+              Lộ trình phát triển
+            </span>
+            <h2 className="text-3xl font-bold text-white mb-4">Từ MVP đến hệ sinh thái đầy đủ</h2>
+            <p className="text-white/70 text-sm max-w-xl mx-auto">
               3 giai đoạn trong 36 tháng — từ thí điểm 2 tỉnh đến 34 tỉnh thành với AI và blockchain.
             </p>
           </div>
 
           {/* Timeline */}
           <div className="relative">
-            {/* Connector line */}
-            <div className="hidden md:block absolute top-8 left-[16.5%] right-[16.5%] h-0.5 bg-gradient-to-r from-[#52B788] via-[#2D6A4F] to-[#1B4332]" />
-
+            <div className="hidden md:block absolute top-8 left-[16.5%] right-[16.5%] h-px bg-linear-to-r from-white/20 via-white/50 to-white/20" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {ROADMAP.map(({ phase, period, label, color, items }) => (
                 <div key={phase} className="flex flex-col items-center text-center">
-                  {/* Phase circle */}
                   <div
-                    className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg mb-5 relative z-10"
-                    style={{ background: color, boxShadow: `0 4px 16px ${color}40` }}
+                    className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg mb-5 relative z-10 border-2 border-white/30"
+                    style={{ background: color, boxShadow: `0 4px 20px ${color}60` }}
                   >
                     {phase}
                   </div>
-                  <span className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color }}>
+                  <span className="text-xs font-semibold uppercase tracking-wider mb-1 text-white/60">
                     {period}
                   </span>
-                  <h3 className="text-base font-bold text-ink mb-4">{label}</h3>
+                  <h3 className="text-base font-bold text-white mb-4">{label}</h3>
                   <ul className="space-y-2 text-left w-full max-w-xs">
                     {items.map((item) => (
-                      <li key={item} className="flex items-start gap-2 text-sm text-muted">
-                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
+                      <li key={item} className="flex items-start gap-2 text-sm text-white/75">
+                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-white/60 shrink-0" />
                         {item}
                       </li>
                     ))}
@@ -228,9 +163,12 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── Role Explorer ── */}
-      <div className="border-t border-hairline bg-white">
-        <RoleExplorer currentRole={user?.role} />
+      {/* ── Role Explorer — floating leaf particles ── */}
+      <div className="relative overflow-hidden border-t border-hairline" style={{ background: "#F0FFF4" }}>
+        <ParticlesBg count={30} color="45,106,79" className="z-0 opacity-40" />
+        <div className="relative z-10">
+          <RoleExplorer currentRole={user?.role} />
+        </div>
       </div>
 
       {/* ── Extra content for logged-in users ── */}
@@ -256,65 +194,71 @@ export default function AboutPage() {
         </section>
       )}
 
-      {/* ── Story + Impact ── */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center mb-10">
-          <Badge variant="vietgap" className="mb-4">Câu chuyện của chúng tôi</Badge>
-          <h2 className="text-3xl font-bold text-ink mb-4">Tại sao AgriLink ra đời?</h2>
-        </div>
-        <div className="prose prose-sm max-w-none text-muted leading-relaxed space-y-4 mb-12">
-          <p>
-            Năm 2023, một kilogram thanh long ở Bình Thuận được nông dân bán cho thương lái <strong className="text-ink">2.000đ</strong>. Cùng lúc đó, người tiêu dùng ở TP.HCM trả <strong className="text-ink">25.000đ</strong> cho cùng sản phẩm tại siêu thị. Khoảng cách 12 lần này không phải logistics — mà là <em>sự bất bình đẳng thông tin</em>.
-          </p>
-          <p>
-            AgriLink ra đời để phá vỡ sự bất bình đẳng này. Không phải bằng cách thêm một tầng trung gian khác, mà bằng cách trao lại thông tin cho từng người trong chuỗi giá trị — từ nông dân biết giá thị trường, đến người mua biết nguồn gốc sản phẩm, đến doanh nghiệp biết sản lượng vùng nguyên liệu.
-          </p>
-          <p>
-            Dự án khởi nghiệp sinh viên, xây dựng từ Đà Nẵng — nhưng nhắm đến toàn bộ chuỗi cung ứng nông nghiệp Việt Nam với 53 tỷ USD giá trị xuất khẩu mỗi năm.
-          </p>
-        </div>
-
-        {/* Impact numbers */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { icon: TrendingDown, value: "+15–30%", label: "Thu nhập nông dân tăng (mục tiêu)" },
-            { icon: Users, value: "100.000+", label: "Nông dân đến 2027" },
-            { icon: MapPin, value: "34 tỉnh", label: "Phủ sóng đến 2027" },
-            { icon: ShieldCheck, value: "100%", label: "Giao dịch có truy xuất nguồn gốc" },
-          ].map(({ icon: Icon, value, label }) => (
-            <div key={label} className="bg-surface-green rounded-xl border border-primary-light p-4 text-center">
-              <Icon size={20} className="text-primary mx-auto mb-2" />
-              <div className="text-lg font-bold text-primary mb-1">{value}</div>
-              <div className="text-xs text-muted leading-tight">{label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Team ── */}
-      <section className="bg-surface-soft border-y border-hairline py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl font-bold text-ink mb-2">Đội ngũ</h2>
-            <p className="text-muted text-sm">Những người xây dựng AgriLink</p>
-          </div>
-          <div className="flex justify-center gap-6 flex-wrap">
-            {TEAM.map(({ name, role, avatar }) => (
-              <div key={name} className="bg-white rounded-xl border border-hairline p-6 text-center w-44 card-shadow">
-                <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-white text-xl font-bold mx-auto mb-3">
-                  {avatar}
-                </div>
-                <p className="text-sm font-semibold text-ink">{name}</p>
-                <p className="text-xs text-muted mt-1">{role}</p>
+      {/* ── Story + Impact — split dark/light ── */}
+      <section className="overflow-hidden">
+        <div className="flex flex-col lg:flex-row min-h-120">
+          {/* Left — dark story panel */}
+          <div className="relative lg:w-1/2 py-16 px-8 lg:px-12 flex flex-col justify-center overflow-hidden"
+            style={{ background: "#1B4332" }}>
+            {/* Subtle dot pattern */}
+            <div className="absolute inset-0 pointer-events-none"
+              style={{
+                backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)",
+                backgroundSize: "24px 24px",
+              }} />
+            <div className="relative z-10 max-w-lg">
+              <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-white/80 border border-white/20 mb-6">
+                Câu chuyện của chúng tôi
+              </span>
+              <h2 className="text-3xl font-bold text-white mb-6">Tại sao AgriLink ra đời?</h2>
+              <div className="space-y-4 text-white/75 text-sm leading-relaxed">
+                <p>
+                  Năm 2023, một kilogram thanh long ở Bình Thuận được nông dân bán cho thương lái <strong className="text-white">2.000đ</strong>. Người tiêu dùng ở TP.HCM trả <strong className="text-white">25.000đ</strong> cho cùng sản phẩm. Khoảng cách 12 lần — không phải logistics, mà là <em className="text-primary-ultra-light">bất bình đẳng thông tin</em>.
+                </p>
+                <p>
+                  AgriLink trao lại thông tin cho từng người: nông dân biết giá thị trường, người mua biết nguồn gốc, doanh nghiệp biết sản lượng vùng nguyên liệu.
+                </p>
+                <p className="text-white/50 text-xs">
+                  Dự án khởi nghiệp sinh viên từ Đà Nẵng — nhắm đến 53 tỷ USD chuỗi nông sản Việt Nam.
+                </p>
               </div>
-            ))}
+            </div>
+          </div>
+
+          {/* Right — light impact panel */}
+          <div className="lg:w-1/2 py-16 px-8 lg:px-12 flex flex-col justify-center bg-white">
+            <h3 className="text-xl font-bold text-ink mb-8">Tác động kỳ vọng</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { icon: TrendingDown, value: "+15–30%", label: "Thu nhập nông dân tăng", color: "#2D6A4F" },
+                { icon: Users, value: "100.000+", label: "Nông dân đến 2027", color: "#40916C" },
+                { icon: MapPin, value: "34 tỉnh", label: "Phủ sóng đến 2027", color: "#52B788" },
+                { icon: ShieldCheck, value: "100%", label: "Giao dịch có truy xuất", color: "#1B4332" },
+              ].map(({ icon: Icon, value, label, color }) => (
+                <div key={label} className="rounded-2xl p-5 border border-hairline hover:border-primary-light transition-colors"
+                  style={{ background: `${color}08` }}>
+                  <Icon size={22} className="mb-3" style={{ color }} />
+                  <div className="text-2xl font-bold mb-1" style={{ color }}>{value}</div>
+                  <div className="text-xs text-muted leading-tight">{label}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── CTA bottom ── */}
-      <section className="hero-gradient py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    
+
+      {/* ── CTA bottom — video background ── */}
+      <section className="relative py-20 overflow-hidden">
+        <video autoPlay muted loop playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/videos/hero-rice-field.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(27,67,50,0.90) 0%, rgba(45,106,79,0.78) 100%)" }} />
+        <ParticlesBg count={35} color="255,255,255" className="z-0" />
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
             {user
               ? `Sẵn sàng bắt đầu, ${user.full_name.split(" ").slice(-1)[0]}?`

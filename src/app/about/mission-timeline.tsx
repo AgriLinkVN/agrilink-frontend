@@ -84,8 +84,8 @@ function TimelineCard({ item, index }: { item: Item; index: number }) {
         style={{ transitionDelay: `${index * 80}ms` }}
       >
         <div
-          className="bg-white rounded-2xl border border-hairline p-5 hover:border-primary-light transition-colors group"
-          style={{ boxShadow: "0 2px 16px rgba(45,106,79,0.07)" }}
+          className="bg-white rounded-2xl border border-hairline p-4 hover:border-primary-light transition-colors group"
+          style={{ boxShadow: "0 4px 24px rgba(45,106,79,0.12), 0 1px 4px rgba(0,0,0,0.06)" }}
         >
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0">
@@ -120,8 +120,18 @@ function TimelineCard({ item, index }: { item: Item; index: number }) {
 
 export function MissionTimeline() {
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-      <div className="text-center mb-14">
+    <section className="relative py-14 overflow-hidden" style={{ background: "#FAFDF7" }}>
+      {/* Dot grid pattern */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: "radial-gradient(circle, #2D6A4F18 1px, transparent 1px)",
+          backgroundSize: "28px 28px",
+        }}
+      />
+
+    <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="text-center mb-8">
         <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-badge-vietgap-bg text-badge-vietgap-text mb-4">
           Giá trị cốt lõi
         </span>
@@ -134,14 +144,17 @@ export function MissionTimeline() {
       {/* Timeline container */}
       <div className="relative">
         {/* Vertical line */}
-        <div className="hidden md:block absolute left-1/2 -translate-x-px top-0 bottom-0 w-px bg-gradient-to-b from-primary/10 via-primary/40 to-primary/10" />
+        <div className="hidden md:block absolute left-1/2 -translate-x-px top-0 bottom-0 w-px bg-linear-to-b from-primary/10 via-primary/40 to-primary/10" />
 
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col">
           {ITEMS.map((item, i) => (
-            <TimelineCard key={item.tag} item={item} index={i} />
+            <div key={item.tag} style={{ marginTop: i === 0 ? 0 : "-1.75rem", zIndex: i + 1, position: "relative" }}>
+              <TimelineCard item={item} index={i} />
+            </div>
           ))}
         </div>
       </div>
+    </div>
     </section>
   );
 }
