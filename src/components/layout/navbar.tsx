@@ -1,22 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
-  Search, Bell, Menu, X, Leaf,
+  Bell, Menu, X,
   ShoppingCart, MapPin, TrendingUp, LogIn,
   LayoutDashboard, LogOut, User, ChevronDown, Info,
+  Home,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth, ROLE_LABELS, ROLE_DASHBOARD } from "@/lib/auth-context";
 
 const NAV_LINKS = [
+  { label: "Trang chủ", href: "/", icon: Home },
+  { label: "Về chúng tôi", href: "/about", icon: Info },
   { label: "Sàn nông sản", href: "/marketplace", icon: ShoppingCart },
   { label: "Bản đồ vùng", href: "/map", icon: MapPin },
   { label: "Giá thị trường", href: "/prices", icon: TrendingUp },
-  { label: "Về chúng tôi", href: "/about", icon: Info },
 ];
 
 export function Navbar() {
@@ -24,13 +27,7 @@ export function Navbar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (searchOpen) searchRef.current?.focus();
-  }, [searchOpen]);
 
   function handleLogout() {
     logout();
@@ -41,18 +38,27 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-hairline shadow-sm">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center h-16 gap-6">
+        {/* 3-column layout: logo | nav center | actions */}
+        <div className="flex items-center h-16">
 
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Leaf size={18} className="text-white" />
-            </div>
-            <span className="text-lg font-bold text-primary hidden sm:block tracking-tight">AgriLink</span>
-          </Link>
+          {/* Logo — left col, fixed width */}
+          <div className="w-48 shrink-0 flex items-center">
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-9 h-9">
+                <Image
+                  src="/logo.png"
+                  alt="AgriLink"
+                  width={36}
+                  height={36}
+                  className="object-contain"
+                />
+              </div>
+              <span className="text-[15px] font-bold text-primary hidden sm:block tracking-tight leading-none">AgriLink</span>
+            </Link>
+          </div>
 
-          {/* Nav links — center, takes remaining space */}
-          <nav className="hidden lg:flex items-center gap-1 flex-1">
+          {/* Nav links — center col, grows and centers */}
+          <nav className="hidden lg:flex flex-1 items-center justify-center gap-1">
             {NAV_LINKS.map(({ label, href, icon: Icon }) => {
               const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
               return (
@@ -73,38 +79,8 @@ export function Navbar() {
             })}
           </nav>
 
-          {/* Right side actions */}
-          <div className="flex items-center gap-1 ml-auto">
-
-            {/* Search — expandable */}
-            <div className="relative hidden md:flex items-center">
-              {searchOpen ? (
-                <div className="flex items-center gap-2 h-9 px-3 rounded-full border border-primary ring-2 ring-primary/15 bg-white w-56 transition-all">
-                  <Search size={14} className="text-primary shrink-0" />
-                  <input
-                    ref={searchRef}
-                    type="search"
-                    placeholder="Tìm nông sản..."
-                    className="flex-1 bg-transparent text-sm text-ink placeholder:text-muted-soft outline-none"
-                    onBlur={() => setSearchOpen(false)}
-                  />
-                  <button
-                    onMouseDown={(e) => { e.preventDefault(); setSearchOpen(false); }}
-                    className="text-muted hover:text-ink transition-colors"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setSearchOpen(true)}
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-primary hover:bg-surface-green transition-all"
-                  aria-label="Tìm kiếm"
-                >
-                  <Search size={18} />
-                </button>
-              )}
-            </div>
+          {/* Right side actions — right col */}
+          <div className="flex items-center gap-1 ml-auto shrink-0">
 
             {/* Divider */}
             <div className="hidden md:block w-px h-5 bg-hairline mx-1" />
@@ -210,15 +186,7 @@ export function Navbar() {
       {mobileOpen && (
         <div className="lg:hidden border-t border-hairline bg-white">
           <div className="max-w-[1280px] mx-auto px-4 py-4 flex flex-col gap-1.5">
-            {/* Mobile search */}
-            <div className="flex items-center gap-2 h-10 px-4 rounded-full border border-hairline bg-surface-soft mb-2">
-              <Search size={15} className="text-muted shrink-0" />
-              <input
-                type="search"
-                placeholder="Tìm nông sản..."
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-soft"
-              />
-            </div>
+
 
             {NAV_LINKS.map(({ label, href, icon: Icon }) => {
               const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
