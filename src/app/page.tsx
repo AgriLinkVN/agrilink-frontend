@@ -56,7 +56,6 @@ export default function HomePage() {
           muted
           loop
           playsInline
-          poster="/images/hero-poster.jpg"
           className="absolute inset-0 w-full h-full object-cover"
           style={{ animation: "heroKenBurns 20s ease-in-out infinite alternate" }}
         >

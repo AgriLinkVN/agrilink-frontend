@@ -23,11 +23,15 @@ export interface RoleSection {
   cta: { label: string; href: string };
 }
 
+const GREEN = {
+  color: "text-[#2D6A4F]",
+  bgColor: "bg-[#F0FFF4]",
+  borderColor: "border-[#52B788]",
+};
+
 export const ROLE_SECTIONS: Record<UserRole, RoleSection> = {
   farmer: {
-    color: "text-[#2D6A4F]",
-    bgColor: "bg-[#F0FFF4]",
-    borderColor: "border-[#52B788]",
+    ...GREEN,
     icon: Sprout,
     headline: "AgriLink — đồng hành cùng người nông dân",
     subline: "Bán trực tiếp, giá minh bạch, không qua thương lái trung gian.",
@@ -35,16 +39,14 @@ export const ROLE_SECTIONS: Record<UserRole, RoleSection> = {
       { icon: TrendingUp, title: "Giá thị trường thực tế", desc: "Xem giá nông sản theo ngày từ 63 tỉnh thành. Không bị ép giá nữa." },
       { icon: Package, title: "Đăng sản phẩm dễ dàng", desc: "Chụp ảnh, nhập thông tin, đăng lên sàn trong 5 phút. Hỗ trợ offline." },
       { icon: QrCode, title: "Mã QR truy xuất nguồn gốc", desc: "Tạo mã QR cho từng lô hàng. Người mua tin tưởng hơn, bán được giá cao hơn." },
-      { icon: Shield, title: "Thanh toán bảo đảm Escrow", desc: "Tiền được giữ trung gian. Giao hàng thành công mới giải ngân." },
+      { icon: Shield, title: "Kết nối người mua trực tiếp", desc: "Liên hệ người mua không qua trung gian. Thỏa thuận giá và giao hàng tự do." },
       { icon: Truck, title: "Kết nối logistics tận nơi", desc: "GHN, Viettel Post đến tận xã. Đơn hàng giao toàn quốc." },
       { icon: Users, title: "Tham gia HTX số", desc: "Kết hợp với hộ lân cận tạo lô hàng lớn. Bán giá tốt hơn cho doanh nghiệp." },
     ],
     cta: { label: "Bắt đầu bán hàng — Miễn phí", href: "/auth/register" },
   },
   cooperative: {
-    color: "text-[#1D4ED8]",
-    bgColor: "bg-[#EFF6FF]",
-    borderColor: "border-[#93C5FD]",
+    ...GREEN,
     icon: Building2,
     headline: "AgriLink — nền tảng số hóa HTX nông nghiệp",
     subline: "Quản lý thành viên, tạo lô hàng tập thể, kết nối doanh nghiệp lớn.",
@@ -59,16 +61,14 @@ export const ROLE_SECTIONS: Record<UserRole, RoleSection> = {
     cta: { label: "Đăng ký HTX số", href: "/auth/register" },
   },
   buyer: {
-    color: "text-[#D97706]",
-    bgColor: "bg-[#FFFBEB]",
-    borderColor: "border-[#FCD34D]",
+    ...GREEN,
     icon: ShoppingBag,
     headline: "AgriLink — mua nông sản sạch trực tiếp từ nông trại",
     subline: "Không qua trung gian, giá tốt hơn, nguồn gốc rõ ràng.",
     features: [
       { icon: QrCode, title: "Truy xuất nguồn gốc QR", desc: "Quét mã QR biết ngay ai trồng, ở đâu, canh tác thế nào — từ hạt giống đến bàn ăn." },
       { icon: MapPin, title: "Tìm theo vùng địa lý", desc: "Bản đồ GIS giúp tìm nguồn hàng gần nhất hoặc đặc sản từng vùng miền." },
-      { icon: Shield, title: "Thanh toán Escrow an toàn", desc: "Tiền giữ trung gian. Hàng đến tay, kiểm tra hài lòng mới trả tiền." },
+      { icon: Shield, title: "Kết nối nông trại trực tiếp", desc: "Liên hệ người bán, thỏa thuận giá và nhận hàng không qua trung gian." },
       { icon: Star, title: "Đánh giá minh bạch", desc: "Hệ thống review đa chiều từ người mua thực — không có đánh giá ảo." },
       { icon: Truck, title: "Theo dõi đơn hàng realtime", desc: "Tracking từ nông trại → điểm giao → tận tay bạn. Cập nhật mỗi 30 phút." },
       { icon: Heart, title: "Wishlist & tái đặt hàng", desc: "Lưu sản phẩm yêu thích, đặt hàng định kỳ từ nông trại quen thuộc." },
@@ -76,9 +76,7 @@ export const ROLE_SECTIONS: Record<UserRole, RoleSection> = {
     cta: { label: "Khám phá sàn nông sản", href: "/marketplace" },
   },
   enterprise: {
-    color: "text-[#7C3AED]",
-    bgColor: "bg-[#F5F3FF]",
-    borderColor: "border-[#C4B5FD]",
+    ...GREEN,
     icon: Factory,
     headline: "AgriLink — nguồn cung nông sản ổn định cho doanh nghiệp",
     subline: "Thu mua số lượng lớn, hợp đồng dài hạn, chuỗi cung ứng minh bạch.",
@@ -87,15 +85,13 @@ export const ROLE_SECTIONS: Record<UserRole, RoleSection> = {
       { icon: BarChart3, title: "Dự báo nguồn cung AI", desc: "AI dự báo sản lượng 4–8 tuần tới theo vùng. Lập kế hoạch mua hàng chủ động." },
       { icon: Award, title: "Kiểm tra chứng nhận tự động", desc: "Tự động xác minh VietGAP, GlobalGAP, HACCP trước khi ký hợp đồng." },
       { icon: Globe, title: "Kết nối vùng nguyên liệu", desc: "Bản đồ GIS hiển thị 34 vùng trọng điểm, sản lượng dự kiến, lịch thu hoạch." },
-      { icon: Shield, title: "Hợp đồng điện tử", desc: "Ký hợp đồng số, escrow bảo đảm, tranh chấp xử lý trong 48h." },
+      { icon: Shield, title: "Hợp đồng điện tử", desc: "Ký hợp đồng số với nông trại và HTX. Lưu trữ, chia sẻ và quản lý toàn bộ trên nền tảng." },
       { icon: Truck, title: "Logistics tích hợp", desc: "Quản lý nhiều đơn vận chuyển cùng lúc. Dashboard theo dõi toàn bộ lô hàng." },
     ],
     cta: { label: "Liên hệ thu mua doanh nghiệp", href: "/contact" },
   },
   supplier: {
-    color: "text-[#DC2626]",
-    bgColor: "bg-[#FFF5F5]",
-    borderColor: "border-[#FCA5A5]",
+    ...GREEN,
     icon: Warehouse,
     headline: "AgriLink — kênh phân phối vật tư nông nghiệp số",
     subline: "Tiếp cận 8.6 triệu hộ nông dân trên toàn quốc.",
@@ -110,9 +106,7 @@ export const ROLE_SECTIONS: Record<UserRole, RoleSection> = {
     cta: { label: "Đăng ký bán vật tư", href: "/auth/register" },
   },
   state_agency: {
-    color: "text-[#0369A1]",
-    bgColor: "bg-[#F0F9FF]",
-    borderColor: "border-[#7DD3FC]",
+    ...GREEN,
     icon: Landmark,
     headline: "AgriLink — dữ liệu nông nghiệp quốc gia minh bạch",
     subline: "Giám sát thị trường, quản lý chính sách, hỗ trợ ra quyết định.",
@@ -127,9 +121,7 @@ export const ROLE_SECTIONS: Record<UserRole, RoleSection> = {
     cta: { label: "Truy cập cổng nhà nước", href: "/dashboard/state" },
   },
   logistics: {
-    color: "text-[#0F766E]",
-    bgColor: "bg-[#F0FDFA]",
-    borderColor: "border-[#5EEAD4]",
+    ...GREEN,
     icon: Navigation,
     headline: "AgriLink — mạng lưới logistics nông sản kết nối toàn quốc",
     subline: "Tối ưu tuyến đường, quản lý đơn hàng lạnh, tracking realtime.",
@@ -144,9 +136,7 @@ export const ROLE_SECTIONS: Record<UserRole, RoleSection> = {
     cta: { label: "Đăng ký đơn vị vận chuyển", href: "/auth/register" },
   },
   admin: {
-    color: "text-[#374151]",
-    bgColor: "bg-[#F9FAFB]",
-    borderColor: "border-[#D1D5DB]",
+    ...GREEN,
     icon: Settings,
     headline: "AgriLink — hệ thống quản trị nền tảng",
     subline: "Toàn quyền kiểm soát người dùng, nội dung, giao dịch và cấu hình hệ thống.",
@@ -162,12 +152,14 @@ export const ROLE_SECTIONS: Record<UserRole, RoleSection> = {
   },
 };
 
+const GREEN_TEXT = "text-[#2D6A4F]";
+
 export const ALL_ROLES: { role: UserRole; label: string; icon: React.ElementType; color: string }[] = [
-  { role: "farmer",       label: "Nông dân",         icon: Sprout,    color: "text-[#2D6A4F]" },
-  { role: "cooperative",  label: "Hợp tác xã",       icon: Building2, color: "text-[#1D4ED8]" },
-  { role: "buyer",        label: "Người mua",         icon: ShoppingBag, color: "text-[#D97706]" },
-  { role: "enterprise",   label: "Doanh nghiệp",      icon: Factory,   color: "text-[#7C3AED]" },
-  { role: "supplier",     label: "Nhà cung cấp",      icon: Warehouse, color: "text-[#DC2626]" },
-  { role: "state_agency", label: "Cơ quan nhà nước",  icon: Landmark,  color: "text-[#0369A1]" },
-  { role: "logistics",    label: "Logistics",          icon: Navigation, color: "text-[#0F766E]" },
+  { role: "farmer",       label: "Nông dân",         icon: Sprout,      color: GREEN_TEXT },
+  { role: "cooperative",  label: "Hợp tác xã",       icon: Building2,   color: GREEN_TEXT },
+  { role: "buyer",        label: "Người mua",         icon: ShoppingBag, color: GREEN_TEXT },
+  { role: "enterprise",   label: "Doanh nghiệp",      icon: Factory,     color: GREEN_TEXT },
+  { role: "supplier",     label: "Nhà cung cấp",      icon: Warehouse,   color: GREEN_TEXT },
+  { role: "state_agency", label: "Cơ quan nhà nước",  icon: Landmark,    color: GREEN_TEXT },
+  { role: "logistics",    label: "Logistics",          icon: Navigation,  color: GREEN_TEXT },
 ];
