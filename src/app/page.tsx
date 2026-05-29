@@ -2,7 +2,7 @@ import Link from "next/link";
 import {
   Leaf, Search, MapPin, TrendingUp, ShieldCheck, Truck,
   ArrowRight, Star, Users, Package, BarChart3, CheckCircle,
-  QrCode, Zap, Globe
+  QrCode, Zap, Globe, Phone
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
@@ -262,8 +262,8 @@ export default function HomePage() {
                     </span>
                     <span className="text-xs text-muted">/{product.unit}</span>
                   </div>
-                  <Button size="sm" className="text-xs px-3 h-8">
-                    Đặt mua
+                  <Button size="sm" variant="secondary" className="text-xs px-3 h-8 gap-1.5">
+                    <Phone size={12} />Liên hệ
                   </Button>
                 </div>
 

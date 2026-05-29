@@ -2,13 +2,36 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Leaf, Phone, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/lib/auth-context";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [method, setMethod] = useState<"password" | "otp">("password");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    const credential = method === "password" ? password : otp;
+    const result = await login(phone, credential);
+    if ("error" in result) {
+      setError(result.error);
+      setLoading(false);
+    } else {
+      router.push(result.dashboard);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-surface-soft flex">
@@ -68,12 +91,14 @@ export default function LoginPage() {
             ))}
           </div>
 
-          <form className="flex flex-col gap-4">
+          <form className="flex flex-col gap-4" onSubmit={handleLogin}>
             <Input
               label="Số điện thoại"
               type="tel"
               placeholder="0901 234 567"
               leftIcon={<Phone size={16} />}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
             />
 
             {method === "password" ? (
@@ -82,6 +107,8 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 placeholder="Nhập mật khẩu"
                 leftIcon={<Lock size={16} />}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 rightIcon={
                   <button type="button" onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -96,14 +123,20 @@ export default function LoginPage() {
                     type="text"
                     placeholder="Nhập mã 6 số"
                     maxLength={6}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
                   />
                 </div>
                 <div className="self-end">
-                  <Button variant="secondary" size="sm" className="h-12 whitespace-nowrap">
+                  <Button variant="secondary" size="sm" className="h-12 whitespace-nowrap" type="button">
                     Gửi OTP
                   </Button>
                 </div>
               </div>
+            )}
+
+            {error && (
+              <p className="text-sm text-error bg-[#FEE2E2] px-3 py-2 rounded-lg">{error}</p>
             )}
 
             <div className="flex items-center justify-between text-sm">
@@ -116,7 +149,7 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            <Button size="lg" className="mt-2 w-full">
+            <Button size="lg" className="mt-2 w-full" loading={loading} type="submit">
               Đăng nhập <ArrowRight size={18} />
             </Button>
           </form>
@@ -132,6 +165,33 @@ export default function LoginPage() {
             <p className="text-xs text-muted text-center leading-relaxed">
               🔒 Thông tin đăng nhập được mã hóa SSL. AgriLink không lưu trữ mật khẩu dạng plaintext và tuân thủ PDPA Việt Nam.
             </p>
+          </div>
+
+          {/* Demo accounts */}
+          <div className="mt-4 p-4 bg-[#FFFBEB] rounded-xl border border-[#FDE68A]">
+            <p className="text-xs font-semibold text-badge-traditional-text mb-3">🧪 Tài khoản demo · mật khẩu: <span className="font-mono">demo123</span> · OTP: <span className="font-mono">123456</span></p>
+            <div className="flex flex-col gap-1.5">
+              {[
+                { role: "Nông dân", phone: "0901111001" },
+                { role: "HTX", phone: "0901111002" },
+                { role: "Người mua", phone: "0901111003" },
+                { role: "Doanh nghiệp", phone: "0901111004" },
+                { role: "Nhà cung cấp", phone: "0901111005" },
+                { role: "Logistics", phone: "0901111007" },
+                { role: "Admin", phone: "0901111099" },
+              ].map(({ role, phone: p }) => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => { setPhone(p); setPassword("demo123"); setOtp("123456"); setError(""); }}
+                  className="flex items-center justify-between text-xs px-2 py-1 rounded hover:bg-badge-traditional-bg transition-colors text-left w-full"
+                >
+                  <span className="text-badge-traditional-text font-medium w-28">{role}</span>
+                  <span className="text-muted font-mono">{p}</span>
+                  <span className="text-primary text-xs">← dùng</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
