@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, Filter, MapPin, Star, SlidersHorizontal, Grid3X3, List, ChevronDown } from "lucide-react";
+import { Search, MapPin, Star, SlidersHorizontal, Grid3X3, List, ChevronDown, Phone } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
@@ -216,7 +216,7 @@ export default function MarketplacePage() {
                           <span className="text-lg font-bold text-primary">{product.price.toLocaleString("vi-VN")}đ</span>
                           <span className="text-xs text-muted">/{product.unit}</span>
                         </div>
-                        <Button size="sm" className="text-xs h-8 px-3">Đặt mua</Button>
+                        <Button size="sm" variant="secondary" className="text-xs h-8 px-3 gap-1.5"><Phone size={12} />Liên hệ</Button>
                       </div>
                     </div>
                   </Link>
@@ -244,7 +244,7 @@ export default function MarketplacePage() {
                     <div className="text-right shrink-0">
                       <div className="text-lg font-bold text-primary">{product.price.toLocaleString("vi-VN")}đ</div>
                       <div className="text-xs text-muted mb-2">/{product.unit}</div>
-                      <Button size="sm" className="text-xs h-8 px-3">Đặt mua</Button>
+                      <Button size="sm" variant="secondary" className="text-xs h-8 px-3 gap-1.5"><Phone size={12} />Liên hệ</Button>
                     </div>
                   </Link>
                 )
