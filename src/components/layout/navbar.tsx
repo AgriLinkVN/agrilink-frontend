@@ -42,16 +42,18 @@ export function Navbar() {
         <div className="flex items-center h-16">
 
           {/* Logo — left col, fixed width */}
-          <div className="w-48 shrink-0">
+          <div className="w-48 shrink-0 flex items-center">
             <Link href="/" className="flex items-center gap-2.5">
-              <Image
-                src="/logo.png"
-                alt="AgriLink"
-                width={40}
-                height={40}
-                className="object-contain"
-              />
-              <span className="text-lg font-bold text-primary hidden sm:block tracking-tight">AgriLink</span>
+              <div className="flex items-center justify-center w-9 h-9">
+                <Image
+                  src="/logo.png"
+                  alt="AgriLink"
+                  width={36}
+                  height={36}
+                  className="object-contain"
+                />
+              </div>
+              <span className="text-[15px] font-bold text-primary hidden sm:block tracking-tight leading-none">AgriLink</span>
             </Link>
           </div>
 
