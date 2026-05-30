@@ -7,7 +7,12 @@ import {
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
+<<<<<<< Updated upstream
 import { Badge, FarmingBadge } from "@/components/ui/badge";
+=======
+import { Badge, FarmingBadge, OrderStatusBadge } from "@/components/ui/badge";
+import { ReviewSection } from "@/components/reviews/ReviewSection";
+>>>>>>> Stashed changes
 
 /* ── Mock data — mirrors DB schema exactly ─────────────────────
    Tables used: products, product_images, product_certifications,
@@ -78,6 +83,7 @@ const SIMILAR_PRODUCTS = [
   { id: "7", name: "Xoài Úc ghép cành", pricePerUnit: 75000, unit: "kg", province: "Tiền Giang", icon: "🥭", rating: 4.5, farmingType: "globalgap" as const },
 ];
 
+<<<<<<< Updated upstream
 const SELLER_TYPE_LABEL: Record<string, { label: string; icon: React.ElementType }> = {
   individual: { label: "Hộ cá nhân", icon: User },
   cooperative: { label: "Hợp tác xã", icon: Building2 },
@@ -88,6 +94,14 @@ export default function ProductDetailPage() {
   const SellerIcon = SELLER_TYPE_LABEL[PRODUCT.seller.sellerType]?.icon ?? User;
   const sellerLabel = SELLER_TYPE_LABEL[PRODUCT.seller.sellerType]?.label ?? "Người bán";
 
+=======
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function ProductDetailPage({ params }: PageProps) {
+  const { id: productId } = await params;
+>>>>>>> Stashed changes
   return (
     <div className="min-h-screen bg-canvas">
       <Navbar />
@@ -377,6 +391,12 @@ export default function ProductDetailPage() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Reviews — added by P5. productId comes from the URL param so the
+          section loads the real product's reviews instead of mock data. */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <ReviewSection productId={productId} />
       </div>
 
       <Footer />
