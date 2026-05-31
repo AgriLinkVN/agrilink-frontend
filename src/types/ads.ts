@@ -1,8 +1,13 @@
 /** Backend response shapes for ad packages and campaigns.
- *  Field names match the backend entity serialization (camelCase). */
+ *  Field names match the backend entity serialization (camelCase),
+ *  which mirrors the SQL columns:
+ *    ad_packages.id (INT), ad_campaigns.{supplier_id, image_url, link_url,
+ *    start_date, end_date, total_impressions, total_clicks}
+ */
 
 export interface AdPackage {
-  id: string;
+  /** INTEGER per SQL doc */
+  id: number;
   name: string;
   adType: 'banner' | 'featured' | 'spotlight';
   price: number;
@@ -16,19 +21,21 @@ export interface AdPackage {
 
 export interface AdCampaign {
   id: string;
-  advertiserId: string;
-  packageId: string;
+  /** Owner of the campaign — supplier user id (matches SQL `supplier_id`). */
+  supplierId: string;
+  packageId: number;
   title: string;
-  bannerUrl: string;
-  targetUrl: string | null;
+  imageUrl: string;
+  linkUrl: string | null;
   /** Array of province IDs (empty = nationwide). */
   targetProvinces: number[];
   status: 'pending_approval' | 'active' | 'paused' | 'rejected' | 'expired';
   rejectionReason: string | null;
-  startsAt: string | null;
-  endsAt: string | null;
-  impressionCount: number;
-  clickCount: number;
+  /** ISO date string (DATE column, day precision). */
+  startDate: string | null;
+  endDate: string | null;
+  totalImpressions: number;
+  totalClicks: number;
   createdAt: string;
   package: AdPackage;
 }
@@ -36,7 +43,7 @@ export interface AdCampaign {
 /** Payload sent to POST /ads/campaigns */
 export interface CreateCampaignPayload {
   title: string;
-  packageId: string;
+  packageId: number;
   imageUrl: string;
   linkUrl?: string;
   targetProvinces?: number[];

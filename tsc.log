@@ -1,0 +1,2 @@
+src/components/ui/vietnam-map.tsx(4,24): error TS2307: Cannot find module 'd3-geo' or its corresponding type declarations.
+src/components/ui/vietnam-map.tsx(5,41): error TS2307: Cannot find module 'framer-motion' or its corresponding type declarations.

@@ -38,7 +38,7 @@ function CampaignCard({ campaign }: { campaign: AdCampaign }) {
   const maxImpressions = campaign.package?.maxImpressions ?? null;
   const impressionPct =
     maxImpressions && maxImpressions > 0
-      ? Math.min(100, Math.round((campaign.impressionCount / maxImpressions) * 100))
+      ? Math.min(100, Math.round((campaign.totalImpressions / maxImpressions) * 100))
       : null;
 
   const pause = useMutation({
@@ -55,9 +55,9 @@ function CampaignCard({ campaign }: { campaign: AdCampaign }) {
     <div className="bg-white rounded-xl border border-hairline card-shadow flex flex-col overflow-hidden">
       {/* Banner preview */}
       <div className="relative aspect-video bg-surface-soft overflow-hidden">
-        {campaign.bannerUrl ? (
+        {campaign.imageUrl ? (
           <img
-            src={campaign.bannerUrl}
+            src={campaign.imageUrl}
             alt={campaign.title}
             className="w-full h-full object-cover"
           />
@@ -94,7 +94,7 @@ function CampaignCard({ campaign }: { campaign: AdCampaign }) {
         {campaign.status === 'active' && impressionPct !== null && (
           <div>
             <div className="flex justify-between text-xs text-muted mb-1">
-              <span>{campaign.impressionCount.toLocaleString('vi-VN')} lượt hiển thị</span>
+              <span>{campaign.totalImpressions.toLocaleString('vi-VN')} lượt hiển thị</span>
               <span>{impressionPct}%</span>
             </div>
             <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
@@ -106,15 +106,15 @@ function CampaignCard({ campaign }: { campaign: AdCampaign }) {
           </div>
         )}
 
-        {(campaign.startsAt || campaign.endsAt) && (
+        {(campaign.startDate || campaign.endDate) && (
           <div className="flex items-center gap-1 text-xs text-muted">
             <Clock size={11} />
-            {campaign.startsAt
-              ? new Date(campaign.startsAt).toLocaleDateString('vi-VN')
+            {campaign.startDate
+              ? new Date(campaign.startDate).toLocaleDateString('vi-VN')
               : '—'}{' '}
             →{' '}
-            {campaign.endsAt
-              ? new Date(campaign.endsAt).toLocaleDateString('vi-VN')
+            {campaign.endDate
+              ? new Date(campaign.endDate).toLocaleDateString('vi-VN')
               : '—'}
           </div>
         )}

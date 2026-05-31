@@ -87,13 +87,13 @@ export function CampaignAnalytics({ campaignId }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Tổng hiển thị"
-          value={campaign.impressionCount.toLocaleString('vi-VN')}
+          value={campaign.totalImpressions.toLocaleString('vi-VN')}
           icon={Eye}
           variant="default"
         />
         <StatCard
           title="Tổng click"
-          value={campaign.clickCount.toLocaleString('vi-VN')}
+          value={campaign.totalClicks.toLocaleString('vi-VN')}
           icon={MousePointerClick}
           variant="green"
         />
@@ -110,8 +110,8 @@ export function CampaignAnalytics({ campaignId }: Props) {
           icon={CalendarClock}
           variant="harvest"
           subtitle={
-            campaign.endsAt
-              ? `Kết thúc ${new Date(campaign.endsAt).toLocaleDateString('vi-VN')}`
+            campaign.endDate
+              ? `Kết thúc ${new Date(campaign.endDate).toLocaleDateString('vi-VN')}`
               : 'Chưa xác định'
           }
         />

@@ -89,9 +89,9 @@ export function CampaignTable({ status }: Props) {
                   {/* Banner thumbnail */}
                   <td className="px-4 py-3">
                     <div className="w-20 h-[45px] rounded overflow-hidden bg-surface-soft border border-hairline shrink-0 flex items-center justify-center">
-                      {campaign.bannerUrl ? (
+                      {campaign.imageUrl ? (
                         <img
-                          src={campaign.bannerUrl}
+                          src={campaign.imageUrl}
                           alt={campaign.title}
                           className="w-full h-full object-cover"
                         />
@@ -106,10 +106,10 @@ export function CampaignTable({ status }: Props) {
                     <p className="font-medium text-ink truncate">{campaign.title}</p>
                   </td>
 
-                  {/* Supplier — show advertiserId as placeholder */}
+                  {/* Supplier — show supplierId as placeholder */}
                   <td className="px-4 py-3">
                     <p className="text-xs font-mono text-muted truncate max-w-[120px]">
-                      {campaign.advertiserId.slice(0, 8)}…
+                      {campaign.supplierId.slice(0, 8)}…
                     </p>
                   </td>
 

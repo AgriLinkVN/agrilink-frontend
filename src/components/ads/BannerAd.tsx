@@ -47,13 +47,13 @@ export function BannerAd({ campaign }: { campaign: AdCampaign }) {
         Quảng cáo
       </span>
       <a
-        href={campaign.targetUrl ?? '#'}
+        href={campaign.linkUrl ?? '#'}
         target="_blank"
         rel="noopener noreferrer"
         onClick={handleClick}
       >
         <img
-          src={campaign.bannerUrl}
+          src={campaign.imageUrl}
           alt={campaign.title}
           className="w-full object-cover aspect-[16/5]"
         />

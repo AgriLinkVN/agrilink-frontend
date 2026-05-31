@@ -132,8 +132,8 @@ export default function AdminCampaignDetailPage() {
     : PROVINCES.filter((p) => parsedProvinces.includes(p.id)).map((p) => p.name).join(', ');
 
   const ctr =
-    campaign.impressionCount > 0
-      ? ((campaign.clickCount / campaign.impressionCount) * 100).toFixed(2)
+    campaign.totalImpressions > 0
+      ? ((campaign.totalClicks / campaign.totalImpressions) * 100).toFixed(2)
       : '0.00';
 
   return (
@@ -152,8 +152,8 @@ export default function AdminCampaignDetailPage() {
       <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
         {/* Banner */}
         <div className="rounded-2xl overflow-hidden border border-hairline bg-surface-soft">
-          {campaign.bannerUrl ? (
-            <img src={campaign.bannerUrl} alt={campaign.title} className="w-full object-cover" />
+          {campaign.imageUrl ? (
+            <img src={campaign.imageUrl} alt={campaign.title} className="w-full object-cover" />
           ) : (
             <div className="w-full aspect-video flex items-center justify-center text-muted">
               <ImageOff size={36} />
@@ -166,7 +166,7 @@ export default function AdminCampaignDetailPage() {
           <h2 className="font-semibold text-ink">Thông tin chiến dịch</h2>
           <div className="flex flex-col gap-3">
             <InfoRow label="Supplier ID">
-              <span className="font-mono text-xs">{campaign.advertiserId}</span>
+              <span className="font-mono text-xs">{campaign.supplierId}</span>
             </InfoRow>
             <InfoRow label="Gói quảng cáo">
               {campaign.package?.name ?? '—'} — {campaign.package
@@ -177,10 +177,10 @@ export default function AdminCampaignDetailPage() {
               {campaign.package?.durationDays ?? '—'} ngày
             </InfoRow>
             <InfoRow label="Link đích">
-              {campaign.targetUrl ? (
-                <a href={campaign.targetUrl} target="_blank" rel="noopener noreferrer"
+              {campaign.linkUrl ? (
+                <a href={campaign.linkUrl} target="_blank" rel="noopener noreferrer"
                    className="text-primary hover:underline break-all">
-                  {campaign.targetUrl}
+                  {campaign.linkUrl}
                 </a>
               ) : '—'}
             </InfoRow>
@@ -202,13 +202,13 @@ export default function AdminCampaignDetailPage() {
                 hour: '2-digit', minute: '2-digit',
               })}
             </InfoRow>
-            {campaign.startsAt && (
+            {campaign.startDate && (
               <InfoRow label="Chạy từ">
                 <span className="flex items-center gap-1">
                   <Clock size={13} className="text-muted" />
-                  {new Date(campaign.startsAt).toLocaleDateString('vi-VN')}
+                  {new Date(campaign.startDate).toLocaleDateString('vi-VN')}
                   {' → '}
-                  {campaign.endsAt ? new Date(campaign.endsAt).toLocaleDateString('vi-VN') : '?'}
+                  {campaign.endDate ? new Date(campaign.endDate).toLocaleDateString('vi-VN') : '?'}
                 </span>
               </InfoRow>
             )}
@@ -223,8 +223,8 @@ export default function AdminCampaignDetailPage() {
             </h2>
             <div className="grid grid-cols-3 gap-4 text-center">
               {[
-                { label: 'Lượt hiển thị', value: campaign.impressionCount.toLocaleString('vi-VN'), icon: Eye },
-                { label: 'Lượt click', value: campaign.clickCount.toLocaleString('vi-VN'), icon: MousePointer },
+                { label: 'Lượt hiển thị', value: campaign.totalImpressions.toLocaleString('vi-VN'), icon: Eye },
+                { label: 'Lượt click', value: campaign.totalClicks.toLocaleString('vi-VN'), icon: MousePointer },
                 { label: 'CTR', value: `${ctr}%`, icon: BarChart2 },
               ].map(({ label, value, icon: Icon }) => (
                 <div key={label} className="flex flex-col items-center gap-1 p-3 rounded-xl bg-surface-soft">
