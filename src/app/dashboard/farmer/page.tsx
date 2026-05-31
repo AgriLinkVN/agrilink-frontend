@@ -48,7 +48,7 @@ export default function FarmerDashboardPage() {
         <AlertCircle size={18} className="text-[#854D0E] shrink-0 mt-0.5" />
         <div>
           <p className="text-sm font-semibold text-[#854D0E]">Hành động cần thiết</p>
-          <p className="text-sm text-[#92400E]">Sản phẩm "Ổi lê Đài Loan" đã hết hàng. Cập nhật tồn kho để tiếp tục nhận đơn.</p>
+          <p className="text-sm text-[#92400E]">Sản phẩm &quot;Ổi lê Đài Loan&quot; đã hết hàng. Cập nhật tồn kho để tiếp tục nhận đơn.</p>
         </div>
         <Button variant="ghost" size="sm" className="ml-auto shrink-0 text-[#854D0E] hover:bg-[#FEF08A]">
           Cập nhật

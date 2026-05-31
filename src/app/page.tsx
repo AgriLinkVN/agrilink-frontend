@@ -126,6 +126,10 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* P5: BannerSlider — Quảng cáo nhà cung cấp */}
+      {/* Nhờ P6 (Lê Trí Trung) uncomment dòng dưới và đặt vào đúng vị trí trong layout của họ */}
+      {/* <BannerSlider /> */}
+
       {/* ===== STATS ===== */}
       <StatsSection />
 

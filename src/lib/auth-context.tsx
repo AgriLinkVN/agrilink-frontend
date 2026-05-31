@@ -1,55 +1,23 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useCallback,
+  useState,
+} from "react";
 import type { User, UserRole } from "@/types";
-
-const DEMO_USERS: Record<string, User & { password: string; dashboard: string }> = {
-  "0901111001": {
-    id: "u1", full_name: "Nguyễn Văn Hùng", phone: "0901111001",
-    role: "farmer", status: "active", password: "demo123",
-    dashboard: "/dashboard/farmer",
-  },
-  "0901111002": {
-    id: "u2", full_name: "HTX Rau Sạch Lâm Đồng", phone: "0901111002",
-    role: "cooperative", status: "active", password: "demo123",
-    dashboard: "/dashboard/cooperative",
-  },
-  "0901111003": {
-    id: "u3", full_name: "Trần Thị Mai", phone: "0901111003",
-    role: "buyer", status: "active", password: "demo123",
-    dashboard: "/dashboard/buyer",
-  },
-  "0901111004": {
-    id: "u4", full_name: "Công ty CP Thực Phẩm Việt", phone: "0901111004",
-    role: "enterprise", status: "active", password: "demo123",
-    dashboard: "/dashboard/enterprise",
-  },
-  "0901111005": {
-    id: "u5", full_name: "Nhà cung cấp Nông Cụ Miền Nam", phone: "0901111005",
-    role: "supplier", status: "active", password: "demo123",
-    dashboard: "/dashboard/supplier",
-  },
-  "0901111006": {
-    id: "u6", full_name: "Sở NN&PTNT Đà Nẵng", phone: "0901111006",
-    role: "state_agency", status: "active", password: "demo123",
-    dashboard: "/dashboard/state",
-  },
-  "0901111007": {
-    id: "u7", full_name: "GHN Express Đà Nẵng", phone: "0901111007",
-    role: "logistics", status: "active", password: "demo123",
-    dashboard: "/dashboard/logistics",
-  },
-  "0901111099": {
-    id: "u99", full_name: "Admin AgriLink", phone: "0901111099",
-    role: "admin", status: "active", password: "demo123",
-    dashboard: "/dashboard/admin",
-  },
-};
+import { useAuthStore } from "@/store/authStore";
 
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
-  login: (phone: string, credential: string) => Promise<{ dashboard: string } | { error: string }>;
+  login: (
+    phone: string,
+    credential: string,
+    method?: "password" | "otp",
+  ) => Promise<{ dashboard: string } | { error: string }>;
   logout: () => void;
 }
 
@@ -60,40 +28,104 @@ const AuthContext = createContext<AuthContextValue>({
   logout: () => {},
 });
 
-const STORAGE_KEY = "agrilink_user";
-
+/**
+ * AuthProvider wraps the app. Its job is now thin: it exposes a `useAuth()`
+ * React-Context API to legacy callers (login page, navbar) while delegating
+ * **all** state to the Zustand `useAuthStore`. That makes P5 components which
+ * read from `useAuthStore.accessToken` see the same value as P1/P6 components
+ * reading from `useAuth().user` — single source of truth.
+ *
+ * Migration target: callers should switch to `useAuthStore` directly.
+ */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Read straight from the persisted Zustand store
+  const user = useAuthStore((s) => s.user);
+  const setAuth = useAuthStore((s) => s.setAuth);
+  const clearAuth = useAuthStore((s) => s.logout);
 
+  // Local flag to suppress UI flicker during Zustand persist rehydration
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) setUser(JSON.parse(stored));
-    } catch {}
-    setIsLoading(false);
+    setHydrated(true);
   }, []);
 
-  const login = useCallback(async (phone: string, credential: string): Promise<{ dashboard: string } | { error: string }> => {
-    const normalized = phone.replace(/\s/g, "");
-    const account = DEMO_USERS[normalized];
-    if (!account) return { error: "Số điện thoại không tồn tại trong hệ thống demo." };
-    if (credential !== "demo123" && credential !== "123456") {
-      return { error: "Thông tin đăng nhập không đúng. Dùng: demo123 hoặc OTP 123456" };
-    }
-    const { password: _, dashboard, ...userData } = account;
-    setUser(userData);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
-    return { dashboard };
-  }, []);
+  const login = useCallback(
+    async (
+      phone: string,
+      credential: string,
+      method: "password" | "otp" = "password",
+    ): Promise<{ dashboard: string } | { error: string }> => {
+      try {
+        const normalizedPhone = phone.replace(/\s/g, "");
+
+        const endpoint = method === "password" ? "/auth/login" : "/auth/login-otp";
+        const payload =
+          method === "password"
+            ? { phone: normalizedPhone, password: credential }
+            : { target: normalizedPhone, code: credential, purpose: "login" };
+
+        const backend =
+          process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+
+        const res = await fetch(`${backend}/api/v1${endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          return {
+            error:
+              (errorData as { message?: string }).message ??
+              "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
+          };
+        }
+
+        const data = (await res.json()) as {
+          data?: { accessToken?: string };
+          accessToken?: string;
+        };
+        const token = data.data?.accessToken ?? data.accessToken;
+        if (!token) return { error: "Không nhận được token từ máy chủ." };
+
+        const userRes = await fetch(`${backend}/api/v1/users/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!userRes.ok) return { error: "Không thể lấy thông tin người dùng." };
+
+        const userPayload = (await userRes.json()) as { data?: User } & User;
+        const userData = (userPayload.data ?? userPayload) as User;
+
+        // Single source of truth — persisted by zustand
+        setAuth(token, userData);
+
+        // Keep legacy keys in sync for any consumer still reading raw localStorage
+        try {
+          localStorage.setItem("agrilink_access_token", token);
+          localStorage.setItem("agrilink_user", JSON.stringify(userData));
+        } catch {}
+
+        const dashboard = ROLE_DASHBOARD[userData.role] ?? "/";
+        return { dashboard };
+      } catch (error) {
+        console.error("Login error:", error);
+        return { error: "Lỗi kết nối máy chủ. Vui lòng thử lại sau." };
+      }
+    },
+    [setAuth],
+  );
 
   const logout = useCallback(() => {
-    setUser(null);
-    localStorage.removeItem(STORAGE_KEY);
-  }, []);
+    clearAuth();
+    try {
+      localStorage.removeItem("agrilink_user");
+      localStorage.removeItem("agrilink_access_token");
+    } catch {}
+  }, [clearAuth]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading: !hydrated, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

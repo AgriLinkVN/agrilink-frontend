@@ -60,7 +60,7 @@ export default function PrivacyPage() {
           <section className="space-y-3">
             <h2 className="text-xl font-bold text-ink">5. Quyền của người dùng</h2>
             <p className="text-sm text-muted leading-relaxed">
-              Bạn có quyền truy cập, chỉnh sửa thông tin cá nhân bất kỳ lúc nào thông qua phần "Hồ sơ" trên ứng dụng AgriLink. Bạn cũng có quyền yêu cầu xóa tài khoản và toàn bộ dữ liệu liên quan — yêu cầu này sẽ được xử lý trong vòng 30 ngày làm việc.
+              Bạn có quyền truy cập, chỉnh sửa thông tin cá nhân bất kỳ lúc nào thông qua phần &quot;Hồ sơ&quot; trên ứng dụng AgriLink. Bạn cũng có quyền yêu cầu xóa tài khoản và toàn bộ dữ liệu liên quan — yêu cầu này sẽ được xử lý trong vòng 30 ngày làm việc.
             </p>
             <p className="text-sm text-muted leading-relaxed">
               Bạn có thể từ chối nhận thông báo marketing bất kỳ lúc nào thông qua cài đặt thông báo trong ứng dụng. Lưu ý rằng thông báo giao dịch (xác nhận đơn hàng, cập nhật vận chuyển) không thể tắt vì cần thiết cho hoạt động dịch vụ.

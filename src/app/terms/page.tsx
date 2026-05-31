@@ -23,7 +23,7 @@ export default function TermsPage() {
               AgriLink Vietnam cung cấp nền tảng số kết nối nông dân, hợp tác xã, doanh nghiệp thu mua và nhà phân phối trong chuỗi nông sản Việt Nam. AgriLink đóng vai trò là trung gian công nghệ — chúng tôi không trực tiếp mua, bán hoặc sở hữu bất kỳ sản phẩm nông nghiệp nào được đăng trên nền tảng.
             </p>
             <p className="text-sm text-muted leading-relaxed">
-              Nền tảng được cung cấp theo hiện trạng ("as-is"). AgriLink có quyền tạm dừng hoặc chấm dứt dịch vụ để bảo trì, nâng cấp hệ thống mà không cần thông báo trước. Người dùng cần đủ 18 tuổi hoặc có sự đồng ý của người giám hộ hợp pháp để sử dụng nền tảng.
+              Nền tảng được cung cấp theo hiện trạng (&quot;as-is&quot;). AgriLink có quyền tạm dừng hoặc chấm dứt dịch vụ để bảo trì, nâng cấp hệ thống mà không cần thông báo trước. Người dùng cần đủ 18 tuổi hoặc có sự đồng ý của người giám hộ hợp pháp để sử dụng nền tảng.
             </p>
           </section>
 
