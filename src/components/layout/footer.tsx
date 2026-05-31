@@ -14,28 +14,28 @@ const FOOTER_LINKS = {
   users: {
     title: "Đối tượng",
     links: [
-      { label: "Nông dân & Hộ sản xuất", href: "/for/farmers" },
-      { label: "Hợp tác xã", href: "/for/cooperatives" },
-      { label: "Người mua & Doanh nghiệp", href: "/for/buyers" },
-      { label: "Nhà cung cấp nông cụ", href: "/for/suppliers" },
+      { label: "Nông dân & Hộ sản xuất", href: "/for#farmers" },
+      { label: "Hợp tác xã", href: "/for#cooperatives" },
+      { label: "Người mua & Doanh nghiệp", href: "/for#buyers" },
+      { label: "Nhà cung cấp nông cụ", href: "/for#suppliers" },
     ],
   },
   support: {
     title: "Hỗ trợ",
     links: [
-      { label: "Trung tâm trợ giúp", href: "/help" },
-      { label: "Hướng dẫn sử dụng", href: "/guide" },
-      { label: "Liên hệ chúng tôi", href: "/contact" },
-      { label: "Báo cáo sự cố", href: "/report" },
+      { label: "Trung tâm trợ giúp", href: "/support#help" },
+      { label: "Hướng dẫn sử dụng", href: "/support#guide" },
+      { label: "Liên hệ chúng tôi", href: "/support#contact" },
+      { label: "Báo cáo sự cố", href: "/support#report" },
     ],
   },
   company: {
     title: "AgriLink Vietnam",
     links: [
       { label: "Về chúng tôi", href: "/about" },
-      { label: "Tuyển dụng", href: "/careers" },
-      { label: "Blog nông nghiệp", href: "/blog" },
-      { label: "Đối tác", href: "/partners" },
+      { label: "Tuyển dụng", href: "/company#careers" },
+      { label: "Blog nông nghiệp", href: "/company#blog" },
+      { label: "Đối tác", href: "/company#partners" },
     ],
   },
 };

@@ -1,6 +1,7 @@
 import { Sidebar } from "./sidebar";
 import { type UserRole } from "@/types";
-import { Bell, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -37,10 +38,7 @@ export function DashboardLayout({
           </div>
 
           <div className="ml-auto flex items-center gap-2">
-            <button className="relative w-9 h-9 rounded-full flex items-center justify-center hover:bg-surface-soft transition-colors text-muted hover:text-ink">
-              <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full" />
-            </button>
+            <NotificationBell />
           </div>
         </header>
 
