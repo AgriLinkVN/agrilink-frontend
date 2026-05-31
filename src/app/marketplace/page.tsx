@@ -1,35 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Search, MapPin, Star, SlidersHorizontal, Grid3X3, List, ChevronDown, Phone } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
-import { Badge, FarmingBadge } from "@/components/ui/badge";
+import { FarmingBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import {
+  fetchProducts,
+  getPrimaryImage,
+  getProductProvince,
+  type Product,
+} from "@/lib/products-api";
 
-const PRODUCTS = [
-  { id: "1", name: "Xoài cát Hòa Lộc loại 1", province: "Tiền Giang", price: 45000, unit: "kg", farming_type: "vietgap" as const, rating: 4.8, sold: 1200, seller: "HTX Xoài Cát Tiền Giang", stock: 500, harvest_date: "15/06/2025", icon: "🥭" },
-  { id: "2", name: "Rau muống hữu cơ Đà Lạt", province: "Lâm Đồng", price: 25000, unit: "kg", farming_type: "organic" as const, rating: 4.9, sold: 890, seller: "Nông trại Xanh", stock: 200, harvest_date: "01/06/2025", icon: "🥬" },
-  { id: "3", name: "Thanh long ruột đỏ xuất khẩu", province: "Bình Thuận", price: 35000, unit: "kg", farming_type: "globalgap" as const, rating: 4.7, sold: 2100, seller: "HTX Thanh Long BT", stock: 1000, harvest_date: "20/06/2025", icon: "🍈" },
-  { id: "4", name: "Gạo ST25 đặc sản Sóc Trăng", province: "Sóc Trăng", price: 28000, unit: "kg", farming_type: "vietgap" as const, rating: 4.9, sold: 5400, seller: "Hộ Hồ Quang Cua", stock: 2000, harvest_date: "30/05/2025", icon: "🌾" },
-  { id: "5", name: "Cà phê Arabica Cầu Đất", province: "Lâm Đồng", price: 120000, unit: "kg", farming_type: "organic" as const, rating: 4.8, sold: 340, seller: "Nông trại Cầu Đất Farm", stock: 150, harvest_date: "Tháng 12/2025", icon: "☕" },
-  { id: "6", name: "Bưởi da xanh Bến Tre", province: "Bến Tre", price: 32000, unit: "kg", farming_type: "vietgap" as const, rating: 4.6, sold: 780, seller: "HTX Bưởi Bến Tre", stock: 800, harvest_date: "01/07/2025", icon: "🍋" },
-  { id: "7", name: "Dưa hấu không hạt", province: "Long An", price: 18000, unit: "kg", farming_type: "traditional" as const, rating: 4.5, sold: 1500, seller: "Hộ ông Trần Văn Bình", stock: 3000, harvest_date: "10/06/2025", icon: "🍉" },
-  { id: "8", name: "Sầu riêng Ri6 Tiền Giang", province: "Tiền Giang", price: 85000, unit: "kg", farming_type: "vietgap" as const, rating: 4.9, sold: 2800, seller: "HTX Sầu Riêng Cai Lậy", stock: 600, harvest_date: "15/07/2025", icon: "🥝" },
+const PROVINCES = ["Tất cả", "Tiền Giang", "Lâm Đồng", "Bình Thuận", "Sóc Trăng", "Bến Tre", "Long An"];
+const FARMING_TYPES: { label: string; value: string }[] = [
+  { label: "Hữu cơ", value: "organic" },
+  { label: "VietGAP", value: "vietgap" },
+  { label: "GlobalGAP", value: "globalgap" },
+  { label: "Truyền thống", value: "traditional" },
 ];
-
-const PROVINCES = ["Tất cả", "Tiền Giang", "Lâm Đồng", "Bình Thuận", "Sóc Trăng", "Bến Tre", "Long An", "Đà Lạt"];
-const FARMING_TYPES = ["Tất cả", "Hữu cơ", "VietGAP", "GlobalGAP", "Truyền thống"];
 const CATEGORIES = ["Tất cả", "Lúa gạo", "Rau củ", "Trái cây", "Thủy sản", "Cà phê - Gia vị"];
-const SORT_OPTIONS = ["Phổ biến nhất", "Giá thấp → cao", "Giá cao → thấp", "Mới nhất", "Đánh giá cao"];
+const SORT_OPTIONS = ["Mới nhất", "Giá thấp → cao", "Giá cao → thấp"];
 
 export default function MarketplacePage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedProvince, setSelectedProvince] = useState("Tất cả");
-  const [selectedSort, setSelectedSort] = useState("Phổ biến nhất");
-  const [showFilters, setShowFilters] = useState(false);
+  const [selectedSort, setSelectedSort] = useState("Mới nhất");
+  const [selectedFarming, setSelectedFarming] = useState<string[]>([]);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const limit = 12;
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const farming = selectedFarming.length === 1 ? selectedFarming[0] : undefined;
+    const result = await fetchProducts({ page, limit, search: search || undefined, farmingType: farming });
+    setProducts(result.data);
+    setTotal(result.total);
+    setLoading(false);
+  }, [page, search, selectedFarming]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -46,12 +67,17 @@ export default function MarketplacePage() {
               <Search size={16} className="text-muted shrink-0" />
               <input
                 type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { setSearch(searchInput); setPage(1); } }}
                 placeholder="Tìm sản phẩm, vùng trồng, HTX..."
                 className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-soft"
               />
             </div>
-            <Button className="rounded-full px-6">Tìm kiếm</Button>
-            <Button variant="secondary" className="rounded-full gap-2" onClick={() => setShowFilters(!showFilters)}>
+            <Button className="rounded-full px-6" onClick={() => { setSearch(searchInput); setPage(1); }}>
+              Tìm kiếm
+            </Button>
+            <Button variant="secondary" className="rounded-full gap-2">
               <SlidersHorizontal size={16} /> Bộ lọc
             </Button>
           </div>
@@ -91,7 +117,7 @@ export default function MarketplacePage() {
                   {PROVINCES.map((p) => (
                     <button
                       key={p}
-                      onClick={() => setSelectedProvince(p)}
+                      onClick={() => { setSelectedProvince(p); setPage(1); }}
                       className={cn(
                         "text-left px-3 py-2 rounded-lg text-sm transition-all",
                         selectedProvince === p
@@ -109,10 +135,20 @@ export default function MarketplacePage() {
               <div>
                 <h3 className="text-sm font-semibold text-ink mb-3">Loại canh tác</h3>
                 <div className="flex flex-col gap-2">
-                  {FARMING_TYPES.map((type) => (
-                    <label key={type} className="flex items-center gap-2 cursor-pointer group">
-                      <input type="checkbox" className="accent-primary w-4 h-4 rounded" defaultChecked={type === "Tất cả"} />
-                      <span className="text-sm text-muted group-hover:text-ink transition-colors">{type}</span>
+                  {FARMING_TYPES.map(({ label, value }) => (
+                    <label key={value} className="flex items-center gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        className="accent-primary w-4 h-4 rounded"
+                        checked={selectedFarming.includes(value)}
+                        onChange={(e) => {
+                          setSelectedFarming((prev) =>
+                            e.target.checked ? [...prev, value] : prev.filter((v) => v !== value)
+                          );
+                          setPage(1);
+                        }}
+                      />
+                      <span className="text-sm text-muted group-hover:text-ink transition-colors">{label}</span>
                     </label>
                   ))}
                 </div>
@@ -140,7 +176,19 @@ export default function MarketplacePage() {
                 ))}
               </div>
 
-              <Button variant="secondary" size="sm">Xóa bộ lọc</Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setSelectedFarming([]);
+                  setSelectedProvince("Tất cả");
+                  setSearch("");
+                  setSearchInput("");
+                  setPage(1);
+                }}
+              >
+                Xóa bộ lọc
+              </Button>
             </div>
           </aside>
 
@@ -149,7 +197,11 @@ export default function MarketplacePage() {
             {/* Toolbar */}
             <div className="flex items-center justify-between mb-6">
               <p className="text-sm text-muted">
-                Hiển thị <span className="font-semibold text-ink">{PRODUCTS.length}</span> sản phẩm
+                {loading ? (
+                  "Đang tải..."
+                ) : (
+                  <>Hiển thị <span className="font-semibold text-ink">{products.length}</span> / <span className="font-semibold text-ink">{total}</span> sản phẩm</>
+                )}
               </p>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1 border border-hairline rounded-lg p-1">
@@ -173,98 +225,120 @@ export default function MarketplacePage() {
               </div>
             </div>
 
-            {/* Product grid */}
-            <div className={cn(
-              viewMode === "grid"
-                ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5"
-                : "flex flex-col gap-4"
-            )}>
-              {PRODUCTS.map((product) => (
-                viewMode === "grid" ? (
-                  <Link
-                    key={product.id}
-                    href={`/marketplace/${product.id}`}
-                    className="group bg-white rounded-xl border border-hairline overflow-hidden card-shadow card-shadow-hover"
-                  >
-                    <div className="aspect-4/3 bg-surface-green flex items-center justify-center text-5xl relative">
-                      {product.icon}
-                      <div className="absolute top-3 right-3">
-                        <button className="w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors">
-                          ♡
-                        </button>
-                      </div>
+            {/* Loading skeleton */}
+            {loading && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="bg-white rounded-xl border border-hairline overflow-hidden animate-pulse">
+                    <div className="aspect-4/3 bg-surface-soft" />
+                    <div className="p-4 flex flex-col gap-2">
+                      <div className="h-4 bg-surface-soft rounded w-3/4" />
+                      <div className="h-3 bg-surface-soft rounded w-1/2" />
+                      <div className="h-5 bg-surface-soft rounded w-1/3 mt-2" />
                     </div>
-                    <div className="p-4">
-                      <div className="flex items-start gap-2 mb-1.5">
-                        <h3 className="text-sm font-semibold text-ink flex-1 leading-tight group-hover:text-primary transition-colors">
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Product grid */}
+            {!loading && (
+              <div className={cn(
+                viewMode === "grid"
+                  ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5"
+                  : "flex flex-col gap-4"
+              )}>
+                {products.map((product) => {
+                  const imageUrl = getPrimaryImage(product);
+                  const province = getProductProvince(product);
+                  return viewMode === "grid" ? (
+                    <Link
+                      key={product.id}
+                      href={`/marketplace/${product.id}`}
+                      className="group bg-white rounded-xl border border-hairline overflow-hidden card-shadow card-shadow-hover"
+                    >
+                      <div className="aspect-4/3 bg-surface-green relative overflow-hidden">
+                        <Image
+                          src={imageUrl}
+                          alt={product.name}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                        />
+                        {product.farmingType && (
+                          <div className="absolute top-3 right-3">
+                            <FarmingBadge type={product.farmingType} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <h3 className="text-sm font-semibold text-ink mb-1.5 leading-tight group-hover:text-primary transition-colors line-clamp-2">
                           {product.name}
                         </h3>
-                        <FarmingBadge type={product.farming_type} />
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-muted mb-2">
-                        <MapPin size={11} className="text-primary" />{product.province}
-                        <span className="mx-1">·</span>
-                        <span>Còn {product.stock.toLocaleString("vi-VN")} {product.unit}</span>
-                      </div>
-                      <div className="flex items-center gap-1 mb-3">
-                        <Star size={12} fill="#F59E0B" stroke="none" />
-                        <span className="text-xs font-semibold text-ink">{product.rating}</span>
-                        <span className="text-xs text-muted">· Đã bán {product.sold.toLocaleString("vi-VN")} {product.unit}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-lg font-bold text-primary">{product.price.toLocaleString("vi-VN")}đ</span>
-                          <span className="text-xs text-muted">/{product.unit}</span>
+                        <div className="flex items-center gap-1 text-xs text-muted mb-2">
+                          <MapPin size={11} className="text-primary shrink-0" />{province}
+                          <span className="mx-1">·</span>
+                          <span>Còn {product.availableQuantity.toLocaleString("vi-VN")} {product.unit}</span>
                         </div>
+                        <div className="flex items-center justify-between mt-3">
+                          <div>
+                            <span className="text-lg font-bold text-primary">{Number(product.pricePerUnit).toLocaleString("vi-VN")}đ</span>
+                            <span className="text-xs text-muted">/{product.unit}</span>
+                          </div>
+                          <Button size="sm" variant="secondary" className="text-xs h-8 px-3 gap-1.5">
+                            <Phone size={12} />Liên hệ
+                          </Button>
+                        </div>
+                      </div>
+                    </Link>
+                  ) : (
+                    <Link
+                      key={product.id}
+                      href={`/marketplace/${product.id}`}
+                      className="group bg-white rounded-xl border border-hairline p-4 card-shadow card-shadow-hover flex items-center gap-4"
+                    >
+                      <div className="w-20 h-20 rounded-xl bg-surface-green relative overflow-hidden shrink-0">
+                        <Image src={imageUrl} alt={product.name} fill className="object-cover" sizes="80px" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start gap-2 mb-1">
+                          <h3 className="text-sm font-semibold text-ink group-hover:text-primary transition-colors flex-1 truncate">{product.name}</h3>
+                          {product.farmingType && <FarmingBadge type={product.farmingType} />}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-muted mb-1">
+                          <span className="flex items-center gap-1"><MapPin size={11} className="text-primary" />{province}</span>
+                          <span>Còn {product.availableQuantity.toLocaleString("vi-VN")} {product.unit}</span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-lg font-bold text-primary">{Number(product.pricePerUnit).toLocaleString("vi-VN")}đ</div>
+                        <div className="text-xs text-muted mb-2">/{product.unit}</div>
                         <Button size="sm" variant="secondary" className="text-xs h-8 px-3 gap-1.5"><Phone size={12} />Liên hệ</Button>
                       </div>
-                    </div>
-                  </Link>
-                ) : (
-                  <Link
-                    key={product.id}
-                    href={`/marketplace/${product.id}`}
-                    className="group bg-white rounded-xl border border-hairline p-4 card-shadow card-shadow-hover flex items-center gap-4"
-                  >
-                    <div className="w-20 h-20 rounded-xl bg-surface-green flex items-center justify-center text-3xl shrink-0">
-                      {product.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start gap-2 mb-1">
-                        <h3 className="text-sm font-semibold text-ink group-hover:text-primary transition-colors flex-1">{product.name}</h3>
-                        <FarmingBadge type={product.farming_type} />
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-muted mb-1">
-                        <span className="flex items-center gap-1"><MapPin size={11} className="text-primary" />{product.province}</span>
-                        <span className="flex items-center gap-1"><Star size={11} fill="#F59E0B" stroke="none" />{product.rating}</span>
-                        <span>Còn {product.stock.toLocaleString("vi-VN")} {product.unit}</span>
-                      </div>
-                      <p className="text-xs text-muted">{product.seller}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-lg font-bold text-primary">{product.price.toLocaleString("vi-VN")}đ</div>
-                      <div className="text-xs text-muted mb-2">/{product.unit}</div>
-                      <Button size="sm" variant="secondary" className="text-xs h-8 px-3 gap-1.5"><Phone size={12} />Liên hệ</Button>
-                    </div>
-                  </Link>
-                )
-              ))}
-            </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Pagination */}
-            <div className="flex items-center justify-center gap-2 mt-10">
-              {[1,2,3,4,5].map((p) => (
-                <button
-                  key={p}
-                  className={cn(
-                    "w-9 h-9 rounded-lg text-sm font-medium transition-all",
-                    p === 1 ? "bg-primary text-white" : "border border-hairline text-muted hover:border-primary hover:text-primary"
-                  )}
-                >{p}</button>
-              ))}
-              <span className="text-muted px-2">...</span>
-              <button className="w-9 h-9 rounded-lg text-sm font-medium border border-hairline text-muted hover:border-primary hover:text-primary">12</button>
-            </div>
+            {!loading && totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-10">
+                {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
+                  const p = i + 1;
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={cn(
+                        "w-9 h-9 rounded-lg text-sm font-medium transition-all",
+                        p === page ? "bg-primary text-white" : "border border-hairline text-muted hover:border-primary hover:text-primary"
+                      )}
+                    >{p}</button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -48,7 +48,7 @@ const CATEGORIES = [
 
 export function CategoryStrip() {
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-4">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-18">
       <div className="flex gap-3 overflow-x-auto pb-2 category-scroll">
         {CATEGORIES.map(({ label, count, href, image, color }) => (
           <Link

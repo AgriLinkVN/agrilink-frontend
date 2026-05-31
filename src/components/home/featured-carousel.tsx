@@ -143,34 +143,48 @@ export function FeaturedCarousel() {
   };
 
   return (
-    <section className="py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="relative py-16 overflow-hidden">
+      {/* Forest background image */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=1600&q=80"
+          alt=""
+          className="w-full h-full object-cover"
+        />
+        {/* Dark green tint overlay */}
+        <div className="absolute inset-0" style={{ background: "rgba(15, 35, 20, 0.7)" }} />
+        {/* Blur layer */}
+        <div className="absolute inset-0 backdrop-blur-[0.3px]" />
+      </div>
+
+      <div className="relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 px-6 sm:px-10 lg:px-16">
           <div>
-            <h2 className="text-2xl font-bold text-ink">Sản phẩm nổi bật</h2>
-            <p className="text-muted mt-1 text-sm">Nông sản chất lượng từ khắp Việt Nam</p>
+            <h2 className="text-2xl font-bold text-white">Sản phẩm nổi bật</h2>
+            <p className="text-white/50 mt-1 text-sm">Nông sản chất lượng từ khắp Việt Nam</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleManualNav(activeIdx - 1)}
-              className="w-9 h-9 rounded-full border border-hairline bg-white flex items-center justify-center text-muted hover:border-primary hover:text-primary transition-all"
+              className="w-9 h-9 rounded-full border border-white/20 bg-white/10 flex items-center justify-center text-white/70 hover:border-primary hover:text-primary hover:bg-white/20 transition-all"
             >
               <ChevronLeft size={18} />
             </button>
             <button
               onClick={() => handleManualNav(activeIdx + 1)}
-              className="w-9 h-9 rounded-full border border-hairline bg-white flex items-center justify-center text-muted hover:border-primary hover:text-primary transition-all"
+              className="w-9 h-9 rounded-full border border-white/20 bg-white/10 flex items-center justify-center text-white/70 hover:border-primary hover:text-primary hover:bg-white/20 transition-all"
             >
               <ChevronRight size={18} />
             </button>
-            <Button variant="secondary" size="sm" asChild className="ml-2">
+            <Button size="sm" asChild className="ml-2 bg-primary hover:bg-primary/90">
               <Link href="/marketplace">Xem tất cả</Link>
             </Button>
           </div>
         </div>
 
-        {/* Track */}
+        {/* Track — full width */}
         <div
           ref={trackRef}
           className="flex gap-6 overflow-x-auto pb-4"
@@ -178,6 +192,7 @@ export function FeaturedCarousel() {
             scrollSnapType: "x mandatory",
             scrollbarWidth: "none",
             msOverflowStyle: "none",
+            paddingLeft: "clamp(24px, 4vw, 64px)",
           }}
         >
           {PRODUCTS.map((product) => (
@@ -247,7 +262,7 @@ export function FeaturedCarousel() {
               className="h-1.5 rounded-full transition-all duration-300"
               style={{
                 width: activeIdx === i ? "24px" : "6px",
-                background: activeIdx === i ? "#2D6A4F" : "#D1D5DB",
+                background: activeIdx === i ? "#52B788" : "rgba(255,255,255,0.25)",
               }}
             />
           ))}
