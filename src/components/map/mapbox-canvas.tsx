@@ -3,8 +3,7 @@
 import "mapbox-gl/dist/mapbox-gl.css";
 
 import mapboxgl from "mapbox-gl";
-import { Layers } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 const MAP_STYLES = {
@@ -12,10 +11,11 @@ const MAP_STYLES = {
   satellite: "mapbox://styles/mapbox/satellite-streets-v12",
 } as const;
 
-/**
- * Layer nhãn được phép hiện trên bản đồ.
- * Tất cả symbol layer khác sẽ bị ẩn hoàn toàn.
- */
+export type MapStyleKey = keyof typeof MAP_STYLES;
+
+/** Bounding box Việt Nam [Tây, Nam, Đông, Bắc] */
+const VIETNAM_BOUNDS: [number, number, number, number] = [102.1, 8.2, 109.6, 23.4];
+
 const ALLOWED_LABELS = [
   "country-label",
   "state-label",
@@ -24,13 +24,6 @@ const ALLOWED_LABELS = [
   "settlement-minor-label",
 ];
 
-/**
- * Tuỳ chỉnh style bản đồ:
- * 1. Ẩn hết tất cả symbol layer (text, icon)
- * 2. Bật lại chỉ nhãn tỉnh/thành phố/quốc gia
- * 3. Chuyển nhãn sang tiếng Việt
- * 4. Tô đậm viền ranh giới
- */
 function customizeMapStyle(map: mapboxgl.Map) {
   const style = map.getStyle();
   if (!style?.layers) return;
@@ -38,11 +31,9 @@ function customizeMapStyle(map: mapboxgl.Map) {
   for (const layer of style.layers) {
     const id = layer.id;
 
-    // Bước 1+2: Với tất cả symbol layer → ẩn, trừ whitelist
     if (layer.type === "symbol") {
       const duocPhepHien = ALLOWED_LABELS.some((kw) => id.includes(kw));
       if (duocPhepHien) {
-        // Bước 3: Đổi sang tiếng Việt
         map.setLayoutProperty(id, "text-field", [
           "coalesce",
           ["get", "name_vi"],
@@ -53,14 +44,12 @@ function customizeMapStyle(map: mapboxgl.Map) {
       }
     }
 
-    // Bước 4a: Viền quốc gia — xanh đậm, dày
     if (id.includes("admin-0-boundary") && layer.type === "line") {
       map.setPaintProperty(id, "line-color", "#1a6b3c");
       map.setPaintProperty(id, "line-width", 3);
       map.setPaintProperty(id, "line-opacity", 1);
     }
 
-    // Bước 4b: Viền tỉnh/thành — nét đứt
     if (id.includes("admin-1-boundary") && layer.type === "line") {
       map.setPaintProperty(id, "line-color", "#2d8a56");
       map.setPaintProperty(id, "line-width", 1.8);
@@ -70,10 +59,14 @@ function customizeMapStyle(map: mapboxgl.Map) {
   }
 }
 
-export function MapboxCanvas({ className }: { className?: string }) {
+interface MapboxCanvasProps {
+  className?: string;
+  styleKey?: MapStyleKey;
+}
+
+export function MapboxCanvas({ className, styleKey = "terrain" }: MapboxCanvasProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const [styleKey, setStyleKey] = useState<keyof typeof MAP_STYLES>("terrain");
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const mapError = mapboxToken ? null : "Missing NEXT_PUBLIC_MAPBOX_TOKEN in .env.local";
 
@@ -90,35 +83,42 @@ export function MapboxCanvas({ className }: { className?: string }) {
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: MAP_STYLES.terrain,
-      center: [107.8, 15.8],
-      zoom: 4.8,
+      style: MAP_STYLES[styleKey],
       attributionControl: false,
+      maxBounds: [
+        [98, 5],
+        [115, 26],
+      ],
     });
 
+    map.fitBounds(VIETNAM_BOUNDS, { padding: 20, animate: false });
     map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right");
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
 
-    // Lần load đầu tiên
     map.on("load", () => customizeMapStyle(map));
-
-    // Khi đổi style (Terrain ↔ Satellite)
     map.on("style.load", () => customizeMapStyle(map));
+
+    const resizeObserver = new ResizeObserver(() => map.resize());
+    resizeObserver.observe(mapContainerRef.current);
 
     mapRef.current = map;
 
     return () => {
+      resizeObserver.disconnect();
       map.remove();
       mapRef.current = null;
     };
   }, [mapError, mapboxToken]);
 
+  // Khi styleKey thay đổi từ parent → đổi style
   useEffect(() => {
-    mapRef.current?.setStyle(MAP_STYLES[styleKey]);
+    if (mapRef.current) {
+      mapRef.current.setStyle(MAP_STYLES[styleKey]);
+    }
   }, [styleKey]);
 
   return (
-    <div className={cn("absolute inset-0 z-0 bg-surface-green", className)}>
+    <div className={cn("relative h-full w-full bg-surface-green", className)}>
       <div ref={mapContainerRef} className="h-full w-full" />
 
       {mapError ? (
@@ -129,29 +129,6 @@ export function MapboxCanvas({ className }: { className?: string }) {
           </div>
         </div>
       ) : null}
-
-      <div className="absolute left-4 top-4 flex gap-2">
-        <button
-          onClick={() => setStyleKey("terrain")}
-          className={cn(
-            "inline-flex h-9 items-center gap-2 rounded bg-white px-3 text-sm font-semibold shadow-sm",
-            styleKey === "terrain" ? "text-primary" : "text-muted"
-          )}
-        >
-          <Layers size={15} />
-          Địa hình
-        </button>
-        <button
-          onClick={() => setStyleKey("satellite")}
-          className={cn(
-            "inline-flex h-9 items-center gap-2 rounded bg-white px-3 text-sm font-semibold shadow-sm",
-            styleKey === "satellite" ? "text-primary" : "text-muted"
-          )}
-        >
-          <Layers size={15} />
-          Vệ tinh
-        </button>
-      </div>
     </div>
   );
 }
