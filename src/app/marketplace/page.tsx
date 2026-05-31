@@ -1,99 +1,265 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { Search, MapPin, Star, SlidersHorizontal, Grid3X3, List, ChevronDown, Phone } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import {
+  Search, Star, Grid3X3, List,
+  ChevronDown, ChevronLeft, ChevronRight, X,
+} from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
-import { Badge, FarmingBadge } from "@/components/ui/badge";
+import { ProductGridCard, ProductListCard } from "@/components/marketplace/product-card";
+import { AdCarousel } from "@/components/marketplace/ad-carousel";
 import { cn } from "@/lib/utils";
+import {
+  fetchProducts,
+  fetchCategories,
+  FARMING_TYPE_OPTIONS,
+  type Product,
+  type Category,
+} from "@/lib/products-api";
 
-const PRODUCTS = [
-  { id: "1", name: "Xoài cát Hòa Lộc loại 1", province: "Tiền Giang", price: 45000, unit: "kg", farming_type: "vietgap" as const, rating: 4.8, sold: 1200, seller: "HTX Xoài Cát Tiền Giang", stock: 500, harvest_date: "15/06/2025", icon: "🥭" },
-  { id: "2", name: "Rau muống hữu cơ Đà Lạt", province: "Lâm Đồng", price: 25000, unit: "kg", farming_type: "organic" as const, rating: 4.9, sold: 890, seller: "Nông trại Xanh", stock: 200, harvest_date: "01/06/2025", icon: "🥬" },
-  { id: "3", name: "Thanh long ruột đỏ xuất khẩu", province: "Bình Thuận", price: 35000, unit: "kg", farming_type: "globalgap" as const, rating: 4.7, sold: 2100, seller: "HTX Thanh Long BT", stock: 1000, harvest_date: "20/06/2025", icon: "🍈" },
-  { id: "4", name: "Gạo ST25 đặc sản Sóc Trăng", province: "Sóc Trăng", price: 28000, unit: "kg", farming_type: "vietgap" as const, rating: 4.9, sold: 5400, seller: "Hộ Hồ Quang Cua", stock: 2000, harvest_date: "30/05/2025", icon: "🌾" },
-  { id: "5", name: "Cà phê Arabica Cầu Đất", province: "Lâm Đồng", price: 120000, unit: "kg", farming_type: "organic" as const, rating: 4.8, sold: 340, seller: "Nông trại Cầu Đất Farm", stock: 150, harvest_date: "Tháng 12/2025", icon: "☕" },
-  { id: "6", name: "Bưởi da xanh Bến Tre", province: "Bến Tre", price: 32000, unit: "kg", farming_type: "vietgap" as const, rating: 4.6, sold: 780, seller: "HTX Bưởi Bến Tre", stock: 800, harvest_date: "01/07/2025", icon: "🍋" },
-  { id: "7", name: "Dưa hấu không hạt", province: "Long An", price: 18000, unit: "kg", farming_type: "traditional" as const, rating: 4.5, sold: 1500, seller: "Hộ ông Trần Văn Bình", stock: 3000, harvest_date: "10/06/2025", icon: "🍉" },
-  { id: "8", name: "Sầu riêng Ri6 Tiền Giang", province: "Tiền Giang", price: 85000, unit: "kg", farming_type: "vietgap" as const, rating: 4.9, sold: 2800, seller: "HTX Sầu Riêng Cai Lậy", stock: 600, harvest_date: "15/07/2025", icon: "🥝" },
+// Top provinces for sidebar (most agricultural)
+const SIDEBAR_PROVINCES = [
+  "Tất cả",
+  "Tiền Giang", "Lâm Đồng", "Bình Thuận", "Sóc Trăng",
+  "Bến Tre", "Long An", "An Giang", "Đắk Lắk",
+  "Bắc Giang", "Lào Cai", "Hà Giang", "Kiên Giang",
+];
+const SORT_OPTIONS = [
+  { label: "Mới nhất", value: "createdAt_DESC" },
+  { label: "Giá thấp → cao", value: "price_ASC" },
+  { label: "Giá cao → thấp", value: "price_DESC" },
+  { label: "Xem nhiều nhất", value: "view_DESC" },
 ];
 
-const PROVINCES = ["Tất cả", "Tiền Giang", "Lâm Đồng", "Bình Thuận", "Sóc Trăng", "Bến Tre", "Long An", "Đà Lạt"];
-const FARMING_TYPES = ["Tất cả", "Hữu cơ", "VietGAP", "GlobalGAP", "Truyền thống"];
-const CATEGORIES = ["Tất cả", "Lúa gạo", "Rau củ", "Trái cây", "Thủy sản", "Cà phê - Gia vị"];
-const SORT_OPTIONS = ["Phổ biến nhất", "Giá thấp → cao", "Giá cao → thấp", "Mới nhất", "Đánh giá cao"];
+const LIMIT = 9;
+
+function sortProducts(products: Product[], sortValue: string): Product[] {
+  const arr = [...products];
+  if (sortValue === "price_ASC") return arr.sort((a, b) => Number(a.pricePerUnit) - Number(b.pricePerUnit));
+  if (sortValue === "price_DESC") return arr.sort((a, b) => Number(b.pricePerUnit) - Number(a.pricePerUnit));
+  if (sortValue === "view_DESC") return arr.sort((a, b) => b.viewCount - a.viewCount);
+  return arr; // createdAt_DESC — default order from API
+}
 
 export default function MarketplacePage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedProvince, setSelectedProvince] = useState("Tất cả");
-  const [selectedSort, setSelectedSort] = useState("Phổ biến nhất");
-  const [showFilters, setShowFilters] = useState(false);
+  const [selectedSort, setSelectedSort] = useState("createdAt_DESC");
+  const [selectedFarming, setSelectedFarming] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    fetchCategories().then(setCategories);
+  }, []);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const farming = selectedFarming.length === 1 ? selectedFarming[0] : undefined;
+    const catId = selectedCategory !== "all" ? selectedCategory : undefined;
+    const result = await fetchProducts({ page: 1, limit: 100, search: search || undefined, farmingType: farming, categoryId: catId });
+    setAllProducts(result.data);
+    setTotal(result.total);
+    setLoading(false);
+  }, [search, selectedFarming, selectedCategory]);
+
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { setPage(1); }, [search, selectedFarming, selectedProvince, selectedSort, selectedCategory]);
+
+  // Client-side filter by province (extract from name/description)
+  const provinceFiltered = selectedProvince === "Tất cả"
+    ? allProducts
+    : allProducts.filter((p) => {
+        const text = `${p.name} ${p.description ?? ""}`;
+        return text.includes(selectedProvince);
+      });
+
+  // Client-side sort + paginate
+  const sorted = sortProducts(provinceFiltered, selectedSort);
+  const totalPages = Math.max(1, Math.ceil(sorted.length / LIMIT));
+  const products = sorted.slice((page - 1) * LIMIT, page * LIMIT);
+
+  const sortLabel = SORT_OPTIONS.find((o) => o.value === selectedSort)?.label ?? "Sắp xếp";
+  const hasActiveFilters = selectedFarming.length > 0 || selectedProvince !== "Tất cả" || search;
+
+  const clearFilters = () => {
+    setSelectedFarming([]);
+    setSelectedProvince("Tất cả");
+    setSearch("");
+    setSearchInput("");
+    setPage(1);
+  };
 
   return (
     <div className="min-h-screen bg-canvas">
       <Navbar />
 
-      {/* Page header */}
-      <div className="bg-surface-soft border-b border-hairline">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-2xl font-bold text-ink mb-4">Sàn nông sản AgriLink</h1>
+      {/* ── Hero ─────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #1B4332 0%, #2D6A4F 45%, #40916C 100%)" }}>
 
-          {/* Search bar */}
-          <div className="flex gap-3 max-w-2xl">
-            <div className="flex-1 flex items-center gap-2 h-12 px-4 rounded-full border border-hairline bg-white card-shadow">
-              <Search size={16} className="text-muted shrink-0" />
-              <input
-                type="text"
-                placeholder="Tìm sản phẩm, vùng trồng, HTX..."
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-soft"
-              />
+        {/* Blob decorations */}
+        <div className="absolute -top-16 -left-16 w-64 h-64 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #95D5B2 0%, transparent 70%)" }} />
+        <div className="absolute top-4 right-24 w-40 h-40 rounded-full opacity-15" style={{ background: "radial-gradient(circle, #74C69D 0%, transparent 70%)" }} />
+        <div className="absolute bottom-8 left-1/3 w-56 h-56 rounded-full opacity-8" style={{ background: "radial-gradient(circle, #52B788 0%, transparent 70%)" }} />
+        <div className="absolute -bottom-8 right-0 w-80 h-80 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #B7E4C7 0%, transparent 70%)" }} />
+
+        {/* Curved arc shapes */}
+        <svg className="absolute top-0 right-0 opacity-10" width="340" height="340" viewBox="0 0 340 340" fill="none">
+          <circle cx="340" cy="0" r="220" stroke="white" strokeWidth="1.5" fill="none" />
+          <circle cx="340" cy="0" r="160" stroke="white" strokeWidth="1" fill="none" />
+          <circle cx="340" cy="0" r="100" stroke="white" strokeWidth="0.8" fill="none" />
+        </svg>
+        <svg className="absolute bottom-0 left-0 opacity-8" width="240" height="180" viewBox="0 0 240 180" fill="none">
+          <ellipse cx="0" cy="180" rx="200" ry="140" stroke="white" strokeWidth="1.2" fill="none" />
+          <ellipse cx="0" cy="180" rx="130" ry="90" stroke="white" strokeWidth="0.8" fill="none" />
+        </svg>
+
+        {/* Floating dots */}
+        <div className="absolute top-8 left-1/4 w-2 h-2 rounded-full bg-white/20" />
+        <div className="absolute top-16 left-1/2 w-1.5 h-1.5 rounded-full bg-white/15" />
+        <div className="absolute top-6 right-1/3 w-2.5 h-2.5 rounded-full bg-white/10" />
+        <div className="absolute bottom-12 right-1/4 w-2 h-2 rounded-full bg-white/20" />
+
+        {/* Content */}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-20">
+          <div className="flex flex-col lg:flex-row items-center gap-8">
+
+            {/* Left text */}
+            <div className="flex-1 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/25 rounded-full px-4 py-1.5 mb-4">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                <span className="text-white/90 text-xs font-medium tracking-wide">Sàn nông sản AgriLink • Việt Nam</span>
+              </div>
+              <h1 className="text-3xl lg:text-4xl font-bold text-white leading-tight mb-3 drop-shadow">
+                Nông sản Việt Nam<br />
+                <span className="text-emerald-300">chất lượng, minh bạch</span>
+              </h1>
+              <p className="text-white/70 text-sm max-w-md mx-auto lg:mx-0 mb-6">
+                Kết nối trực tiếp người mua với hàng nghìn nông hộ, HTX và doanh nghiệp nông nghiệp trên toàn quốc.
+              </p>
+
+              {/* Stats chips */}
+              <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
+                {[
+                  { val: "50+", lbl: "Sản phẩm" },
+                  { val: "10", lbl: "Danh mục" },
+                  { val: "30+", lbl: "Tỉnh thành" },
+                ].map((s) => (
+                  <div key={s.lbl} className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-2">
+                    <span className="text-emerald-300 font-bold text-base">{s.val}</span>
+                    <span className="text-white/70 text-xs">{s.lbl}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <Button className="rounded-full px-6">Tìm kiếm</Button>
-            <Button variant="secondary" className="rounded-full gap-2" onClick={() => setShowFilters(!showFilters)}>
-              <SlidersHorizontal size={16} /> Bộ lọc
-            </Button>
+
+            {/* Right: search card */}
+            <div className="w-full lg:w-[420px] shrink-0">
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-5 shadow-xl">
+                <p className="text-white/80 text-xs font-medium mb-3 uppercase tracking-wider">Tìm sản phẩm</p>
+                <div className="flex gap-2">
+                  <div className="flex-1 flex items-center gap-2 h-11 px-4 rounded-2xl bg-white/95 shadow-sm">
+                    <Search size={15} className="text-primary shrink-0" />
+                    <input
+                      type="text"
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { setSearch(searchInput); setPage(1); } }}
+                      placeholder="Xoài, gạo ST25, cà phê..."
+                      className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-soft text-ink"
+                    />
+                    {searchInput && (
+                      <button onClick={() => { setSearchInput(""); setSearch(""); }} className="text-muted hover:text-ink">
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => { setSearch(searchInput); setPage(1); }}
+                    className="h-11 px-5 rounded-2xl bg-emerald-400 hover:bg-emerald-300 text-white font-semibold text-sm transition-all shadow-sm whitespace-nowrap"
+                  >
+                    Tìm
+                  </button>
+                </div>
+
+                {/* Quick tags */}
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {["Gạo ST25", "Sầu riêng", "Cà phê", "Tôm sú", "Mật ong"].map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => { setSearchInput(tag); setSearch(tag); setPage(1); }}
+                      className="text-[11px] px-2.5 py-1 rounded-full bg-white/15 text-white/80 hover:bg-white/25 transition-all border border-white/20"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Category tabs */}
-      <div className="border-b border-hairline bg-white sticky top-[72px] z-10">
+        {/* Wave bottom */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 56" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full block">
+            <path d="M0 56L1440 56L1440 18C1200 56 960 2 720 18C480 34 240 2 0 18L0 56Z" fill="white" />
+          </svg>
+        </div>
+      </section>
+
+      {/* ── Category tabs — sticky ─────────────────────────────── */}
+      <div className="bg-white sticky top-16 z-10 border-b border-hairline">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-1 overflow-x-auto py-3">
-            {CATEGORIES.map((cat) => (
+          <div className="flex items-center gap-1 overflow-x-auto py-2.5 scrollbar-none">
+            {categories.map((cat) => (
               <button
-                key={cat}
+                key={cat.id}
+                onClick={() => { setSelectedCategory(cat.id); setPage(1); }}
                 className={cn(
-                  "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all",
-                  cat === "Tất cả"
-                    ? "bg-primary text-white"
+                  "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all",
+                  selectedCategory === cat.id
+                    ? "bg-primary text-white shadow-sm"
                     : "text-muted hover:text-ink hover:bg-surface-soft"
                 )}
               >
-                {cat}
+                {cat.name}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex gap-8">
-          {/* Sidebar filters — desktop */}
-          <aside className="w-60 shrink-0 hidden lg:block">
-            <div className="sticky top-36 flex flex-col gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Ad carousel — full width above product grid */}
+        <div className="mb-6">
+          <AdCarousel />
+        </div>
+
+        <div className="flex gap-7">
+
+          {/* Sidebar */}
+          <aside className="w-56 shrink-0 hidden lg:block">
+            <div className="sticky top-28 flex flex-col gap-5">
+
               {/* Province */}
-              <div>
-                <h3 className="text-sm font-semibold text-ink mb-3">Tỉnh thành</h3>
-                <div className="flex flex-col gap-1">
-                  {PROVINCES.map((p) => (
+              <div className="bg-white rounded-xl border border-hairline p-4">
+                <h3 className="text-xs font-bold text-ink uppercase tracking-wide mb-3">Tỉnh thành</h3>
+                <div className="flex flex-col gap-0.5">
+                  {SIDEBAR_PROVINCES.map((p) => (
                     <button
                       key={p}
-                      onClick={() => setSelectedProvince(p)}
+                      onClick={() => { setSelectedProvince(p); setPage(1); }}
                       className={cn(
-                        "text-left px-3 py-2 rounded-lg text-sm transition-all",
+                        "text-left px-3 py-1.5 rounded-lg text-sm transition-all",
                         selectedProvince === p
                           ? "bg-primary-ultra-light text-primary font-semibold"
                           : "text-muted hover:text-ink hover:bg-surface-soft"
@@ -106,166 +272,304 @@ export default function MarketplacePage() {
               </div>
 
               {/* Farming type */}
-              <div>
-                <h3 className="text-sm font-semibold text-ink mb-3">Loại canh tác</h3>
+              <div className="bg-white rounded-xl border border-hairline p-4">
+                <h3 className="text-xs font-bold text-ink uppercase tracking-wide mb-3">Loại canh tác</h3>
                 <div className="flex flex-col gap-2">
-                  {FARMING_TYPES.map((type) => (
-                    <label key={type} className="flex items-center gap-2 cursor-pointer group">
-                      <input type="checkbox" className="accent-primary w-4 h-4 rounded" defaultChecked={type === "Tất cả"} />
-                      <span className="text-sm text-muted group-hover:text-ink transition-colors">{type}</span>
+                  {FARMING_TYPE_OPTIONS.map(({ label, value }) => (
+                    <label key={value} className="flex items-center gap-2.5 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        className="accent-primary w-4 h-4 rounded shrink-0"
+                        checked={selectedFarming.includes(value)}
+                        onChange={(e) => {
+                          setSelectedFarming((prev) =>
+                            e.target.checked ? [...prev, value] : prev.filter((v) => v !== value)
+                          );
+                          setPage(1);
+                        }}
+                      />
+                      <span className="text-sm text-muted group-hover:text-ink transition-colors">{label}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
               {/* Price range */}
-              <div>
-                <h3 className="text-sm font-semibold text-ink mb-3">Khoảng giá (đ/kg)</h3>
+              <div className="bg-white rounded-xl border border-hairline p-4">
+                <h3 className="text-xs font-bold text-ink uppercase tracking-wide mb-3">Khoảng giá (đ/kg)</h3>
                 <div className="flex gap-2 items-center">
-                  <input type="number" placeholder="Từ" className="w-full h-9 px-3 text-sm border border-border-strong rounded-lg outline-none focus:border-primary" />
-                  <span className="text-muted shrink-0">—</span>
-                  <input type="number" placeholder="Đến" className="w-full h-9 px-3 text-sm border border-border-strong rounded-lg outline-none focus:border-primary" />
+                  <input type="number" placeholder="Từ" className="w-full h-8 px-2 text-sm border border-hairline rounded-lg outline-none focus:border-primary" />
+                  <span className="text-muted text-xs shrink-0">—</span>
+                  <input type="number" placeholder="Đến" className="w-full h-8 px-2 text-sm border border-hairline rounded-lg outline-none focus:border-primary" />
                 </div>
               </div>
 
               {/* Rating */}
-              <div>
-                <h3 className="text-sm font-semibold text-ink mb-3">Đánh giá</h3>
+              <div className="bg-white rounded-xl border border-hairline p-4">
+                <h3 className="text-xs font-bold text-ink uppercase tracking-wide mb-3">Đánh giá</h3>
                 {[4.5, 4.0, 3.5].map((r) => (
                   <label key={r} className="flex items-center gap-2 cursor-pointer py-1">
                     <input type="radio" name="rating" className="accent-primary" />
-                    <Star size={13} fill="#F59E0B" stroke="none" />
-                    <span className="text-sm text-muted">{r}+ sao</span>
+                    <div className="flex items-center gap-1">
+                      <Star size={12} fill="#F59E0B" stroke="none" />
+                      <span className="text-sm text-muted">{r}+ sao</span>
+                    </div>
                   </label>
                 ))}
               </div>
 
-              <Button variant="secondary" size="sm">Xóa bộ lọc</Button>
+              {hasActiveFilters && (
+                <Button variant="secondary" size="sm" onClick={clearFilters} className="gap-1.5">
+                  <X size={13} /> Xóa bộ lọc
+                </Button>
+              )}
             </div>
           </aside>
 
-          {/* Main content */}
-          <div className="flex-1 min-w-0">
+          {/* Main */}
+          <div className="flex-1 min-w-0 flex flex-col min-w-0">
+
             {/* Toolbar */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-5">
               <p className="text-sm text-muted">
-                Hiển thị <span className="font-semibold text-ink">{PRODUCTS.length}</span> sản phẩm
+                {loading ? "Đang tải..." : (
+                  <>
+                    <span className="font-semibold text-ink">{sorted.length}</span> sản phẩm
+                    {hasActiveFilters && <span className="text-primary"> (đã lọc)</span>}
+                  </>
+                )}
               </p>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1 border border-hairline rounded-lg p-1">
+              <div className="flex items-center gap-2">
+                {/* View toggle */}
+                <div className="flex items-center gap-0.5 border border-hairline rounded-lg p-1">
                   <button
                     onClick={() => setViewMode("grid")}
-                    className={cn("w-8 h-8 rounded flex items-center justify-center transition-colors",
+                    className={cn("w-7 h-7 rounded flex items-center justify-center transition-colors",
                       viewMode === "grid" ? "bg-primary text-white" : "text-muted hover:text-ink"
                     )}
-                  ><Grid3X3 size={16} /></button>
+                  ><Grid3X3 size={14} /></button>
                   <button
                     onClick={() => setViewMode("list")}
-                    className={cn("w-8 h-8 rounded flex items-center justify-center transition-colors",
+                    className={cn("w-7 h-7 rounded flex items-center justify-center transition-colors",
                       viewMode === "list" ? "bg-primary text-white" : "text-muted hover:text-ink"
                     )}
-                  ><List size={16} /></button>
+                  ><List size={14} /></button>
                 </div>
-                <div className="flex items-center gap-2 border border-hairline rounded-lg px-3 h-9 cursor-pointer hover:border-primary transition-colors">
-                  <span className="text-sm text-ink">{selectedSort}</span>
-                  <ChevronDown size={14} className="text-muted" />
+
+                {/* Sort dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowSortDropdown((v) => !v)}
+                    className="flex items-center gap-2 border border-hairline rounded-lg px-3 h-9 text-sm text-ink hover:border-primary transition-colors bg-white"
+                  >
+                    {sortLabel} <ChevronDown size={14} className="text-muted" />
+                  </button>
+                  {showSortDropdown && (
+                    <>
+                      <div className="fixed inset-0 z-20" onClick={() => setShowSortDropdown(false)} />
+                      <div className="absolute right-0 top-10 z-30 bg-white border border-hairline rounded-xl shadow-lg py-1.5 w-48">
+                        {SORT_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.value}
+                            onClick={() => { setSelectedSort(opt.value); setShowSortDropdown(false); }}
+                            className={cn(
+                              "w-full text-left px-4 py-2 text-sm transition-colors",
+                              selectedSort === opt.value
+                                ? "text-primary font-semibold bg-primary-ultra-light"
+                                : "text-ink hover:bg-surface-soft"
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
 
+            {/* Active filter chips */}
+            {hasActiveFilters && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {search && (
+                  <span className="flex items-center gap-1.5 text-xs bg-primary-ultra-light text-primary px-3 py-1 rounded-full font-medium">
+                    &ldquo;{search}&rdquo;
+                    <button onClick={() => { setSearch(""); setSearchInput(""); }}><X size={11} /></button>
+                  </span>
+                )}
+                {selectedProvince !== "Tất cả" && (
+                  <span className="flex items-center gap-1.5 text-xs bg-primary-ultra-light text-primary px-3 py-1 rounded-full font-medium">
+                    {selectedProvince}
+                    <button onClick={() => setSelectedProvince("Tất cả")}><X size={11} /></button>
+                  </span>
+                )}
+                {selectedFarming.map((v) => (
+                  <span key={v} className="flex items-center gap-1.5 text-xs bg-primary-ultra-light text-primary px-3 py-1 rounded-full font-medium">
+                    {FARMING_TYPE_OPTIONS.find((f) => f.value === v)?.label}
+                    <button onClick={() => setSelectedFarming((prev) => prev.filter((x) => x !== v))}><X size={11} /></button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Loading skeleton */}
+            {loading && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {Array.from({ length: LIMIT }).map((_, i) => (
+                  <div key={i} className="bg-white rounded-xl border border-hairline overflow-hidden animate-pulse">
+                    <div className="aspect-4/3 bg-surface-soft" />
+                    <div className="p-4 flex flex-col gap-2">
+                      <div className="h-4 bg-surface-soft rounded w-3/4" />
+                      <div className="h-3 bg-surface-soft rounded w-1/2" />
+                      <div className="h-5 bg-surface-soft rounded w-1/3 mt-2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Product grid */}
-            <div className={cn(
-              viewMode === "grid"
-                ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5"
-                : "flex flex-col gap-4"
-            )}>
-              {PRODUCTS.map((product) => (
-                viewMode === "grid" ? (
-                  <Link
-                    key={product.id}
-                    href={`/marketplace/${product.id}`}
-                    className="group bg-white rounded-xl border border-hairline overflow-hidden card-shadow card-shadow-hover"
-                  >
-                    <div className="aspect-4/3 bg-surface-green flex items-center justify-center text-5xl relative">
-                      {product.icon}
-                      <div className="absolute top-3 right-3">
-                        <button className="w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors">
-                          ♡
-                        </button>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <div className="flex items-start gap-2 mb-1.5">
-                        <h3 className="text-sm font-semibold text-ink flex-1 leading-tight group-hover:text-primary transition-colors">
-                          {product.name}
-                        </h3>
-                        <FarmingBadge type={product.farming_type} />
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-muted mb-2">
-                        <MapPin size={11} className="text-primary" />{product.province}
-                        <span className="mx-1">·</span>
-                        <span>Còn {product.stock.toLocaleString("vi-VN")} {product.unit}</span>
-                      </div>
-                      <div className="flex items-center gap-1 mb-3">
-                        <Star size={12} fill="#F59E0B" stroke="none" />
-                        <span className="text-xs font-semibold text-ink">{product.rating}</span>
-                        <span className="text-xs text-muted">· Đã bán {product.sold.toLocaleString("vi-VN")} {product.unit}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-lg font-bold text-primary">{product.price.toLocaleString("vi-VN")}đ</span>
-                          <span className="text-xs text-muted">/{product.unit}</span>
-                        </div>
-                        <Button size="sm" variant="secondary" className="text-xs h-8 px-3 gap-1.5"><Phone size={12} />Liên hệ</Button>
-                      </div>
-                    </div>
-                  </Link>
-                ) : (
-                  <Link
-                    key={product.id}
-                    href={`/marketplace/${product.id}`}
-                    className="group bg-white rounded-xl border border-hairline p-4 card-shadow card-shadow-hover flex items-center gap-4"
-                  >
-                    <div className="w-20 h-20 rounded-xl bg-surface-green flex items-center justify-center text-3xl shrink-0">
-                      {product.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start gap-2 mb-1">
-                        <h3 className="text-sm font-semibold text-ink group-hover:text-primary transition-colors flex-1">{product.name}</h3>
-                        <FarmingBadge type={product.farming_type} />
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-muted mb-1">
-                        <span className="flex items-center gap-1"><MapPin size={11} className="text-primary" />{product.province}</span>
-                        <span className="flex items-center gap-1"><Star size={11} fill="#F59E0B" stroke="none" />{product.rating}</span>
-                        <span>Còn {product.stock.toLocaleString("vi-VN")} {product.unit}</span>
-                      </div>
-                      <p className="text-xs text-muted">{product.seller}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-lg font-bold text-primary">{product.price.toLocaleString("vi-VN")}đ</div>
-                      <div className="text-xs text-muted mb-2">/{product.unit}</div>
-                      <Button size="sm" variant="secondary" className="text-xs h-8 px-3 gap-1.5"><Phone size={12} />Liên hệ</Button>
-                    </div>
-                  </Link>
-                )
-              ))}
-            </div>
+            {!loading && products.length === 0 && (
+              <div className="py-24 text-center">
+                <p className="text-4xl mb-3">🌾</p>
+                <p className="font-semibold text-ink mb-1">Không tìm thấy sản phẩm</p>
+                <p className="text-sm text-muted mb-4">Thử thay đổi bộ lọc hoặc tìm kiếm với từ khóa khác</p>
+                <Button variant="secondary" size="sm" onClick={clearFilters}>Xóa bộ lọc</Button>
+              </div>
+            )}
+
+            {!loading && products.length > 0 && (
+              <div className={cn(
+                viewMode === "grid"
+                  ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"
+                  : "flex flex-col gap-3"
+              )}>
+                {products.map((product) =>
+                  viewMode === "grid"
+                    ? <ProductGridCard key={product.id} product={product} />
+                    : <ProductListCard key={product.id} product={product} />
+                )}
+              </div>
+            )}
 
             {/* Pagination */}
-            <div className="flex items-center justify-center gap-2 mt-10">
-              {[1,2,3,4,5].map((p) => (
+            {!loading && totalPages > 0 && (
+              <div className="flex items-center justify-center gap-1.5 mt-auto pt-8">
                 <button
-                  key={p}
-                  className={cn(
-                    "w-9 h-9 rounded-lg text-sm font-medium transition-all",
-                    p === 1 ? "bg-primary text-white" : "border border-hairline text-muted hover:border-primary hover:text-primary"
-                  )}
-                >{p}</button>
-              ))}
-              <span className="text-muted px-2">...</span>
-              <button className="w-9 h-9 rounded-lg text-sm font-medium border border-hairline text-muted hover:border-primary hover:text-primary">12</button>
-            </div>
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="w-9 h-9 rounded-lg border border-hairline flex items-center justify-center text-muted hover:border-primary hover:text-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                {Array.from({ length: totalPages }).map((_, i) => {
+                  const p = i + 1;
+                  // Show first, last, current ±1, and ellipsis
+                  const show = p === 1 || p === totalPages || Math.abs(p - page) <= 1;
+                  const ellipsisAfter = p === 1 && page > 3;
+                  const ellipsisBefore = p === totalPages && page < totalPages - 2;
+                  if (!show) return null;
+                  return (
+                    <span key={p} className="flex items-center gap-1.5">
+                      {ellipsisAfter && <span className="text-muted text-sm px-1">…</span>}
+                      <button
+                        onClick={() => setPage(p)}
+                        className={cn(
+                          "w-9 h-9 rounded-lg text-sm font-medium transition-all",
+                          p === page
+                            ? "bg-primary text-white shadow-sm"
+                            : "border border-hairline text-muted hover:border-primary hover:text-primary"
+                        )}
+                      >{p}</button>
+                      {ellipsisBefore && <span className="text-muted text-sm px-1">…</span>}
+                    </span>
+                  );
+                })}
+
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="w-9 h-9 rounded-lg border border-hairline flex items-center justify-center text-muted hover:border-primary hover:text-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
+
+            {/* Page info */}
+            {!loading && totalPages > 1 && (
+              <p className="text-center text-xs text-muted mt-3">
+                Trang {page} / {totalPages}
+              </p>
+            )}
+
           </div>
+
+          {/* ── Right ad column ───────────────────────────────── */}
+          <aside className="w-52 shrink-0 hidden xl:block">
+            <div className="sticky top-28 flex flex-col gap-4">
+
+              {/* Ad slot 1 — Banner dọc lớn */}
+              <div className="rounded-2xl border-2 border-dashed border-hairline bg-white overflow-hidden">
+                <div className="bg-surface-soft px-3 py-1.5 flex items-center justify-between border-b border-hairline">
+                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Quảng cáo</span>
+                  <span className="text-[9px] text-muted/60">300×250</span>
+                </div>
+                <div className="h-[250px] flex flex-col items-center justify-center gap-2 p-4">
+                  <div className="w-10 h-10 rounded-full bg-surface-soft flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted/50">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <path d="M3 9h18M9 21V9" />
+                    </svg>
+                  </div>
+                  <p className="text-[11px] text-muted/60 text-center leading-relaxed">
+                    Vị trí quảng cáo<br />sẽ được triển khai
+                  </p>
+                </div>
+              </div>
+
+              {/* Ad slot 2 — Promoted product */}
+              <div className="rounded-2xl border-2 border-dashed border-hairline bg-white overflow-hidden">
+                <div className="bg-surface-soft px-3 py-1.5 flex items-center justify-between border-b border-hairline">
+                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Nổi bật</span>
+                  <span className="text-[9px] text-muted/60">Sponsored</span>
+                </div>
+                <div className="h-[200px] flex flex-col items-center justify-center gap-2 p-4">
+                  <div className="w-10 h-10 rounded-full bg-surface-soft flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted/50">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                  </div>
+                  <p className="text-[11px] text-muted/60 text-center leading-relaxed">
+                    Sản phẩm được<br />đề xuất bởi thuật toán
+                  </p>
+                </div>
+              </div>
+
+              {/* Ad slot 3 — Small banner */}
+              <div className="rounded-2xl border-2 border-dashed border-hairline bg-white overflow-hidden">
+                <div className="bg-surface-soft px-3 py-1.5 flex items-center justify-between border-b border-hairline">
+                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Quảng cáo</span>
+                  <span className="text-[9px] text-muted/60">300×160</span>
+                </div>
+                <div className="h-[160px] flex flex-col items-center justify-center gap-2 p-4">
+                  <div className="w-8 h-8 rounded-full bg-surface-soft flex items-center justify-center">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted/50">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 8v4l3 3" />
+                    </svg>
+                  </div>
+                  <p className="text-[11px] text-muted/60 text-center leading-relaxed">
+                    Sắp ra mắt
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </aside>
+
         </div>
       </div>
 

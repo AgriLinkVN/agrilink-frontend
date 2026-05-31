@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { MapPin, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { MapboxCanvas } from "@/components/map/mapbox-canvas";
 
 export function MapCta() {
   return (
@@ -48,19 +51,38 @@ export function MapCta() {
           </div>
         </div>
 
-        {/* Right — light map mockup panel */}
-        <div className="lg:w-1/2 py-16 px-8 lg:px-14 flex items-center justify-center bg-surface-green">
-          <div className="w-full max-w-sm">
-            <div className="bg-white rounded-2xl border border-primary-light p-6 card-shadow aspect-4/3 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <MapPin size={40} className="text-primary" />
-                </div>
-                <p className="text-sm font-semibold text-primary">Bản đồ GIS tương tác</p>
-                <p className="text-xs text-muted mt-1">MapBox GL · 34 tỉnh thành</p>
-              </div>
-            </div>
+        {/* Right — live map preview */}
+        <div className="relative lg:w-1/2 min-h-72 lg:min-h-105 overflow-hidden group/map">
+          <MapboxCanvas interactive={false} styleKey="terrain" className="absolute inset-0" />
+
+          {/* Left fade blend into dark panel */}
+          <div className="absolute inset-y-0 left-0 w-16 z-10 pointer-events-none"
+            style={{ background: "linear-gradient(to right, #1B4332, transparent)" }} />
+
+          {/* Top fade */}
+          <div className="absolute inset-x-0 top-0 h-10 z-10 pointer-events-none"
+            style={{ background: "linear-gradient(to bottom, rgba(27,67,50,0.4), transparent)" }} />
+
+          {/* Bottom fade */}
+          <div className="absolute inset-x-0 bottom-0 h-10 z-10 pointer-events-none"
+            style={{ background: "linear-gradient(to top, rgba(27,67,50,0.3), transparent)" }} />
+
+          {/* LIVE badge */}
+          <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-none">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-[11px] font-semibold text-primary">LIVE</span>
           </div>
+
+          {/* Hover CTA */}
+          <Link
+            href="/map"
+            className="absolute inset-0 z-20 flex items-end justify-center pb-5"
+            aria-label="Xem bản đồ vùng trồng"
+          >
+            <span className="flex items-center gap-1.5 bg-primary text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg translate-y-2 opacity-0 group-hover/map:opacity-100 group-hover/map:translate-y-0 transition-all duration-250">
+              <MapPin size={13} /> Mở bản đồ đầy đủ
+            </span>
+          </Link>
         </div>
       </div>
     </section>

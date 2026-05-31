@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PageHero } from "@/components/ui/page-hero";
 import { StatsSection } from "@/components/home/stats-section";
 import { LazySection } from "@/components/home/lazy-section";
 import {
@@ -49,34 +50,9 @@ export default function HomePage() {
       <Navbar />
 
       {/* ===== HERO ===== */}
-      <section className="relative overflow-hidden bg-primary-active" style={{ minHeight: "calc(100vh - 64px)", maxHeight: "800px" }}>
-        {/* Video background */}
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ animation: "heroKenBurns 20s ease-in-out infinite alternate" }}
-        >
-          <source src="/videos/hero-rice-field.mp4" type="video/mp4" />
-        </video>
-
-        {/* Gradient overlay — dark green tint for readability */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(135deg, rgba(27,67,50,0.82) 0%, rgba(45,106,79,0.65) 50%, rgba(27,67,50,0.45) 100%)",
-          }}
-        />
-
-        {/* Fallback gradient (shows when video not loaded yet) */}
-        <div className="hero-gradient absolute inset-0 -z-10" />
-
-        {/* Content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
-          <div className="max-w-3xl" style={{ animation: "heroFadeUp 0.8s ease-out both" }}>
+      <PageHero variant="full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32" style={{ animation: "heroFadeUp 0.8s ease-out both" }}>
+          <div className="max-w-3xl">
             <div className="flex items-center gap-2 mb-6">
               <Badge variant="outline" className="border-white/40 text-white text-xs backdrop-blur-sm bg-white/10">
                 🌾 AgriTech Vietnam 2025
@@ -117,14 +93,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-
-        {/* Wave divider */}
-        <div className="absolute bottom-0 left-0 right-0 z-10">
-          <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
-            <path d="M0 60L1440 60L1440 20C1200 60 960 0 720 20C480 40 240 0 0 20L0 60Z" fill="white"/>
-          </svg>
-        </div>
-      </section>
+      </PageHero>
 
       {/* P5: BannerSlider — Quảng cáo nhà cung cấp */}
       {/* Nhờ P6 (Lê Trí Trung) uncomment dòng dưới và đặt vào đúng vị trí trong layout của họ */}

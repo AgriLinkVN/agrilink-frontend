@@ -62,9 +62,10 @@ function customizeMapStyle(map: mapboxgl.Map) {
 interface MapboxCanvasProps {
   className?: string;
   styleKey?: MapStyleKey;
+  interactive?: boolean;
 }
 
-export function MapboxCanvas({ className, styleKey = "terrain" }: MapboxCanvasProps) {
+export function MapboxCanvas({ className, styleKey = "terrain", interactive = true }: MapboxCanvasProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -85,15 +86,18 @@ export function MapboxCanvas({ className, styleKey = "terrain" }: MapboxCanvasPr
       container: mapContainerRef.current,
       style: MAP_STYLES[styleKey],
       attributionControl: false,
+      interactive,
       maxBounds: [
         [98, 5],
         [115, 26],
       ],
     });
 
-    map.fitBounds(VIETNAM_BOUNDS, { padding: 20, animate: false });
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right");
-    map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
+    map.fitBounds(VIETNAM_BOUNDS, { padding: interactive ? 20 : 40, animate: false });
+    if (interactive) {
+      map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right");
+      map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
+    }
 
     map.on("load", () => customizeMapStyle(map));
     map.on("style.load", () => customizeMapStyle(map));
