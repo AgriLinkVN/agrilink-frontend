@@ -150,21 +150,77 @@ export const MOCK_PRODUCTS: Product[] = [
   },
 ];
 
-// Province labels for mock (no provinceId in mock data)
-const MOCK_PROVINCE_LABELS: Record<string, string> = {
-  "mock-1": "Tiền Giang",
-  "mock-2": "Lâm Đồng",
-  "mock-3": "Bình Thuận",
-  "mock-4": "Sóc Trăng",
-  "mock-5": "Lâm Đồng",
-  "mock-6": "Bến Tre",
-  "mock-7": "Long An",
-  "mock-8": "Tiền Giang",
+// ── Enum display maps ─────────────────────────────────────────
+
+export const FARMING_TYPE_LABELS: Record<string, string> = {
+  organic:     "Hữu cơ",
+  vietgap:     "VietGAP",
+  globalgap:   "GlobalGAP",
+  traditional: "Truyền thống",
 };
 
+export const FARMING_TYPE_OPTIONS = Object.entries(FARMING_TYPE_LABELS).map(
+  ([value, label]) => ({ value, label }),
+);
+
+export const UNIT_LABELS: Record<string, string> = {
+  kg:    "kg",
+  ton:   "tấn",
+  box:   "thùng",
+  bunch: "bó",
+  liter: "lít",
+  piece: "quả/củ",
+};
+
+export const SELLER_TYPE_LABELS: Record<string, string> = {
+  farmer:      "Hộ nông dân",
+  cooperative: "Hợp tác xã",
+  supplier:    "Nhà cung cấp",
+};
+
+export const PRODUCT_STATUS_LABELS: Record<string, string> = {
+  draft:            "Nháp",
+  pending_approval: "Chờ duyệt",
+  active:           "Đang bán",
+  out_of_stock:     "Hết hàng",
+  rejected:         "Bị từ chối",
+  archived:         "Lưu trữ",
+  suspended:        "Tạm ngưng",
+};
+
+export const CERT_TYPE_LABELS: Record<string, string> = {
+  vietgap:  "VietGAP",
+  organic:  "Hữu cơ",
+  globalgap:"GlobalGAP",
+  ocop:     "OCOP",
+  other:    "Khác",
+};
+
+// ── Province extraction ────────────────────────────────────────
+// Extract tỉnh/thành từ tên sản phẩm (seed data không có provinceId)
+const PROVINCE_KEYWORDS: [string, string][] = [
+  ["Tiền Giang", "Tiền Giang"], ["Lâm Đồng", "Lâm Đồng"], ["Đà Lạt", "Lâm Đồng"],
+  ["Bình Thuận", "Bình Thuận"], ["Sóc Trăng", "Sóc Trăng"], ["Bến Tre", "Bến Tre"],
+  ["Long An", "Long An"], ["Đồng Tháp", "Đồng Tháp"], ["An Giang", "An Giang"],
+  ["Cà Mau", "Cà Mau"], ["Kiên Giang", "Kiên Giang"], ["Phú Quốc", "Kiên Giang"],
+  ["Vĩnh Long", "Vĩnh Long"], ["Hưng Yên", "Hưng Yên"], ["Bắc Giang", "Bắc Giang"],
+  ["Lục Ngạn", "Bắc Giang"], ["Hà Giang", "Hà Giang"], ["Lào Cai", "Lào Cai"],
+  ["Mường Khương", "Lào Cai"], ["Bắc Hà", "Lào Cai"], ["Sơn La", "Sơn La"],
+  ["Mộc Châu", "Sơn La"], ["Thái Nguyên", "Thái Nguyên"], ["Hải Dương", "Hải Dương"],
+  ["Ninh Bình", "Ninh Bình"], ["Ninh Thuận", "Ninh Thuận"], ["Bình Định", "Bình Định"],
+  ["Gia Lai", "Gia Lai"], ["Đắk Lắk", "Đắk Lắk"], ["Buôn Ma Thuột", "Đắk Lắk"],
+  ["Đồng Nai", "Đồng Nai"], ["Bình Phước", "Bình Phước"], ["Bình Dương", "Bình Dương"],
+  ["Hà Nội", "Hà Nội"], ["Hồ Chí Minh", "TP. Hồ Chí Minh"], ["Nghệ An", "Nghệ An"],
+  ["Kỳ Sơn", "Nghệ An"], ["Quảng Nam", "Quảng Nam"], ["Cần Giờ", "TP. Hồ Chí Minh"],
+  ["Cần Thơ", "Cần Thơ"], ["Phan Thiết", "Bình Thuận"],
+];
+
 export function getProductProvince(product: Product): string {
-  if (!product.id.startsWith("mock-")) return product.provinceId ?? "Việt Nam";
-  return MOCK_PROVINCE_LABELS[product.id] ?? "Việt Nam";
+  const text = `${product.name} ${product.description ?? ""}`;
+  for (const [keyword, province] of PROVINCE_KEYWORDS) {
+    if (text.includes(keyword)) return province;
+  }
+  return "Việt Nam";
 }
 
 export function getPrimaryImage(product: Product): string {
@@ -177,11 +233,50 @@ export function getPrimaryImage(product: Product): string {
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
 const BASE = `${BACKEND}/api/v1`;
 
+// ── Categories API ─────────────────────────────────────────────
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  sortOrder: number;
+}
+
+export const FALLBACK_CATEGORIES: Category[] = [
+  { id: "all", name: "Tất cả", slug: "all", sortOrder: 0 },
+  { id: "rau-cu-qua", name: "Rau củ quả", slug: "rau-cu-qua", sortOrder: 1 },
+  { id: "trai-cay", name: "Trái cây", slug: "trai-cay", sortOrder: 2 },
+  { id: "lua-gao-ngu-coc", name: "Lúa gạo & Ngũ cốc", slug: "lua-gao-ngu-coc", sortOrder: 3 },
+  { id: "thuy-san", name: "Thủy sản", slug: "thuy-san", sortOrder: 4 },
+  { id: "gia-suc-gia-cam", name: "Gia súc & Gia cầm", slug: "gia-suc-gia-cam", sortOrder: 5 },
+  { id: "ca-phe-che", name: "Cà phê & Chè", slug: "ca-phe-che", sortOrder: 6 },
+  { id: "gia-vi-thao-moc", name: "Gia vị & Thảo mộc", slug: "gia-vi-thao-moc", sortOrder: 7 },
+  { id: "hat-dau", name: "Hạt & Đậu", slug: "hat-dau", sortOrder: 8 },
+  { id: "mat-ong-dac-san", name: "Mật ong & Đặc sản", slug: "mat-ong-dac-san", sortOrder: 9 },
+  { id: "hoa-cay-canh", name: "Hoa & Cây cảnh", slug: "hoa-cay-canh", sortOrder: 10 },
+];
+
+export async function fetchCategories(): Promise<Category[]> {
+  try {
+    const res = await fetch(`${BASE}/products/categories`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    const list: Category[] = json?.data ?? json;
+    if (Array.isArray(list) && list.length > 0) {
+      return [{ id: "all", name: "Tất cả", slug: "all", sortOrder: 0 }, ...list];
+    }
+    return FALLBACK_CATEGORIES;
+  } catch {
+    return FALLBACK_CATEGORIES;
+  }
+}
+
 export async function fetchProducts(params?: {
   page?: number;
   limit?: number;
   search?: string;
   farmingType?: string;
+  categoryId?: string;
   minPrice?: number;
   maxPrice?: number;
 }): Promise<ProductListResponse> {
@@ -191,14 +286,16 @@ export async function fetchProducts(params?: {
     qs.set("page", String(params?.page ?? 1));
     if (params?.search) qs.set("search", params.search);
     if (params?.farmingType) qs.set("farmingType", params.farmingType);
+    if (params?.categoryId) qs.set("categoryId", params.categoryId);
     if (params?.minPrice != null) qs.set("minPrice", String(params.minPrice));
     if (params?.maxPrice != null) qs.set("maxPrice", String(params.maxPrice));
 
-    const res = await fetch(`${BASE}/products?${qs}`, { next: { revalidate: 60 } });
+    const res = await fetch(`${BASE}/products?${qs}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    if (json.data && json.data.length > 0) return json as ProductListResponse;
-    // BE returned empty → use mock so UI isn't blank
+    // ResponseInterceptor wraps: { statusCode, message, data: { data: [...], total: N } }
+    const payload: ProductListResponse = json?.data ?? json;
+    if (payload.data && payload.data.length > 0) return payload;
     return { data: MOCK_PRODUCTS, total: MOCK_PRODUCTS.length };
   } catch {
     return { data: MOCK_PRODUCTS, total: MOCK_PRODUCTS.length };
@@ -206,7 +303,6 @@ export async function fetchProducts(params?: {
 }
 
 export async function fetchProduct(id: string): Promise<Product | null> {
-  // If id is a small integer string (legacy mock), return mock directly
   if (/^\d+$/.test(id)) {
     return MOCK_PRODUCTS[parseInt(id, 10) - 1] ?? MOCK_PRODUCTS[0];
   }
@@ -214,9 +310,11 @@ export async function fetchProduct(id: string): Promise<Product | null> {
     return MOCK_PRODUCTS.find((p) => p.id === id) ?? null;
   }
   try {
-    const res = await fetch(`${BASE}/products/${id}`, { next: { revalidate: 60 } });
+    const res = await fetch(`${BASE}/products/${id}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return (await res.json()) as Product;
+    const json = await res.json();
+    // ResponseInterceptor wraps: { statusCode, message, data: <Product> }
+    return (json?.data ?? json) as Product;
   } catch {
     return null;
   }

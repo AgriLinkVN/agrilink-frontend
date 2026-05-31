@@ -1,36 +1,31 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import {
-  Search, MapPin, Star, SlidersHorizontal, Grid3X3, List,
-  ChevronDown, Phone, ChevronLeft, ChevronRight, X,
+  Search, Star, Grid3X3, List,
+  ChevronDown, ChevronLeft, ChevronRight, X,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
-import { FarmingBadge } from "@/components/ui/badge";
-import { PageHero } from "@/components/ui/page-hero";
+import { ProductGridCard, ProductListCard } from "@/components/marketplace/product-card";
+import { AdCarousel } from "@/components/marketplace/ad-carousel";
 import { cn } from "@/lib/utils";
 import {
   fetchProducts,
-  getPrimaryImage,
-  getProductProvince,
+  fetchCategories,
+  FARMING_TYPE_OPTIONS,
   type Product,
+  type Category,
 } from "@/lib/products-api";
 
-const PROVINCES = [
-  "Tất cả", "Tiền Giang", "Lâm Đồng", "Bình Thuận",
-  "Sóc Trăng", "Bến Tre", "Long An", "Đà Lạt", "Đồng Tháp",
+// Top provinces for sidebar (most agricultural)
+const SIDEBAR_PROVINCES = [
+  "Tất cả",
+  "Tiền Giang", "Lâm Đồng", "Bình Thuận", "Sóc Trăng",
+  "Bến Tre", "Long An", "An Giang", "Đắk Lắk",
+  "Bắc Giang", "Lào Cai", "Hà Giang", "Kiên Giang",
 ];
-const FARMING_TYPES: { label: string; value: string }[] = [
-  { label: "Hữu cơ", value: "organic" },
-  { label: "VietGAP", value: "vietgap" },
-  { label: "GlobalGAP", value: "globalgap" },
-  { label: "Truyền thống", value: "traditional" },
-];
-const CATEGORIES = ["Tất cả", "Lúa gạo", "Rau củ", "Trái cây", "Thủy sản", "Cà phê - Gia vị"];
 const SORT_OPTIONS = [
   { label: "Mới nhất", value: "createdAt_DESC" },
   { label: "Giá thấp → cao", value: "price_ASC" },
@@ -38,7 +33,7 @@ const SORT_OPTIONS = [
   { label: "Xem nhiều nhất", value: "view_DESC" },
 ];
 
-const LIMIT = 6;
+const LIMIT = 9;
 
 function sortProducts(products: Product[], sortValue: string): Product[] {
   const arr = [...products];
@@ -53,7 +48,7 @@ export default function MarketplacePage() {
   const [selectedProvince, setSelectedProvince] = useState("Tất cả");
   const [selectedSort, setSelectedSort] = useState("createdAt_DESC");
   const [selectedFarming, setSelectedFarming] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState("Tất cả");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -61,21 +56,35 @@ export default function MarketplacePage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    fetchCategories().then(setCategories);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     const farming = selectedFarming.length === 1 ? selectedFarming[0] : undefined;
-    const result = await fetchProducts({ page: 1, limit: 100, search: search || undefined, farmingType: farming });
+    const catId = selectedCategory !== "all" ? selectedCategory : undefined;
+    const result = await fetchProducts({ page: 1, limit: 100, search: search || undefined, farmingType: farming, categoryId: catId });
     setAllProducts(result.data);
     setTotal(result.total);
     setLoading(false);
-  }, [search, selectedFarming]);
+  }, [search, selectedFarming, selectedCategory]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { setPage(1); }, [search, selectedFarming, selectedProvince, selectedSort]);
+  useEffect(() => { setPage(1); }, [search, selectedFarming, selectedProvince, selectedSort, selectedCategory]);
+
+  // Client-side filter by province (extract from name/description)
+  const provinceFiltered = selectedProvince === "Tất cả"
+    ? allProducts
+    : allProducts.filter((p) => {
+        const text = `${p.name} ${p.description ?? ""}`;
+        return text.includes(selectedProvince);
+      });
 
   // Client-side sort + paginate
-  const sorted = sortProducts(allProducts, selectedSort);
+  const sorted = sortProducts(provinceFiltered, selectedSort);
   const totalPages = Math.max(1, Math.ceil(sorted.length / LIMIT));
   const products = sorted.slice((page - 1) * LIMIT, page * LIMIT);
 
@@ -94,73 +103,147 @@ export default function MarketplacePage() {
     <div className="min-h-screen bg-canvas">
       <Navbar />
 
-      {/* Page hero — compact banner with wave, centered like about page */}
-      <PageHero variant="compact">
-        <div className="flex items-center justify-center h-full pb-8 text-center px-4">
-          <div>
-            <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/30 rounded-full px-4 py-2 mb-4">
-              <Search size={15} className="text-primary-ultra-light" />
-              <span className="text-white text-sm font-medium">Sàn nông sản AgriLink</span>
+      {/* ── Hero ─────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #1B4332 0%, #2D6A4F 45%, #40916C 100%)" }}>
+
+        {/* Blob decorations */}
+        <div className="absolute -top-16 -left-16 w-64 h-64 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #95D5B2 0%, transparent 70%)" }} />
+        <div className="absolute top-4 right-24 w-40 h-40 rounded-full opacity-15" style={{ background: "radial-gradient(circle, #74C69D 0%, transparent 70%)" }} />
+        <div className="absolute bottom-8 left-1/3 w-56 h-56 rounded-full opacity-8" style={{ background: "radial-gradient(circle, #52B788 0%, transparent 70%)" }} />
+        <div className="absolute -bottom-8 right-0 w-80 h-80 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #B7E4C7 0%, transparent 70%)" }} />
+
+        {/* Curved arc shapes */}
+        <svg className="absolute top-0 right-0 opacity-10" width="340" height="340" viewBox="0 0 340 340" fill="none">
+          <circle cx="340" cy="0" r="220" stroke="white" strokeWidth="1.5" fill="none" />
+          <circle cx="340" cy="0" r="160" stroke="white" strokeWidth="1" fill="none" />
+          <circle cx="340" cy="0" r="100" stroke="white" strokeWidth="0.8" fill="none" />
+        </svg>
+        <svg className="absolute bottom-0 left-0 opacity-8" width="240" height="180" viewBox="0 0 240 180" fill="none">
+          <ellipse cx="0" cy="180" rx="200" ry="140" stroke="white" strokeWidth="1.2" fill="none" />
+          <ellipse cx="0" cy="180" rx="130" ry="90" stroke="white" strokeWidth="0.8" fill="none" />
+        </svg>
+
+        {/* Floating dots */}
+        <div className="absolute top-8 left-1/4 w-2 h-2 rounded-full bg-white/20" />
+        <div className="absolute top-16 left-1/2 w-1.5 h-1.5 rounded-full bg-white/15" />
+        <div className="absolute top-6 right-1/3 w-2.5 h-2.5 rounded-full bg-white/10" />
+        <div className="absolute bottom-12 right-1/4 w-2 h-2 rounded-full bg-white/20" />
+
+        {/* Content */}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-20">
+          <div className="flex flex-col lg:flex-row items-center gap-8">
+
+            {/* Left text */}
+            <div className="flex-1 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/25 rounded-full px-4 py-1.5 mb-4">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                <span className="text-white/90 text-xs font-medium tracking-wide">Sàn nông sản AgriLink • Việt Nam</span>
+              </div>
+              <h1 className="text-3xl lg:text-4xl font-bold text-white leading-tight mb-3 drop-shadow">
+                Nông sản Việt Nam<br />
+                <span className="text-emerald-300">chất lượng, minh bạch</span>
+              </h1>
+              <p className="text-white/70 text-sm max-w-md mx-auto lg:mx-0 mb-6">
+                Kết nối trực tiếp người mua với hàng nghìn nông hộ, HTX và doanh nghiệp nông nghiệp trên toàn quốc.
+              </p>
+
+              {/* Stats chips */}
+              <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
+                {[
+                  { val: "50+", lbl: "Sản phẩm" },
+                  { val: "10", lbl: "Danh mục" },
+                  { val: "30+", lbl: "Tỉnh thành" },
+                ].map((s) => (
+                  <div key={s.lbl} className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-2">
+                    <span className="text-emerald-300 font-bold text-base">{s.val}</span>
+                    <span className="text-white/70 text-xs">{s.lbl}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <h1 className="text-3xl lg:text-4xl font-bold text-white mb-3 leading-tight drop-shadow-lg">
-              Nông sản Việt Nam<br />
-              <span className="text-primary-ultra-light">chất lượng, minh bạch, trực tiếp</span>
-            </h1>
-            <p className="text-white/80 text-sm max-w-lg mx-auto">
-              Kết nối trực tiếp người mua với hàng nghìn nông hộ, HTX và doanh nghiệp nông nghiệp trên toàn quốc.
-            </p>
+
+            {/* Right: search card */}
+            <div className="w-full lg:w-[420px] shrink-0">
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-5 shadow-xl">
+                <p className="text-white/80 text-xs font-medium mb-3 uppercase tracking-wider">Tìm sản phẩm</p>
+                <div className="flex gap-2">
+                  <div className="flex-1 flex items-center gap-2 h-11 px-4 rounded-2xl bg-white/95 shadow-sm">
+                    <Search size={15} className="text-primary shrink-0" />
+                    <input
+                      type="text"
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { setSearch(searchInput); setPage(1); } }}
+                      placeholder="Xoài, gạo ST25, cà phê..."
+                      className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-soft text-ink"
+                    />
+                    {searchInput && (
+                      <button onClick={() => { setSearchInput(""); setSearch(""); }} className="text-muted hover:text-ink">
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => { setSearch(searchInput); setPage(1); }}
+                    className="h-11 px-5 rounded-2xl bg-emerald-400 hover:bg-emerald-300 text-white font-semibold text-sm transition-all shadow-sm whitespace-nowrap"
+                  >
+                    Tìm
+                  </button>
+                </div>
+
+                {/* Quick tags */}
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {["Gạo ST25", "Sầu riêng", "Cà phê", "Tôm sú", "Mật ong"].map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => { setSearchInput(tag); setSearch(tag); setPage(1); }}
+                      className="text-[11px] px-2.5 py-1 rounded-full bg-white/15 text-white/80 hover:bg-white/25 transition-all border border-white/20"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </PageHero>
 
-      {/* Category tabs — sticky, top-16 = navbar h-16 */}
-      <div className="bg-white sticky top-16 z-10 -mt-px">
+        {/* Wave bottom */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 56" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full block">
+            <path d="M0 56L1440 56L1440 18C1200 56 960 2 720 18C480 34 240 2 0 18L0 56Z" fill="white" />
+          </svg>
+        </div>
+      </section>
+
+      {/* ── Category tabs — sticky ─────────────────────────────── */}
+      <div className="bg-white sticky top-16 z-10 border-b border-hairline">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-1 overflow-x-auto py-2.5 scrollbar-none">
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
+                key={cat.id}
+                onClick={() => { setSelectedCategory(cat.id); setPage(1); }}
                 className={cn(
                   "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all",
-                  selectedCategory === cat
-                    ? "bg-primary text-white"
+                  selectedCategory === cat.id
+                    ? "bg-primary text-white shadow-sm"
                     : "text-muted hover:text-ink hover:bg-surface-soft"
                 )}
               >
-                {cat}
+                {cat.name}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Search bar — below category tabs */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5">
-        <div className="flex gap-3 max-w-2xl">
-          <div className="flex-1 flex items-center gap-2 h-11 px-4 rounded-full border border-hairline bg-white card-shadow">
-            <Search size={16} className="text-muted shrink-0" />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") { setSearch(searchInput); setPage(1); } }}
-              placeholder="Tìm sản phẩm, vùng trồng, HTX..."
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-soft"
-            />
-            {searchInput && (
-              <button onClick={() => { setSearchInput(""); setSearch(""); }} className="text-muted hover:text-ink">
-                <X size={14} />
-              </button>
-            )}
-          </div>
-          <Button className="rounded-full px-6 h-11" onClick={() => { setSearch(searchInput); setPage(1); }}>
-            Tìm kiếm
-          </Button>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Ad carousel — full width above product grid */}
+        <div className="mb-6">
+          <AdCarousel />
+        </div>
+
         <div className="flex gap-7">
 
           {/* Sidebar */}
@@ -171,7 +254,7 @@ export default function MarketplacePage() {
               <div className="bg-white rounded-xl border border-hairline p-4">
                 <h3 className="text-xs font-bold text-ink uppercase tracking-wide mb-3">Tỉnh thành</h3>
                 <div className="flex flex-col gap-0.5">
-                  {PROVINCES.map((p) => (
+                  {SIDEBAR_PROVINCES.map((p) => (
                     <button
                       key={p}
                       onClick={() => { setSelectedProvince(p); setPage(1); }}
@@ -192,7 +275,7 @@ export default function MarketplacePage() {
               <div className="bg-white rounded-xl border border-hairline p-4">
                 <h3 className="text-xs font-bold text-ink uppercase tracking-wide mb-3">Loại canh tác</h3>
                 <div className="flex flex-col gap-2">
-                  {FARMING_TYPES.map(({ label, value }) => (
+                  {FARMING_TYPE_OPTIONS.map(({ label, value }) => (
                     <label key={value} className="flex items-center gap-2.5 cursor-pointer group">
                       <input
                         type="checkbox"
@@ -244,7 +327,7 @@ export default function MarketplacePage() {
           </aside>
 
           {/* Main */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 flex flex-col min-w-0">
 
             {/* Toolbar */}
             <div className="flex items-center justify-between mb-5">
@@ -323,7 +406,7 @@ export default function MarketplacePage() {
                 )}
                 {selectedFarming.map((v) => (
                   <span key={v} className="flex items-center gap-1.5 text-xs bg-primary-ultra-light text-primary px-3 py-1 rounded-full font-medium">
-                    {FARMING_TYPES.find((f) => f.value === v)?.label}
+                    {FARMING_TYPE_OPTIONS.find((f) => f.value === v)?.label}
                     <button onClick={() => setSelectedFarming((prev) => prev.filter((x) => x !== v))}><X size={11} /></button>
                   </span>
                 ))}
@@ -362,95 +445,17 @@ export default function MarketplacePage() {
                   ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"
                   : "flex flex-col gap-3"
               )}>
-                {products.map((product) => {
-                  const imageUrl = getPrimaryImage(product);
-                  const province = getProductProvince(product);
-                  return viewMode === "grid" ? (
-                    <Link
-                      key={product.id}
-                      href={`/marketplace/${product.id}`}
-                      className="group bg-white rounded-xl border border-hairline overflow-hidden card-shadow hover:border-primary/30 hover:shadow-md transition-all duration-200"
-                    >
-                      <div className="aspect-4/3 bg-surface-green relative overflow-hidden">
-                        <Image
-                          src={imageUrl}
-                          alt={product.name}
-                          fill
-                          className="object-cover transition-transform duration-500 group-hover:scale-105"
-                          sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                        />
-                        {product.farmingType && (
-                          <div className="absolute top-2.5 right-2.5">
-                            <FarmingBadge type={product.farmingType} />
-                          </div>
-                        )}
-                        {/* View count */}
-                        <div className="absolute bottom-2 left-2.5 flex items-center gap-1 bg-black/40 backdrop-blur-sm text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                          👁 {product.viewCount.toLocaleString("vi-VN")}
-                        </div>
-                      </div>
-                      <div className="p-4">
-                        <h3 className="text-sm font-semibold text-ink mb-1 leading-tight group-hover:text-primary transition-colors line-clamp-2">
-                          {product.name}
-                        </h3>
-                        <div className="flex items-center gap-1 text-xs text-muted mb-0.5">
-                          <MapPin size={10} className="text-primary shrink-0" />{province}
-                        </div>
-                        <div className="text-xs text-muted mb-3">
-                          Còn <span className="font-medium text-ink">{Number(product.availableQuantity).toLocaleString("vi-VN")}</span> {product.unit}
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="text-base font-bold text-primary">{Number(product.pricePerUnit).toLocaleString("vi-VN")}đ</span>
-                            <span className="text-xs text-muted">/{product.unit}</span>
-                          </div>
-                          <button
-                            onClick={(e) => e.preventDefault()}
-                            className="flex items-center gap-1 text-xs px-3 h-8 rounded-full border border-hairline bg-surface-green text-primary font-medium hover:border-primary hover:bg-primary hover:text-white transition-all"
-                          >
-                            <Phone size={11} /> Liên hệ
-                          </button>
-                        </div>
-                      </div>
-                    </Link>
-                  ) : (
-                    <Link
-                      key={product.id}
-                      href={`/marketplace/${product.id}`}
-                      className="group bg-white rounded-xl border border-hairline px-4 py-3.5 card-shadow hover:border-primary/30 hover:shadow-md transition-all duration-200 flex items-center gap-4"
-                    >
-                      <div className="w-18 h-18 rounded-xl bg-surface-green relative overflow-hidden shrink-0">
-                        <Image src={imageUrl} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="72px" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start gap-2 mb-1">
-                          <h3 className="text-sm font-semibold text-ink group-hover:text-primary transition-colors flex-1 line-clamp-1">{product.name}</h3>
-                          {product.farmingType && <FarmingBadge type={product.farmingType} />}
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-muted">
-                          <span className="flex items-center gap-1"><MapPin size={10} className="text-primary" />{province}</span>
-                          <span>Còn {Number(product.availableQuantity).toLocaleString("vi-VN")} {product.unit}</span>
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="text-base font-bold text-primary">{Number(product.pricePerUnit).toLocaleString("vi-VN")}đ</div>
-                        <div className="text-xs text-muted mb-2">/{product.unit}</div>
-                        <button
-                          onClick={(e) => e.preventDefault()}
-                          className="flex items-center gap-1 text-xs px-3 h-7 rounded-full border border-hairline bg-surface-green text-primary font-medium hover:border-primary transition-colors"
-                        >
-                          <Phone size={10} /> Liên hệ
-                        </button>
-                      </div>
-                    </Link>
-                  );
-                })}
+                {products.map((product) =>
+                  viewMode === "grid"
+                    ? <ProductGridCard key={product.id} product={product} />
+                    : <ProductListCard key={product.id} product={product} />
+                )}
               </div>
             )}
 
             {/* Pagination */}
             {!loading && totalPages > 0 && (
-              <div className="flex items-center justify-center gap-1.5 mt-10">
+              <div className="flex items-center justify-center gap-1.5 mt-auto pt-8">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
@@ -501,6 +506,70 @@ export default function MarketplacePage() {
             )}
 
           </div>
+
+          {/* ── Right ad column ───────────────────────────────── */}
+          <aside className="w-52 shrink-0 hidden xl:block">
+            <div className="sticky top-28 flex flex-col gap-4">
+
+              {/* Ad slot 1 — Banner dọc lớn */}
+              <div className="rounded-2xl border-2 border-dashed border-hairline bg-white overflow-hidden">
+                <div className="bg-surface-soft px-3 py-1.5 flex items-center justify-between border-b border-hairline">
+                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Quảng cáo</span>
+                  <span className="text-[9px] text-muted/60">300×250</span>
+                </div>
+                <div className="h-[250px] flex flex-col items-center justify-center gap-2 p-4">
+                  <div className="w-10 h-10 rounded-full bg-surface-soft flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted/50">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <path d="M3 9h18M9 21V9" />
+                    </svg>
+                  </div>
+                  <p className="text-[11px] text-muted/60 text-center leading-relaxed">
+                    Vị trí quảng cáo<br />sẽ được triển khai
+                  </p>
+                </div>
+              </div>
+
+              {/* Ad slot 2 — Promoted product */}
+              <div className="rounded-2xl border-2 border-dashed border-hairline bg-white overflow-hidden">
+                <div className="bg-surface-soft px-3 py-1.5 flex items-center justify-between border-b border-hairline">
+                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Nổi bật</span>
+                  <span className="text-[9px] text-muted/60">Sponsored</span>
+                </div>
+                <div className="h-[200px] flex flex-col items-center justify-center gap-2 p-4">
+                  <div className="w-10 h-10 rounded-full bg-surface-soft flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted/50">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                  </div>
+                  <p className="text-[11px] text-muted/60 text-center leading-relaxed">
+                    Sản phẩm được<br />đề xuất bởi thuật toán
+                  </p>
+                </div>
+              </div>
+
+              {/* Ad slot 3 — Small banner */}
+              <div className="rounded-2xl border-2 border-dashed border-hairline bg-white overflow-hidden">
+                <div className="bg-surface-soft px-3 py-1.5 flex items-center justify-between border-b border-hairline">
+                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Quảng cáo</span>
+                  <span className="text-[9px] text-muted/60">300×160</span>
+                </div>
+                <div className="h-[160px] flex flex-col items-center justify-center gap-2 p-4">
+                  <div className="w-8 h-8 rounded-full bg-surface-soft flex items-center justify-center">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted/50">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 8v4l3 3" />
+                    </svg>
+                  </div>
+                  <p className="text-[11px] text-muted/60 text-center leading-relaxed">
+                    Sắp ra mắt
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </aside>
+
         </div>
       </div>
 

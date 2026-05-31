@@ -370,10 +370,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
         )}
       </div>
 
-      {/* Reviews */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <ReviewSection productId={productId} />
-      </div>
+      {/* Reviews — only for real UUID products */}
+      {/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId) && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <ReviewSection productId={productId} />
+        </div>
+      )}
 
       <Footer />
     </div>
