@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRef, useState, useCallback, useEffect } from "react";
-import { ChevronLeft, ChevronRight, MapPin, Star, Phone, Pause, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin, Star, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FarmingBadge } from "@/components/ui/badge";
 
@@ -98,8 +98,6 @@ export function FeaturedCarousel() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(true);
-  const [paused, setPaused] = useState(false);
-
   const scrollTo = useCallback((idx: number) => {
     const el = trackRef.current;
     if (!el) return;
@@ -120,7 +118,6 @@ export function FeaturedCarousel() {
 
   // auto-play
   useEffect(() => {
-    if (paused) return;
     timerRef.current = setInterval(() => {
       setActiveIdx((prev) => {
         const next = (prev + 1) % PRODUCTS.length;
@@ -130,7 +127,7 @@ export function FeaturedCarousel() {
       });
     }, AUTO_INTERVAL);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [paused]);
+  }, []);
 
   // scroll listener
   useEffect(() => {
@@ -142,10 +139,7 @@ export function FeaturedCarousel() {
   }, [onScroll]);
 
   const handleManualNav = (idx: number) => {
-    // pause auto-play briefly after manual nav
-    setPaused(true);
     scrollTo(idx);
-    setTimeout(() => setPaused(false), 6000);
   };
 
   return (
@@ -158,14 +152,6 @@ export function FeaturedCarousel() {
             <p className="text-muted mt-1 text-sm">Nông sản chất lượng từ khắp Việt Nam</p>
           </div>
           <div className="flex items-center gap-2">
-            {/* Pause / Play */}
-            <button
-              onClick={() => setPaused((p) => !p)}
-              className="w-9 h-9 rounded-full border border-hairline bg-white flex items-center justify-center text-muted hover:border-primary hover:text-primary transition-all"
-              title={paused ? "Tự chạy" : "Dừng"}
-            >
-              {paused ? <Play size={15} /> : <Pause size={15} />}
-            </button>
             <button
               onClick={() => handleManualNav(activeIdx - 1)}
               className="w-9 h-9 rounded-full border border-hairline bg-white flex items-center justify-center text-muted hover:border-primary hover:text-primary transition-all"
@@ -193,8 +179,6 @@ export function FeaturedCarousel() {
             scrollbarWidth: "none",
             msOverflowStyle: "none",
           }}
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
         >
           {PRODUCTS.map((product) => (
             <Link
