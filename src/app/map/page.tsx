@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Filter, X, Layers, ZoomIn, ZoomOut, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MapboxCanvas } from "@/components/map/mapbox-canvas";
 
 const PROVINCES_DATA = [
   { name: "Lâm Đồng", region: "Tây Nguyên", products: ["Rau", "Cà phê", "Hoa"], area: "9,773 km²", farms: 1240 },
@@ -168,6 +169,8 @@ export default function MapPage() {
               </button>
             ))}
           </div>
+
+          <MapboxCanvas />
 
           {/* Map controls */}
           <div className="absolute top-4 right-4 flex flex-col gap-2">
