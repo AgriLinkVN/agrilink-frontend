@@ -208,6 +208,21 @@ body {
   50%       { background-position: 100% 50%; }
 }
 
+/* Category strip scrollbar — thin, dark */
+.category-scroll::-webkit-scrollbar {
+  height: 3px !important;
+}
+.category-scroll::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.category-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.4) !important;
+  border-radius: 9999px !important;
+}
+.category-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
 /* Problem card hover shadow */
 .problem-card:hover {
   box-shadow: 0 8px 32px rgba(45,106,79,0.16), 0 2px 8px rgba(0,0,0,0.06) !important;
