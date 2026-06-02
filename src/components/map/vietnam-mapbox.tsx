@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Map, { Marker, MapRef } from "react-map-gl/mapbox";
+import Map, { Layer, Marker, MapRef, Source } from "react-map-gl/mapbox";
 import type {
     ExpressionSpecification,
     FillLayerSpecification,
@@ -52,6 +52,7 @@ const SPECIAL_LABELS = [
 
 export type VietnamMapboxProps = {
     className?: string;
+    mapStyle?: VietnamMapStyle;
     selectedProvinceCode?: string | null;
     visibleProvinceCodes?: string[];
     onProvinceClick?: (code: string) => void;
@@ -59,7 +60,10 @@ export type VietnamMapboxProps = {
     onError?: (error: Error) => void;
 };
 
+export type VietnamMapStyle = "outdoors" | "satellite";
+
 const BASE_MAP_STYLE = mapboxOutdoorsClean as unknown as StyleSpecification;
+const SATELLITE_MAP_STYLE = "mapbox://styles/mapbox/satellite-streets-v12";
 const PROVINCE_SOURCE_ID = "agrilink-provinces";
 const PROVINCE_FILL_LAYER_ID = "provinces-fill";
 const PROVINCE_HOVER_LAYER_ID = "provinces-hover";
@@ -138,33 +142,18 @@ const selectedLineStyle: LineLayerSpecification = {
     },
 };
 
-const MAP_STYLE: StyleSpecification = {
-    ...BASE_MAP_STYLE,
-    sources: {
-        ...BASE_MAP_STYLE.sources,
-        [PROVINCE_SOURCE_ID]: {
-            type: "geojson",
-            data: vietnamMapGeojson,
-        },
-    },
-    layers: [
-        ...BASE_MAP_STYLE.layers,
-        baseFillStyle,
-        hoverFillStyle,
-        selectedFillStyle,
-        selectedLineStyle,
-    ],
-};
-
 function getProvinceOpacity(
-    visibleProvinceCodes: string[] | undefined
+    visibleProvinceCodes: string[] | undefined,
+    mapStyle: VietnamMapStyle,
 ): number | ExpressionSpecification {
-    if (!visibleProvinceCodes) return 0.6;
+    const visibleOpacity = mapStyle === "satellite" ? 0.36 : 0.6;
+
+    if (!visibleProvinceCodes) return visibleOpacity;
 
     return [
         "case",
         ["in", ["get", "code"], ["literal", visibleProvinceCodes]],
-        0.6,
+        visibleOpacity,
         0.05,
     ];
 }
@@ -202,6 +191,7 @@ function getCoordinateBounds(coordinates: unknown) {
 
 export function VietnamMapbox({
     className,
+    mapStyle = "outdoors",
     selectedProvinceCode,
     visibleProvinceCodes,
     onProvinceClick,
@@ -215,8 +205,14 @@ export function VietnamMapbox({
     const hoverFrameRef = useRef<number | null>(null);
     const resizeFrameRef = useRef<number | null>(null);
     const pendingHoverCodeRef = useRef<string | null>(null);
+    const lastFocusedProvinceCodeRef = useRef<string | null>(null);
     const [zoom, setZoom] = useState(6);
-    const [provinceLayerReady, setProvinceLayerReady] = useState(false);
+    const [readyMapStyle, setReadyMapStyle] =
+        useState<VietnamMapStyle | null>(null);
+
+    const baseMapStyle =
+        mapStyle === "satellite" ? SATELLITE_MAP_STYLE : BASE_MAP_STYLE;
+    const provinceLayerReady = readyMapStyle === mapStyle;
 
     const commitHover = useCallback((code: string | null) => {
         pendingHoverCodeRef.current = code;
@@ -257,21 +253,6 @@ export function VietnamMapbox({
             const code = clickedFeature.properties?.code;
             if (typeof code === "string") onProvinceClick?.(code);
 
-            const bounds = getCoordinateBounds(
-                "coordinates" in clickedFeature.geometry
-                    ? clickedFeature.geometry.coordinates
-                    : null
-            );
-
-            if (mapRef.current && bounds) {
-                mapRef.current.fitBounds(
-                    [
-                        [bounds.minLng, bounds.minLat],
-                        [bounds.maxLng, bounds.maxLat],
-                    ],
-                    { padding: 120, duration: 1000, maxZoom: MAX_DETAIL_ZOOM }
-                );
-            }
         },
         [onProvinceClick]
     );
@@ -288,13 +269,13 @@ export function VietnamMapbox({
             map?.getLayer(PROVINCE_FILL_LAYER_ID) &&
             map.isSourceLoaded(PROVINCE_SOURCE_ID)
         ) {
-            setProvinceLayerReady(true);
+            setReadyMapStyle(mapStyle);
             if (!readyNotifiedRef.current) {
                 readyNotifiedRef.current = true;
                 onReady?.();
             }
         }
-    }, [onReady, provinceLayerReady]);
+    }, [mapStyle, onReady, provinceLayerReady]);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -345,11 +326,46 @@ export function VietnamMapbox({
         map.setPaintProperty(
             PROVINCE_FILL_LAYER_ID,
             "fill-opacity",
-            getProvinceOpacity(visibleProvinceCodes)
+            getProvinceOpacity(visibleProvinceCodes, mapStyle)
         );
         map.setFilter(PROVINCE_SELECTED_FILL_LAYER_ID, selectedFilter);
         map.setFilter(PROVINCE_SELECTED_LINE_LAYER_ID, selectedFilter);
-    }, [provinceLayerReady, selectedFilter, visibleProvinceCodes]);
+    }, [mapStyle, provinceLayerReady, selectedFilter, visibleProvinceCodes]);
+
+    useEffect(() => {
+        if (!selectedProvinceCode) {
+            lastFocusedProvinceCodeRef.current = null;
+            return;
+        }
+
+        if (
+            !provinceLayerReady ||
+            lastFocusedProvinceCodeRef.current === selectedProvinceCode
+        ) {
+            return;
+        }
+
+        const selectedFeature = vietnamMapGeojson.features.find(
+            (feature) => feature.properties?.code === selectedProvinceCode,
+        );
+        const bounds = getCoordinateBounds(
+            selectedFeature && "coordinates" in selectedFeature.geometry
+                ? selectedFeature.geometry.coordinates
+                : null,
+        );
+
+        if (!mapRef.current || !bounds) return;
+
+        lastFocusedProvinceCodeRef.current = selectedProvinceCode;
+        mapRef.current.fitBounds(
+            [
+                [bounds.minLng, bounds.minLat],
+                [bounds.maxLng, bounds.maxLat],
+            ],
+            { padding: 120, duration: 800, maxZoom: MAX_DETAIL_ZOOM },
+        );
+    }, [provinceLayerReady, selectedProvinceCode]);
+
     return (
         <div ref={containerRef} className={cn("relative h-full w-full", className)}>
             <div className="absolute inset-0">
@@ -364,7 +380,8 @@ export function VietnamMapbox({
                     }}
                     minZoom={MIN_OVERVIEW_ZOOM}
                     maxZoom={MAX_DETAIL_ZOOM}
-                    mapStyle={MAP_STYLE}
+                    mapStyle={baseMapStyle}
+                    styleDiffing={false}
                     mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
                     interactiveLayerIds={[PROVINCE_FILL_LAYER_ID]}
                     onLoad={onMapLoad}
@@ -382,6 +399,17 @@ export function VietnamMapbox({
                     onZoom={(event) => setZoom(event.viewState.zoom)}
                     cursor="grab"
                 >
+                    <Source
+                        id={PROVINCE_SOURCE_ID}
+                        type="geojson"
+                        data={vietnamMapGeojson}
+                    >
+                        <Layer {...baseFillStyle} />
+                        <Layer {...hoverFillStyle} />
+                        <Layer {...selectedFillStyle} />
+                        <Layer {...selectedLineStyle} />
+                    </Source>
+
                     {provinceLayerReady && zoom >= PROVINCE_LABEL_ZOOM &&
                         PROVINCE_LABELS.map((label) => (
                             <Marker
