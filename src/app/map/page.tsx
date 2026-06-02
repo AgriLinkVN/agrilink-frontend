@@ -64,6 +64,7 @@ export default function MapPage() {
   const [selectedRegion, setSelectedRegion] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState("Tất cả");
   const [selectedFarming, setSelectedFarming] = useState("Tất cả");
+  const [expandedRegion, setExpandedRegion] = useState<string | null>(null);
 
 
   /* ── Lọc danh sách tỉnh ── */
@@ -330,7 +331,7 @@ export default function MapPage() {
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="font-bold text-ink text-lg">{selectedProvince.nameVi || selectedProvince.name}</h3>
-                    <p className="text-xs text-muted">{selectedProvince.regionVi || regionLabel(selectedProvince.region)}</p>
+                    <p className="text-xs text-muted">{selectedProvince.regionVi || REGION_LABELS_VI[selectedProvince.region as Region]}</p>
                     {selectedProvince.sapNhap && selectedProvince.sapNhap !== "không sáp nhập" && (
                       <p className="text-xs text-muted mt-0.5 flex items-center gap-1">
                         <GitMerge size={10} /> {selectedProvince.sapNhap}
