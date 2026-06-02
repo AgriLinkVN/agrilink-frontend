@@ -4,11 +4,10 @@ import { useState, useMemo } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Filter, X, Search, ChevronRight, Layers } from "lucide-react";
+import { MapPin, Filter, X, Search, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MapboxCanvas, type MapStyleKey } from "@/components/map/mapbox-canvas";
+import { VietnamSvgMap } from "@/components/map/vietnam-svg-map";
 import { vietnamProvinces, type VietnamProvince } from "@/lib/vietnam-provinces";
-import { vietnamMapGeojson } from "@/lib/vietnam-map-data";
 
 /* ── Bộ lọc ──────────────────────────────────────────────── */
 
@@ -61,7 +60,6 @@ export default function MapPage() {
   const [selectedRegion, setSelectedRegion] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState("Tất cả");
   const [selectedFarming, setSelectedFarming] = useState("Tất cả");
-  const [mapStyle, setMapStyle] = useState<MapStyleKey>("terrain");
 
   /* ── Lọc danh sách tỉnh ── */
   const filteredProvinces = useMemo(() => {
@@ -104,8 +102,6 @@ export default function MapPage() {
     selectedRegion !== "all" ||
     selectedProduct !== "Tất cả" ||
     selectedFarming !== "Tất cả";
-
-  const filteredProvinceCodes = filteredProvinces.map((province) => province.code);
 
   return (
     <div className="h-dvh bg-canvas flex flex-col">
@@ -262,18 +258,7 @@ export default function MapPage() {
 
         {/* ── Khu vực bản đồ ── */}
         <div className="flex-1 relative bg-surface-green overflow-hidden">
-          <MapboxCanvas
-            styleKey={mapStyle}
-            geojsonData={vietnamMapGeojson}
-            filteredProvinceCodes={filteredProvinceCodes}
-            selectedProvinceCode={selectedProvince?.code ?? null}
-            onProvinceClick={(code) => {
-              const province = vietnamProvinces.find((item) => item.code === code);
-              if (province) {
-                setSelectedProvince(province);
-              }
-            }}
-          />
+          <VietnamSvgMap />
 
           {/* Thanh công cụ trên bản đồ */}
           <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
@@ -288,27 +273,6 @@ export default function MapPage() {
               </button>
             )}
 
-            {/* Nút chuyển style bản đồ */}
-            <button
-              onClick={() => setMapStyle("terrain")}
-              className={cn(
-                "inline-flex h-9 items-center gap-2 rounded-lg bg-white px-3 text-sm font-semibold shadow-md",
-                mapStyle === "terrain" ? "text-primary" : "text-muted"
-              )}
-            >
-              <Layers size={15} />
-              Địa hình
-            </button>
-            <button
-              onClick={() => setMapStyle("satellite")}
-              className={cn(
-                "inline-flex h-9 items-center gap-2 rounded-lg bg-white px-3 text-sm font-semibold shadow-md",
-                mapStyle === "satellite" ? "text-primary" : "text-muted"
-              )}
-            >
-              <Layers size={15} />
-              Vệ tinh
-            </button>
           </div>
 
           {/* Panel thông tin tỉnh */}
