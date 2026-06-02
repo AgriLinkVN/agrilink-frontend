@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { use, useState, useMemo, useCallback } from "react";
 import ReactDOM from "react-dom";
+import { DemoDataBadge } from "@/components/demo/demo-data-badge";
 import { Navbar } from "@/components/layout/navbar";
+import { ResilientVietnamMap } from "@/components/map/resilient-vietnam-map";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Filter, X, Search, ChevronRight, Users, Ruler, TrendingUp, GitMerge } from "lucide-react";
+import { getP4DataSource } from "@/features/p4-demo";
 import { cn } from "@/lib/utils";
-import { VietnamMapbox } from "@/components/map/vietnam-mapbox";
 import { vietnamProvinces, type VietnamProvince } from "@/lib/vietnam-provinces";
 import { REGION_LABELS_VI, type Region } from "@/data/province-mapping";
 
@@ -48,11 +50,31 @@ const PROVINCE_GROUPS = (["North", "Central", "Highlands", "South"] as Region[])
   provinces: vietnamProvinces.filter(p => p.region === region),
 }));
 
+const DEMO_METADATA = getP4DataSource("mock").getMetadata();
+
+type MapSearchParams = Promise<
+  Record<string, string | string[] | undefined>
+>;
+
+function getFirstSearchParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 /* ── Trang chính ─────────────────────────────────────────── */
 
-export default function MapPage() {
-  ReactDOM.preconnect("https://api.mapbox.com", { crossOrigin: "anonymous" });
-  ReactDOM.preconnect("https://events.mapbox.com", { crossOrigin: "anonymous" });
+export default function MapPage({
+  searchParams,
+}: {
+  searchParams: MapSearchParams;
+}) {
+  const query = use(searchParams);
+  const forceOffline = getFirstSearchParam(query.map) === "offline";
+  const isDemo = getFirstSearchParam(query.demo) === "1";
+
+  if (!forceOffline) {
+    ReactDOM.preconnect("https://api.mapbox.com", { crossOrigin: "anonymous" });
+    ReactDOM.preconnect("https://events.mapbox.com", { crossOrigin: "anonymous" });
+  }
 
   const [showFilter, setShowFilter] = useState(true);
   const [selectedProvince, setSelectedProvince] = useState<VietnamProvince | null>(null);
@@ -275,7 +297,8 @@ export default function MapPage() {
 
         {/* ── Khu vực bản đồ ── */}
         <div className="flex-1 relative overflow-hidden bg-[#eef1ec]">
-          <VietnamMapbox
+          <ResilientVietnamMap
+            forceOffline={forceOffline}
             selectedProvinceCode={selectedProvince?.code ?? null}
             visibleProvinceCodes={filteredProvinceCodes}
             onProvinceClick={(code) => {
@@ -287,7 +310,7 @@ export default function MapPage() {
           />
 
           {/* Thanh công cụ trên bản đồ */}
-          <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+          <div className="absolute top-4 left-4 z-10 flex flex-wrap items-center gap-2">
             {!showFilter && (
               <button
                 onClick={() => setShowFilter(true)}
@@ -297,6 +320,7 @@ export default function MapPage() {
                 Bộ lọc
               </button>
             )}
+            {isDemo ? <DemoDataBadge metadata={DEMO_METADATA} /> : null}
           </div>
 
           {/* Panel thông tin tỉnh — right side */}
