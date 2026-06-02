@@ -8,6 +8,7 @@ import { MapPin, Filter, X, Search, ChevronRight, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MapboxCanvas, type MapStyleKey } from "@/components/map/mapbox-canvas";
 import { vietnamProvinces, type VietnamProvince } from "@/lib/vietnam-provinces";
+import { vietnamMapGeojson } from "@/lib/vietnam-map-data";
 
 /* ── Bộ lọc ──────────────────────────────────────────────── */
 
@@ -103,6 +104,8 @@ export default function MapPage() {
     selectedRegion !== "all" ||
     selectedProduct !== "Tất cả" ||
     selectedFarming !== "Tất cả";
+
+  const filteredProvinceCodes = filteredProvinces.map((province) => province.code);
 
   return (
     <div className="h-dvh bg-canvas flex flex-col">
@@ -259,7 +262,18 @@ export default function MapPage() {
 
         {/* ── Khu vực bản đồ ── */}
         <div className="flex-1 relative bg-surface-green overflow-hidden">
-          <MapboxCanvas styleKey={mapStyle} />
+          <MapboxCanvas
+            styleKey={mapStyle}
+            geojsonData={vietnamMapGeojson}
+            filteredProvinceCodes={filteredProvinceCodes}
+            selectedProvinceCode={selectedProvince?.code ?? null}
+            onProvinceClick={(code) => {
+              const province = vietnamProvinces.find((item) => item.code === code);
+              if (province) {
+                setSelectedProvince(province);
+              }
+            }}
+          />
 
           {/* Thanh công cụ trên bản đồ */}
           <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
