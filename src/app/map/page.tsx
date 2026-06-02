@@ -64,6 +64,7 @@ export default function MapPage() {
   const [selectedRegion, setSelectedRegion] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState("Tất cả");
   const [selectedFarming, setSelectedFarming] = useState("Tất cả");
+  const [expandedRegion, setExpandedRegion] = useState<string | null>(null);
 
 
   /* ── Lọc danh sách tỉnh ── */
