@@ -7,8 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Filter, X, Search, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VietnamSvgMap } from "@/components/map/vietnam-svg-map";
+import dynamic from "next/dynamic";
 import { vietnamProvinces, type VietnamProvince } from "@/lib/vietnam-provinces";
 
+const VietnamMapbox = dynamic(
+  () => import("@/components/map/vietnam-mapbox").then((mod) => mod.VietnamMapbox),
+  { ssr: false, loading: () => <div className="h-full w-full flex items-center justify-center bg-[#eef1ec]">Đang tải bản đồ Mapbox...</div> }
+);
 /* ── Bộ lọc ──────────────────────────────────────────────── */
 
 const REGIONS = [
@@ -262,8 +267,8 @@ export default function MapPage() {
         )}
 
         {/* ── Khu vực bản đồ ── */}
-        <div className="flex-1 relative bg-surface-green overflow-hidden">
-          <VietnamSvgMap
+        <div className="flex-1 relative overflow-hidden bg-[#eef1ec]">
+          <VietnamMapbox
             selectedProvinceCode={selectedProvince?.code ?? null}
             visibleProvinceCodes={filteredProvinceCodes}
             onProvinceClick={(code) => {
@@ -286,36 +291,35 @@ export default function MapPage() {
                 Bộ lọc
               </button>
             )}
-
           </div>
 
           {/* Panel thông tin tỉnh */}
           {selectedProvince && (
-            <div className="absolute bottom-4 left-4 right-4 sm:right-auto sm:w-96 bg-white rounded-2xl shadow-lg p-5 border border-hairline z-10">
-              <div className="flex items-start justify-between mb-3">
+            <div className="absolute top-4 right-4 z-10 rounded-lg bg-white/95 p-4 shadow-xl backdrop-blur w-80">
+              <div className="mb-3 flex items-start justify-between border-b border-hairline pb-3">
                 <div>
-                  <h3 className="font-bold text-ink text-lg">{selectedProvince.name}</h3>
+                  <h3 className="text-base font-bold text-ink">{selectedProvince.name}</h3>
                   <p className="text-xs text-muted">{regionLabel(selectedProvince.region)}</p>
                 </div>
                 <button
                   onClick={() => setSelectedProvince(null)}
-                  className="w-8 h-8 rounded-full hover:bg-surface-soft flex items-center justify-center text-muted"
+                  className="flex h-8 w-8 items-center justify-center rounded hover:bg-surface-soft text-muted"
                 >
                   <X size={14} />
                 </button>
               </div>
 
               {/* Thống kê */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-surface-green rounded-lg p-3">
-                  <p className="text-xs text-muted">Nông trại đang hoạt động</p>
-                  <p className="text-lg font-bold text-primary">
+              <div className="mb-4 space-y-2 text-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-muted">Nông trại đang hoạt động</p>
+                  <p className="font-bold text-primary">
                     {selectedProvince.activeFarms.toLocaleString("vi-VN")}
                   </p>
                 </div>
-                <div className="bg-surface-green rounded-lg p-3">
-                  <p className="text-xs text-muted">Giá trung bình</p>
-                  <p className="text-lg font-bold text-ink">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-muted">Giá trung bình</p>
+                  <p className="font-bold text-ink">
                     {(selectedProvince.avgPrice / 1000).toFixed(0)}k₫/kg
                   </p>
                 </div>
