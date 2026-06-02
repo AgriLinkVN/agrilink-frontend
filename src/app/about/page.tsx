@@ -8,6 +8,7 @@ import {
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
+import { PageHero } from "@/components/ui/page-hero";
 import { useAuth, ROLE_LABELS, ROLE_DASHBOARD } from "@/lib/auth-context";
 import { RoleExplorer } from "./role-explorer";
 import { MissionTimeline } from "./mission-timeline";
@@ -76,33 +77,29 @@ export default function AboutPage() {
       <Navbar />
 
       {/* ── Hero ── */}
-      <section className="hero-gradient relative overflow-hidden">
-        <ParticlesBg count={55} color="255,255,255" className="z-0" />
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/30 rounded-full px-4 py-2 mb-6">
-            <Leaf size={16} className="text-primary-ultra-light" />
-            <span className="text-white text-sm font-medium">Về AgriLink Vietnam</span>
-          </div>
-          <h1 className="text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
-            Hệ sinh thái số nông nghiệp<br />
-            <span className="text-primary-ultra-light">minh bạch, công bằng, bền vững</span>
-          </h1>
-          <p className="text-white/80 text-lg max-w-2xl mx-auto mb-8">
-            AgriLink kết nối 8.6 triệu hộ nông dân Việt Nam trực tiếp với người mua — loại bỏ bất bình đẳng thông tin đã tồn tại hàng thập kỷ trong chuỗi nông sản 53 tỷ USD.
-          </p>
-          {user && (
-            <div className="inline-flex items-center gap-2 bg-white/20 border border-white/30 rounded-full px-5 py-2.5 text-white text-sm">
-              <CheckCircle size={16} className="text-primary-ultra-light" />
-              Xin chào, <strong className="mx-1">{user.full_name}</strong> · {ROLE_LABELS[user.role]}
+      <PageHero variant="compact">
+        <div className="flex items-center justify-center h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 text-center">
+          <div>
+            <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/30 rounded-full px-4 py-2 mb-4">
+              <Leaf size={16} className="text-primary-ultra-light" />
+              <span className="text-white text-sm font-medium">Về AgriLink Vietnam</span>
             </div>
-          )}
+            <h1 className="text-3xl lg:text-4xl font-bold text-white mb-3 leading-tight drop-shadow-lg">
+              Hệ sinh thái số nông nghiệp<br />
+              <span className="text-primary-ultra-light">minh bạch, công bằng, bền vững</span>
+            </h1>
+            <p className="text-white/80 text-sm max-w-xl mx-auto">
+              AgriLink kết nối 8.6 triệu hộ nông dân Việt Nam trực tiếp với người mua — loại bỏ bất bình đẳng thông tin đã tồn tại hàng thập kỷ trong chuỗi nông sản 53 tỷ USD.
+            </p>
+            {user && (
+              <div className="mt-4 inline-flex items-center gap-2 bg-white/20 border border-white/30 rounded-full px-5 py-2 text-white text-sm">
+                <CheckCircle size={15} className="text-primary-ultra-light" />
+                Xin chào, <strong className="mx-1">{user.full_name}</strong> · {ROLE_LABELS[user.role]}
+              </div>
+            )}
+          </div>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 z-10">
-          <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
-            <path d="M0 60L1440 60L1440 20C1200 60 960 0 720 20C480 40 240 0 0 20L0 60Z" fill="white" />
-          </svg>
-        </div>
-      </section>
+      </PageHero>
 
       {/* ── Problem Statement ── */}
       <ProblemCurve />
