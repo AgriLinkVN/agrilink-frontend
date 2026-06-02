@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { geoMercator, geoPath, type GeoPermissibleObjects } from "d3-geo";
-import type { Feature, FeatureCollection, Geometry } from "geojson";
+import type {
+  Feature,
+  FeatureCollection,
+  Geometry,
+  Position,
+} from "geojson";
 import { cn } from "@/lib/utils";
 import { vietnamMapGeojson } from "@/lib/vietnam-map-data";
 
@@ -99,6 +104,45 @@ function getFeatureCode(feature: VietnamMapFeature) {
   return feature.properties?.code ?? null;
 }
 
+function getRingSignedArea(ring: Position[]) {
+  let signedArea = 0;
+
+  for (let index = 0; index < ring.length - 1; index += 1) {
+    const current = ring[index];
+    const next = ring[index + 1];
+    signedArea += current[0] * next[1] - next[0] * current[1];
+  }
+
+  return signedArea / 2;
+}
+
+function rewindRing(ring: Position[], clockwise: boolean) {
+  const isClockwise = getRingSignedArea(ring) < 0;
+  return isClockwise === clockwise ? ring : [...ring].reverse();
+}
+
+function rewindGeometryForD3(geometry: Geometry): Geometry {
+  if (geometry.type === "Polygon") {
+    return {
+      ...geometry,
+      coordinates: geometry.coordinates.map((ring, index) =>
+        rewindRing(ring, index === 0),
+      ),
+    };
+  }
+
+  if (geometry.type === "MultiPolygon") {
+    return {
+      ...geometry,
+      coordinates: geometry.coordinates.map((polygon) =>
+        polygon.map((ring, index) => rewindRing(ring, index === 0)),
+      ),
+    };
+  }
+
+  return geometry;
+}
+
 function applyRestingPathStyle(path: SVGPathElement) {
   path.style.fill = path.dataset.baseFill ?? VIETNAM_FILL;
   path.style.opacity = path.dataset.baseOpacity ?? "1";
@@ -149,7 +193,10 @@ export function VietnamSvgMap({
     );
     const pathGenerator = geoPath(projection);
     const buildPath = (feature: VietnamMapFeature, index: number): VietnamMapPath | null => {
-      const pathData = pathGenerator(feature as GeoPermissibleObjects);
+      const pathData = pathGenerator({
+        ...feature,
+        geometry: rewindGeometryForD3(feature.geometry),
+      } as GeoPermissibleObjects);
 
       if (!pathData) {
         return null;
