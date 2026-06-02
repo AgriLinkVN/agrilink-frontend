@@ -6,11 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Filter, X, Search, ChevronRight, Layers, Users, Ruler, TrendingUp, GitMerge } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MapboxCanvas, type MapStyleKey } from "@/components/map/mapbox-canvas";
+import { VietnamSvgMap } from "@/components/map/vietnam-svg-map";
+import dynamic from "next/dynamic";
 import { vietnamProvinces, type VietnamProvince } from "@/lib/vietnam-provinces";
 import { PROVINCE_CODE_TO_NAME, REGION_LABELS_VI, type Region } from "@/data/province-mapping";
 import type { FeatureCollection } from "geojson";
 
+const VietnamMapbox = dynamic(
+  () => import("@/components/map/vietnam-mapbox").then((mod) => mod.VietnamMapbox),
+  { ssr: false, loading: () => <div className="h-full w-full flex items-center justify-center bg-[#eef1ec]">Đang tải bản đồ Mapbox...</div> }
+);
 /* ── Bộ lọc ──────────────────────────────────────────────── */
 
 const REGIONS = [
@@ -59,16 +64,7 @@ export default function MapPage() {
   const [selectedRegion, setSelectedRegion] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState("Tất cả");
   const [selectedFarming, setSelectedFarming] = useState("Tất cả");
-  const [mapStyle, setMapStyle] = useState<MapStyleKey>("terrain");
-  const [geojsonData, setGeojsonData] = useState<FeatureCollection | undefined>(undefined);
-  const [expandedRegion, setExpandedRegion] = useState<string | null>(null);
 
-  /* ── Load GeoJSON ── */
-  useEffect(() => {
-    import("@/data/vietnam-34-provinces.json").then((mod) => {
-      setGeojsonData(mod.default as unknown as FeatureCollection);
-    });
-  }, []);
 
   /* ── Lọc danh sách tỉnh ── */
   const filteredProvinces = useMemo(() => {
@@ -300,14 +296,16 @@ export default function MapPage() {
         )}
 
         {/* ── Khu vực bản đồ ── */}
-        <div className="flex-1 relative bg-surface-green overflow-hidden">
-          <MapboxCanvas
-            styleKey={mapStyle}
-            geojsonData={geojsonData}
-            filteredProvinceCodes={filteredProvinceCodes}
+        <div className="flex-1 relative overflow-hidden bg-[#eef1ec]">
+          <VietnamMapbox
             selectedProvinceCode={selectedProvince?.code ?? null}
-            onProvinceClick={handleProvinceClick}
-            onProvinceHover={handleProvinceHover}
+            visibleProvinceCodes={filteredProvinceCodes}
+            onProvinceClick={(code) => {
+              const province = vietnamProvinces.find((item) => item.code === code);
+              if (province) {
+                setSelectedProvince(province);
+              }
+            }}
           />
 
           {/* Thanh công cụ trên bản đồ */}
@@ -322,40 +320,18 @@ export default function MapPage() {
                 Bộ lọc
               </button>
             )}
-
-            {/* Nút chuyển style bản đồ */}
-            <button
-              onClick={() => setMapStyle("terrain")}
-              className={cn(
-                "inline-flex h-9 items-center gap-2 rounded-lg bg-white px-3 text-sm font-semibold shadow-md",
-                mapStyle === "terrain" ? "text-primary" : "text-muted"
-              )}
-            >
-              <Layers size={15} />
-              Địa hình
-            </button>
-            <button
-              onClick={() => setMapStyle("satellite")}
-              className={cn(
-                "inline-flex h-9 items-center gap-2 rounded-lg bg-white px-3 text-sm font-semibold shadow-md",
-                mapStyle === "satellite" ? "text-primary" : "text-muted"
-              )}
-            >
-              <Layers size={15} />
-              Vệ tinh
-            </button>
           </div>
 
           {/* Panel thông tin tỉnh — right side on desktop, bottom on mobile */}
           {selectedProvince && (
-            <div className="absolute bottom-4 left-4 right-4 sm:right-4 sm:left-auto sm:top-16 sm:bottom-auto sm:w-96 bg-white rounded-2xl shadow-lg border border-hairline z-10 animate-in slide-in-from-right-4 duration-300">
+            <div className="absolute top-4 right-4 sm:w-96 bg-white rounded-2xl shadow-lg border border-hairline z-10 animate-in slide-in-from-right-4 duration-300">
               <div className="p-5">
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="font-bold text-ink text-lg">{selectedProvince.nameVi}</h3>
-                    <p className="text-xs text-muted">{selectedProvince.regionVi}</p>
-                    {selectedProvince.sapNhap !== "không sáp nhập" && (
+                    <h3 className="font-bold text-ink text-lg">{selectedProvince.nameVi || selectedProvince.name}</h3>
+                    <p className="text-xs text-muted">{selectedProvince.regionVi || regionLabel(selectedProvince.region)}</p>
+                    {selectedProvince.sapNhap && selectedProvince.sapNhap !== "không sáp nhập" && (
                       <p className="text-xs text-muted mt-0.5 flex items-center gap-1">
                         <GitMerge size={10} /> {selectedProvince.sapNhap}
                       </p>
