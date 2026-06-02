@@ -59,10 +59,10 @@ export function Footer() {
             </p>
             <div className="flex flex-col gap-2 text-sm text-muted">
               <a href="tel:02363xxxxxx" className="flex items-center gap-2 hover:text-primary transition-colors">
-                <Phone size={14} className="text-primary" /> 0236 3xx xxxx
+                <Phone size={14} className="text-primary" /> +84912 158 715
               </a>
               <a href="mailto:hello@agrilink.vn" className="flex items-center gap-2 hover:text-primary transition-colors">
-                <Mail size={14} className="text-primary" /> hello@agrilink.vn
+                <Mail size={14} className="text-primary" /> letritrung2605@gmail.com
               </a>
               <span className="flex items-center gap-2">
                 <MapPin size={14} className="text-primary" /> Đà Nẵng, Việt Nam

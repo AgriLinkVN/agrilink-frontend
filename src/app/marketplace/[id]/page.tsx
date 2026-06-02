@@ -4,86 +4,45 @@ import {
   Truck, ChevronRight, Calendar, Eye, Package2, Award,
   FileText, User, Building2, Sprout,
 } from "lucide-react";
+import Image from "next/image";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
-import { Badge, FarmingBadge, OrderStatusBadge } from "@/components/ui/badge";
+import { Badge, FarmingBadge } from "@/components/ui/badge";
 import { ReviewSection } from "@/components/reviews/ReviewSection";
+import {
+  fetchProduct,
+  fetchProducts,
+  getPrimaryImage,
+  getProductProvince,
+  type Product,
+} from "@/lib/products-api";
+import { notFound } from "next/navigation";
 
-/* ── Mock data — mirrors DB schema exactly ─────────────────────
-   Tables used: products, product_images, product_certifications,
-                users (seller), profiles
-   ─────────────────────────────────────────────────────────────── */
-const PRODUCT = {
-  // products table
-  id: "1",
-  name: "Xoài cát Hòa Lộc loại 1",
-  description: "Xoài cát Hòa Lộc chính gốc Tiền Giang, trái to đều, vỏ vàng óng, thịt dày ngọt thơm, ít xơ. Canh tác theo tiêu chuẩn VietGAP, không sử dụng chất kích thích tăng trưởng. Bảo quản nơi thoáng mát, dùng trong 7 ngày sau thu hoạch.",
-  pricePerUnit: 45000,
-  unit: "kg",
-  availableQuantity: 500,
-  minOrderQuantity: 10,
-  farmingType: "vietgap" as const,
-  province: "Tiền Giang",
-  district: "Cái Bè",
-  harvestDate: "15/06/2025",
-  expiryDate: "22/06/2025",          // expiry_date — có trong DB
-  status: "active",
-  viewCount: 1284,
-
-  // product_images (primary image — dùng emoji placeholder)
-  icon: "🥭",
-
-  // aggregated from reviews table
-  rating: 4.8,
-  reviewCount: 234,
-  soldCount: 1200,
-
-  // product_certifications — đủ fields từ bảng
-  certifications: [
-    {
-      certType: "VietGAP",
-      certNumber: "VG-TG-2024-0892",
-      issuedBy: "Sở NN&PTNT Tiền Giang",
-      issuedDate: "01/03/2024",
-      expiryDate: "01/03/2026",
-    },
-    {
-      certType: "OCOP",
-      certNumber: "OCOP-4S-TG-2024",
-      issuedBy: "UBND tỉnh Tiền Giang",
-      issuedDate: "15/06/2024",
-      expiryDate: "15/06/2027",
-    },
-  ],
-
-  // traceability — link to /trace page (không hardcode chi tiết)
-  qrCode: "QR-XOAI-TG-20250601-001",
-
-  // seller info (from users + profiles join)
-  seller: {
-    id: "u2",
-    name: "HTX Xoài Cát Tiền Giang",
-    sellerType: "cooperative",        // SellerType enum
-    trustScore: 4.9,
-    totalSales: 8900,
-    responseRate: "98%",
-    phone: "0901 234 567",
-    provinceLabel: "Tiền Giang",
-  },
+// Mock seller info (no users table join yet — seller data from products only)
+const MOCK_SELLER: Record<string, { name: string; sellerType: string; phone: string; trustScore: number; totalSales: number; responseRate: string }> = {
+  farmer: { name: "Hộ nông dân", sellerType: "farmer", phone: "0900 000 000", trustScore: 4.7, totalSales: 1200, responseRate: "92%" },
+  cooperative: { name: "Hợp tác xã", sellerType: "cooperative", phone: "0900 000 001", trustScore: 4.9, totalSales: 8900, responseRate: "98%" },
+  supplier: { name: "Nhà cung cấp", sellerType: "supplier", phone: "0900 000 002", trustScore: 4.8, totalSales: 5000, responseRate: "95%" },
 };
-
-const SIMILAR_PRODUCTS = [
-  { id: "3", name: "Xoài tứ quý Đồng Tháp", pricePerUnit: 38000, unit: "kg", province: "Đồng Tháp", icon: "🥭", rating: 4.6, farmingType: "vietgap" as const },
-  { id: "5", name: "Xoài Thái siêu ngọt", pricePerUnit: 55000, unit: "kg", province: "An Giang", icon: "🥭", rating: 4.7, farmingType: "traditional" as const },
-  { id: "7", name: "Xoài Úc ghép cành", pricePerUnit: 75000, unit: "kg", province: "Tiền Giang", icon: "🥭", rating: 4.5, farmingType: "globalgap" as const },
-];
 
 const SELLER_TYPE_LABEL: Record<string, { label: string; icon: React.ElementType }> = {
-  individual: { label: "Hộ cá nhân", icon: User },
+  farmer: { label: "Hộ cá nhân", icon: User },
   cooperative: { label: "Hợp tác xã", icon: Building2 },
-  enterprise: { label: "Doanh nghiệp", icon: Building2 },
+  supplier: { label: "Nhà cung cấp", icon: Building2 },
 };
+
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  // If already formatted (dd/mm/yyyy) return as-is
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return dateStr;
+  try {
+    const d = new Date(dateStr);
+    return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+  } catch {
+    return dateStr;
+  }
+}
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -91,8 +50,20 @@ interface PageProps {
 
 export default async function ProductDetailPage({ params }: PageProps) {
   const { id: productId } = await params;
-  const SellerIcon = SELLER_TYPE_LABEL[PRODUCT.seller.sellerType]?.icon ?? User;
-  const sellerLabel = SELLER_TYPE_LABEL[PRODUCT.seller.sellerType]?.label ?? "Người bán";
+
+  const product: Product | null = await fetchProduct(productId);
+  if (!product) return notFound();
+
+  // Similar products (same farming type, exclude current)
+  const { data: similar } = await fetchProducts({ limit: 4 });
+  const similarProducts = similar.filter((p) => p.id !== product.id).slice(0, 3);
+
+  const imageUrl = getPrimaryImage(product);
+  const province = getProductProvince(product);
+  const sellerInfo = MOCK_SELLER[product.sellerType] ?? MOCK_SELLER.farmer;
+  const SellerIcon = SELLER_TYPE_LABEL[product.sellerType]?.icon ?? User;
+  const sellerLabel = SELLER_TYPE_LABEL[product.sellerType]?.label ?? "Người bán";
+  const qrCode = `QR-${product.id.slice(0, 8).toUpperCase()}`;
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -106,7 +77,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
             <ChevronRight size={14} />
             <Link href="/marketplace" className="hover:text-primary transition-colors">Sàn nông sản</Link>
             <ChevronRight size={14} />
-            <span className="text-ink font-medium truncate">{PRODUCT.name}</span>
+            <span className="text-ink font-medium truncate">{product.name}</span>
           </div>
         </div>
       </div>
@@ -117,15 +88,22 @@ export default async function ProductDetailPage({ params }: PageProps) {
           {/* ── Left col: product info ── */}
           <div className="lg:col-span-2 flex flex-col gap-8">
 
-            {/* Image gallery placeholder */}
+            {/* Image gallery */}
             <div className="grid grid-cols-4 gap-3">
-              <div className="col-span-4 sm:col-span-3 aspect-4/3 bg-surface-green rounded-xl flex items-center justify-center text-8xl">
-                {PRODUCT.icon}
+              <div className="col-span-4 sm:col-span-3 aspect-4/3 bg-surface-green rounded-xl relative overflow-hidden">
+                <Image
+                  src={imageUrl}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 640px) 100vw, 60vw"
+                  priority
+                />
               </div>
               <div className="hidden sm:flex flex-col gap-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex-1 bg-surface-green rounded-lg flex items-center justify-center text-3xl cursor-pointer hover:ring-2 hover:ring-primary transition-all">
-                    {PRODUCT.icon}
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex-1 rounded-lg relative overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all bg-surface-green">
+                    <Image src={imageUrl} alt={product.name} fill className="object-cover" sizes="120px" />
                   </div>
                 ))}
               </div>
@@ -133,67 +111,67 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
             {/* Header */}
             <div>
-              {/* Status + farming badges */}
               <div className="flex items-center gap-2 flex-wrap mb-3">
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-badge-organic-bg text-[#2D6A4F] text-xs font-semibold">
                   Đang bán
                 </span>
-                <FarmingBadge type={PRODUCT.farmingType} />
+                {product.farmingType && <FarmingBadge type={product.farmingType} />}
               </div>
 
-              <h1 className="text-2xl font-bold text-ink mb-4">{PRODUCT.name}</h1>
+              <h1 className="text-2xl font-bold text-ink mb-4">{product.name}</h1>
 
-              {/* Key info row */}
               <div className="flex items-center flex-wrap gap-x-5 gap-y-2 text-sm text-muted mb-4">
                 <span className="flex items-center gap-1.5">
                   <MapPin size={14} className="text-primary shrink-0" />
-                  {PRODUCT.district}, {PRODUCT.province}
+                  {province}
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <Calendar size={14} className="text-primary shrink-0" />
-                  Thu hoạch: <span className="font-medium text-ink">{PRODUCT.harvestDate}</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Calendar size={14} className="text-warning shrink-0" />
-                  Hạn dùng: <span className="font-medium text-ink">{PRODUCT.expiryDate}</span>
-                </span>
+                {product.harvestDate && (
+                  <span className="flex items-center gap-1.5">
+                    <Calendar size={14} className="text-primary shrink-0" />
+                    Thu hoạch: <span className="font-medium text-ink">{formatDate(product.harvestDate)}</span>
+                  </span>
+                )}
+                {product.expiryDate && (
+                  <span className="flex items-center gap-1.5">
+                    <Calendar size={14} className="text-warning shrink-0" />
+                    Hạn dùng: <span className="font-medium text-ink">{formatDate(product.expiryDate)}</span>
+                  </span>
+                )}
                 <span className="flex items-center gap-1.5">
                   <Eye size={14} className="text-muted shrink-0" />
-                  {PRODUCT.viewCount.toLocaleString("vi-VN")} lượt xem
+                  {product.viewCount.toLocaleString("vi-VN")} lượt xem
                 </span>
               </div>
 
-              {/* Rating + sold */}
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map((s) => (
-                    <Star key={s} size={16} fill={s <= Math.floor(PRODUCT.rating) ? "#F59E0B" : "#E5E7EB"} stroke="none" />
+                    <Star key={s} size={16} fill={s <= 5 ? "#F59E0B" : "#E5E7EB"} stroke="none" />
                   ))}
                 </div>
-                <span className="text-xl font-bold text-ink">{PRODUCT.rating}</span>
-                <span className="text-muted text-sm">({PRODUCT.reviewCount} đánh giá)</span>
-                <span className="text-muted">·</span>
-                <span className="text-muted text-sm">Đã bán {PRODUCT.soldCount.toLocaleString("vi-VN")} {PRODUCT.unit}</span>
+                <span className="text-muted text-sm">(Chưa có đánh giá)</span>
               </div>
             </div>
 
             {/* Description */}
-            <div className="border-t border-hairline pt-6">
-              <h2 className="text-lg font-semibold text-ink mb-3">Mô tả sản phẩm</h2>
-              <p className="text-body-text leading-relaxed text-sm">{PRODUCT.description}</p>
-            </div>
+            {product.description && (
+              <div className="border-t border-hairline pt-6">
+                <h2 className="text-lg font-semibold text-ink mb-3">Mô tả sản phẩm</h2>
+                <p className="text-body-text leading-relaxed text-sm">{product.description}</p>
+              </div>
+            )}
 
-            {/* Specifications — DB fields */}
+            {/* Specifications */}
             <div className="border-t border-hairline pt-6">
               <h2 className="text-lg font-semibold text-ink mb-4">Thông tin sản phẩm</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {[
-                  { label: "Đơn vị tính", value: PRODUCT.unit, icon: Package2 },
-                  { label: "Số lượng còn", value: `${PRODUCT.availableQuantity.toLocaleString("vi-VN")} ${PRODUCT.unit}`, icon: Package2 },
-                  { label: "Đặt tối thiểu", value: `${PRODUCT.minOrderQuantity} ${PRODUCT.unit}`, icon: Package2 },
-                  { label: "Loại canh tác", value: PRODUCT.farmingType.toUpperCase(), icon: Sprout },
-                  { label: "Ngày thu hoạch", value: PRODUCT.harvestDate, icon: Calendar },
-                  { label: "Hạn sử dụng", value: PRODUCT.expiryDate, icon: Calendar },
+                  { label: "Đơn vị tính", value: product.unit, icon: Package2 },
+                  { label: "Số lượng còn", value: `${Number(product.availableQuantity).toLocaleString("vi-VN")} ${product.unit}`, icon: Package2 },
+                  ...(product.minOrderQuantity ? [{ label: "Đặt tối thiểu", value: `${product.minOrderQuantity} ${product.unit}`, icon: Package2 }] : []),
+                  ...(product.farmingType ? [{ label: "Loại canh tác", value: product.farmingType.toUpperCase(), icon: Sprout }] : []),
+                  ...(product.harvestDate ? [{ label: "Ngày thu hoạch", value: formatDate(product.harvestDate), icon: Calendar }] : []),
+                  ...(product.expiryDate ? [{ label: "Hạn sử dụng", value: formatDate(product.expiryDate), icon: Calendar }] : []),
                 ].map(({ label, value, icon: Icon }) => (
                   <div key={label} className="bg-surface-soft rounded-lg p-3 border border-hairline">
                     <p className="text-xs text-muted mb-1 flex items-center gap-1">
@@ -205,36 +183,42 @@ export default async function ProductDetailPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Certifications — product_certifications table */}
-            <div className="border-t border-hairline pt-6">
-              <h2 className="text-lg font-semibold text-ink mb-4">Chứng nhận chất lượng</h2>
-              <div className="flex flex-col gap-3">
-                {PRODUCT.certifications.map((cert) => (
-                  <div key={cert.certNumber} className="bg-white rounded-xl border border-hairline p-4 card-shadow flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-surface-green flex items-center justify-center shrink-0">
-                      <Award size={20} className="text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="text-sm font-bold text-ink">{cert.certType}</span>
-                        <span className="font-mono text-xs text-muted bg-surface-soft px-2 py-0.5 rounded">
-                          {cert.certNumber}
-                        </span>
+            {/* Certifications */}
+            {product.certifications && product.certifications.length > 0 && (
+              <div className="border-t border-hairline pt-6">
+                <h2 className="text-lg font-semibold text-ink mb-4">Chứng nhận chất lượng</h2>
+                <div className="flex flex-col gap-3">
+                  {product.certifications.map((cert) => (
+                    <div key={cert.id} className="bg-white rounded-xl border border-hairline p-4 card-shadow flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-surface-green flex items-center justify-center shrink-0">
+                        <Award size={20} className="text-primary" />
                       </div>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-                        <span className="flex items-center gap-1">
-                          <FileText size={11} /> Cấp bởi: <span className="text-ink font-medium">{cert.issuedBy}</span>
-                        </span>
-                        <span>Ngày cấp: <span className="text-ink">{cert.issuedDate}</span></span>
-                        <span>Hiệu lực đến: <span className="text-ink font-medium">{cert.expiryDate}</span></span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="text-sm font-bold text-ink">{cert.certType.toUpperCase()}</span>
+                          {cert.certNumber && (
+                            <span className="font-mono text-xs text-muted bg-surface-soft px-2 py-0.5 rounded">
+                              {cert.certNumber}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+                          {cert.issuedBy && (
+                            <span className="flex items-center gap-1">
+                              <FileText size={11} /> Cấp bởi: <span className="text-ink font-medium">{cert.issuedBy}</span>
+                            </span>
+                          )}
+                          {cert.issuedDate && <span>Ngày cấp: <span className="text-ink">{formatDate(cert.issuedDate)}</span></span>}
+                          {cert.expiryDate && <span>Hiệu lực đến: <span className="text-ink font-medium">{formatDate(cert.expiryDate)}</span></span>}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* QR Traceability — link to /trace, không hardcode data */}
+            {/* QR Traceability */}
             <div className="bg-surface-green rounded-xl border-2 border-primary-light p-5">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center border border-hairline shrink-0">
@@ -246,10 +230,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
                     <Badge variant="organic">Đã xác thực</Badge>
                   </div>
                   <p className="text-xs text-muted mb-3">
-                    Mã lô: <span className="font-mono font-semibold text-primary">{PRODUCT.qrCode}</span>
+                    Mã lô: <span className="font-mono font-semibold text-primary">{qrCode}</span>
                   </p>
                   <Button variant="secondary" size="sm" asChild>
-                    <Link href={`/trace/${PRODUCT.qrCode}`}>
+                    <Link href={`/trace/${qrCode}`}>
                       <QrCode size={13} /> Xem toàn bộ hành trình sản phẩm
                     </Link>
                   </Button>
@@ -266,11 +250,11 @@ export default async function ProductDetailPage({ params }: PageProps) {
                     <SellerIcon size={22} className="text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-ink">{PRODUCT.seller.name}</h3>
+                    <h3 className="font-semibold text-ink">{sellerInfo.name}</h3>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <Badge variant="vietgap">{sellerLabel} · Đã xác thực</Badge>
                       <span className="text-xs text-muted flex items-center gap-1">
-                        <MapPin size={11} className="text-primary" />{PRODUCT.seller.provinceLabel}
+                        <MapPin size={11} className="text-primary" />{province}
                       </span>
                     </div>
                   </div>
@@ -278,15 +262,15 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
                 <div className="grid grid-cols-3 gap-4 text-center border-y border-hairline py-4 mb-4">
                   <div>
-                    <div className="text-xl font-bold text-primary">{PRODUCT.seller.trustScore}</div>
+                    <div className="text-xl font-bold text-primary">{sellerInfo.trustScore}</div>
                     <div className="text-xs text-muted">Điểm tin cậy</div>
                   </div>
                   <div>
-                    <div className="text-xl font-bold text-ink">{PRODUCT.seller.totalSales.toLocaleString("vi-VN")}</div>
+                    <div className="text-xl font-bold text-ink">{sellerInfo.totalSales.toLocaleString("vi-VN")}</div>
                     <div className="text-xs text-muted">Giao dịch</div>
                   </div>
                   <div>
-                    <div className="text-xl font-bold text-ink">{PRODUCT.seller.responseRate}</div>
+                    <div className="text-xl font-bold text-ink">{sellerInfo.responseRate}</div>
                     <div className="text-xs text-muted">Phản hồi</div>
                   </div>
                 </div>
@@ -306,30 +290,30 @@ export default async function ProductDetailPage({ params }: PageProps) {
           {/* ── Right col: contact card ── */}
           <div className="lg:col-span-1">
             <div className="sticky top-24 bg-white rounded-xl border border-hairline card-shadow p-6 flex flex-col gap-5">
-
-              {/* Price */}
               <div>
-                <span className="text-3xl font-bold text-primary">{PRODUCT.pricePerUnit.toLocaleString("vi-VN")}đ</span>
-                <span className="text-muted text-sm">/{PRODUCT.unit}</span>
+                <span className="text-3xl font-bold text-primary">{Number(product.pricePerUnit).toLocaleString("vi-VN")}đ</span>
+                <span className="text-muted text-sm">/{product.unit}</span>
               </div>
 
-              {/* Quick stats */}
               <div className="flex flex-col gap-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted">Còn lại</span>
-                  <span className="font-semibold text-ink">{PRODUCT.availableQuantity.toLocaleString("vi-VN")} {PRODUCT.unit}</span>
+                  <span className="font-semibold text-ink">{Number(product.availableQuantity).toLocaleString("vi-VN")} {product.unit}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted">Đặt tối thiểu</span>
-                  <span className="font-semibold text-ink">{PRODUCT.minOrderQuantity} {PRODUCT.unit}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted">Hạn sử dụng</span>
-                  <span className="font-semibold text-ink">{PRODUCT.expiryDate}</span>
-                </div>
+                {product.minOrderQuantity && (
+                  <div className="flex justify-between">
+                    <span className="text-muted">Đặt tối thiểu</span>
+                    <span className="font-semibold text-ink">{product.minOrderQuantity} {product.unit}</span>
+                  </div>
+                )}
+                {product.expiryDate && (
+                  <div className="flex justify-between">
+                    <span className="text-muted">Hạn sử dụng</span>
+                    <span className="font-semibold text-ink">{formatDate(product.expiryDate)}</span>
+                  </div>
+                )}
               </div>
 
-              {/* CTA — liên hệ, không đặt mua */}
               <div className="flex flex-col gap-3 border-t border-hairline pt-4">
                 <Button size="lg" className="w-full">
                   <Phone size={17} /> Liên hệ người bán
@@ -339,11 +323,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 </Button>
               </div>
 
-              {/* Trust */}
               <div className="flex flex-col gap-2 border-t border-hairline pt-4">
                 {[
                   { icon: ShieldCheck, text: "Người bán đã được xác thực danh tính" },
-                  { icon: Award, text: "Chứng nhận VietGAP còn hiệu lực" },
+                  { icon: Award, text: "Sản phẩm có chứng nhận chất lượng" },
                   { icon: Truck, text: "Hỗ trợ giao hàng toàn quốc" },
                 ].map(({ icon: Icon, text }) => (
                   <div key={text} className="flex items-start gap-2 text-xs text-muted">
@@ -357,39 +340,42 @@ export default async function ProductDetailPage({ params }: PageProps) {
         </div>
 
         {/* Similar products */}
-        <div className="mt-16">
-          <h2 className="text-xl font-bold text-ink mb-6">Sản phẩm tương tự</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {SIMILAR_PRODUCTS.map((p) => (
-              <Link
-                key={p.id}
-                href={`/marketplace/${p.id}`}
-                className="bg-white rounded-xl border border-hairline p-4 card-shadow card-shadow-hover flex items-center gap-3"
-              >
-                <div className="w-14 h-14 rounded-xl bg-surface-green flex items-center justify-center text-2xl shrink-0">
-                  {p.icon}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-ink leading-tight mb-1 truncate">{p.name}</p>
-                  <p className="text-xs text-muted flex items-center gap-1 mb-1">
-                    <MapPin size={10} />{p.province}
-                  </p>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-bold text-primary">{p.pricePerUnit.toLocaleString("vi-VN")}đ/{p.unit}</p>
-                    <FarmingBadge type={p.farmingType} />
+        {similarProducts.length > 0 && (
+          <div className="mt-16">
+            <h2 className="text-xl font-bold text-ink mb-6">Sản phẩm tương tự</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              {similarProducts.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/marketplace/${p.id}`}
+                  className="bg-white rounded-xl border border-hairline p-4 card-shadow card-shadow-hover flex items-center gap-3"
+                >
+                  <div className="w-14 h-14 rounded-xl bg-surface-green relative overflow-hidden shrink-0">
+                    <Image src={getPrimaryImage(p)} alt={p.name} fill className="object-cover" sizes="56px" />
                   </div>
-                </div>
-              </Link>
-            ))}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-ink leading-tight mb-1 truncate">{p.name}</p>
+                    <p className="text-xs text-muted flex items-center gap-1 mb-1">
+                      <MapPin size={10} />{getProductProvince(p)}
+                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-bold text-primary">{Number(p.pricePerUnit).toLocaleString("vi-VN")}đ/{p.unit}</p>
+                      {p.farmingType && <FarmingBadge type={p.farmingType} />}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Reviews — added by P5. productId comes from the URL param so the
-          section loads the real product's reviews instead of mock data. */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <ReviewSection productId={productId} />
-      </div>
+      {/* Reviews — only for real UUID products */}
+      {/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId) && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <ReviewSection productId={productId} />
+        </div>
+      )}
 
       <Footer />
     </div>

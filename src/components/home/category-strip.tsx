@@ -6,55 +6,55 @@ const CATEGORIES = [
     label: "Lúa gạo",
     count: 234,
     href: "/marketplace?category=lua-gao",
-    image: "https://images.unsplash.com/photo-1651981350249-6173caeeb660?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    color: "from-amber-900/60",
+    image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&q=80",
+    color: "from-amber-800/65",
   },
   {
     label: "Rau củ",
     count: 512,
     href: "/marketplace?category=rau-cu",
-    image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&q=80",
-    color: "from-green-800/60",
+    image: "https://images.unsplash.com/photo-1590779033100-9f60a05a013d?w=600&q=80",
+    color: "from-green-800/65",
   },
   {
     label: "Trái cây",
     count: 389,
     href: "/marketplace?category=trai-cay",
-    image: "https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=400&q=80",
-    color: "from-orange-700/60",
+    image: "https://images.unsplash.com/photo-1528825871115-3581a5387919?w=600&q=80",
+    color: "from-orange-700/65",
   },
   {
     label: "Thủy sản",
     count: 156,
     href: "/marketplace?category=thuy-san",
-    image: "https://images.unsplash.com/photo-1534482421-64566f976cfa?w=400&q=80",
-    color: "from-blue-900/60",
+    image: "https://images.unsplash.com/photo-1510130387422-82bed34b37e9?w=600&q=80",
+    color: "from-blue-900/65",
   },
   {
     label: "Gia súc",
     count: 98,
     href: "/marketplace?category=gia-suc",
-    image: "https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=400&q=80",
-    color: "from-stone-800/60",
+    image: "https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=600&q=80",
+    color: "from-stone-800/65",
   },
   {
     label: "Nông sản khô",
     count: 201,
     href: "/marketplace?category=nong-san-kho",
-    image: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400&q=80",
-    color: "from-yellow-900/60",
+    image: "https://images.unsplash.com/photo-1580913428735-bd3c269d6a82?w=600&q=80",
+    color: "from-yellow-900/65",
   },
 ];
 
 export function CategoryStrip() {
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-4">
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-18">
+      <div className="flex gap-3 overflow-x-auto pb-2 category-scroll">
         {CATEGORIES.map(({ label, count, href, image, color }) => (
           <Link
             key={label}
             href={href}
-            className="group relative rounded-2xl overflow-hidden aspect-square cursor-pointer"
+            className="group relative rounded-2xl overflow-hidden w-48 sm:w-56 h-32 sm:h-36 shrink-0 cursor-pointer"
           >
             {/* Background image */}
             <Image
