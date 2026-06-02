@@ -8,14 +8,19 @@ import {
   resolveInitialMapState,
   type MapRuntimeState,
 } from "./map-runtime-state";
-import { VietnamMapbox } from "./vietnam-mapbox";
+import {
+  VietnamMapbox,
+  type VietnamMapStyle,
+} from "./vietnam-mapbox";
 
 const MAPBOX_READY_TIMEOUT_MS = 8_000;
 
 interface ResilientVietnamMapProps {
+  mapStyle?: VietnamMapStyle;
   selectedProvinceCode?: string | null;
   visibleProvinceCodes?: string[];
   onProvinceClick?: (code: string) => void;
+  onMapboxReadyChange?: (isReady: boolean) => void;
 }
 
 function supportsWebGl(): boolean {
@@ -32,9 +37,11 @@ function supportsWebGl(): boolean {
 }
 
 export function ResilientVietnamMap({
+  mapStyle = "outdoors",
   selectedProvinceCode,
   visibleProvinceCodes,
   onProvinceClick,
+  onMapboxReadyChange,
 }: ResilientVietnamMapProps) {
   const hasMapboxToken = Boolean(
     process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.trim(),
@@ -95,6 +102,10 @@ export function ResilientVietnamMap({
     setAttempt((currentAttempt) => currentAttempt + 1);
   }, []);
 
+  useEffect(() => {
+    onMapboxReadyChange?.(runtimeState.kind === "mapbox-ready");
+  }, [onMapboxReadyChange, runtimeState.kind]);
+
   const usesMapbox =
     runtimeState.kind === "loading" ||
     runtimeState.kind === "mapbox-ready";
@@ -107,6 +118,7 @@ export function ResilientVietnamMap({
       {usesMapbox ? (
         <VietnamMapbox
           key={attempt}
+          mapStyle={mapStyle}
           selectedProvinceCode={selectedProvinceCode}
           visibleProvinceCodes={visibleProvinceCodes}
           onProvinceClick={onProvinceClick}
