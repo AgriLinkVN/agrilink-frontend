@@ -103,6 +103,11 @@ export default function MapPage() {
     selectedProduct !== "Tất cả" ||
     selectedFarming !== "Tất cả";
 
+  const filteredProvinceCodes = useMemo(
+    () => filteredProvinces.map((province) => province.code),
+    [filteredProvinces]
+  );
+
   return (
     <div className="h-dvh bg-canvas flex flex-col">
       <Navbar />
@@ -258,7 +263,16 @@ export default function MapPage() {
 
         {/* ── Khu vực bản đồ ── */}
         <div className="flex-1 relative bg-surface-green overflow-hidden">
-          <VietnamSvgMap />
+          <VietnamSvgMap
+            selectedProvinceCode={selectedProvince?.code ?? null}
+            visibleProvinceCodes={filteredProvinceCodes}
+            onProvinceClick={(code) => {
+              const province = vietnamProvinces.find((item) => item.code === code);
+              if (province) {
+                setSelectedProvince(province);
+              }
+            }}
+          />
 
           {/* Thanh công cụ trên bản đồ */}
           <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
