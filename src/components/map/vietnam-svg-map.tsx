@@ -365,10 +365,10 @@ export function VietnamSvgMap({
       style={{ backgroundColor: MAP_SEA }}
     >
       <svg
-        aria-label="Vietnam administrative map"
+        aria-label="Bản đồ hành chính Việt Nam"
         className="h-full w-full"
         preserveAspectRatio="xMidYMid meet"
-        role="img"
+        role="group"
         viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
       >
         <defs>
@@ -439,12 +439,24 @@ export function VietnamSvgMap({
                   data-province-path="true"
                   data-selected={isSelected}
                   fill={baseFill}
-                  className="cursor-pointer"
+                  className="cursor-pointer focus:outline-none"
                   opacity={baseOpacity}
+                  role={code ? "button" : undefined}
+                  aria-label={code ? `Chọn ${path.name}` : undefined}
+                  aria-pressed={code ? isSelected : undefined}
                   stroke={baseStroke}
                   strokeWidth={baseStrokeWidth}
+                  tabIndex={code ? 0 : -1}
                   vectorEffect="non-scaling-stroke"
                   onClick={() => handleProvinceClick(path.feature)}
+                  onBlur={(event) => applyRestingPathStyle(event.currentTarget)}
+                  onFocus={(event) => applyHoverPathStyle(event.currentTarget)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      handleProvinceClick(path.feature);
+                    }
+                  }}
                   onMouseEnter={(event) => handleProvinceEnter(event, path.name)}
                   onMouseLeave={handleProvinceLeave}
                   onMouseMove={(event) => handleProvinceMove(event, path.name)}
