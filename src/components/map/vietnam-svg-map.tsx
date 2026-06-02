@@ -9,6 +9,12 @@ import { vietnamMapGeojson } from "@/lib/vietnam-map-data";
 const MAP_WIDTH = 900;
 const MAP_HEIGHT = 760;
 const MAP_PADDING = 24;
+const MAP_BACKGROUND = "#eef1ec";
+const MAP_BACKGROUND_LAND = "#f8f9f6";
+const MAP_CONTEXT_STROKE = "#cbd2c8";
+const VIETNAM_FILL = "#2ba84a";
+const VIETNAM_HIGHLIGHT = "#ffc107";
+const VIETNAM_BORDER = "#34443a";
 
 type VietnamMapFeature = Feature<
   Geometry,
@@ -20,6 +26,7 @@ type VietnamMapFeature = Feature<
 >;
 
 type VietnamSvgMapProps = {
+  backgroundGeojsonData?: FeatureCollection;
   className?: string;
   geojsonData?: FeatureCollection;
   selectedProvinceCode?: string | null;
@@ -40,6 +47,7 @@ function getFeatureCode(feature: VietnamMapFeature) {
 }
 
 export function VietnamSvgMap({
+  backgroundGeojsonData,
   className,
   geojsonData = vietnamMapGeojson,
   selectedProvinceCode,
@@ -51,7 +59,7 @@ export function VietnamSvgMap({
   const hoveredCodeRef = useRef<string | null>(null);
   const [hoveredProvinceCode, setHoveredProvinceCode] = useState<string | null>(null);
 
-  const { features, pathGenerator } = useMemo(() => {
+  const { backgroundFeatures, features, pathGenerator } = useMemo(() => {
     const projection = geoMercator().fitExtent(
       [
         [MAP_PADDING, MAP_PADDING],
@@ -61,10 +69,11 @@ export function VietnamSvgMap({
     );
 
     return {
+      backgroundFeatures: (backgroundGeojsonData?.features ?? []) as VietnamMapFeature[],
       features: geojsonData.features as VietnamMapFeature[],
       pathGenerator: geoPath(projection),
     };
-  }, [geojsonData]);
+  }, [backgroundGeojsonData, geojsonData]);
 
   const visibleProvinceCodeSet = useMemo(() => {
     if (!visibleProvinceCodes) {
@@ -128,7 +137,7 @@ export function VietnamSvgMap({
   );
 
   return (
-    <div ref={containerRef} className={cn("relative h-full w-full bg-[#f4f5f1]", className)}>
+    <div ref={containerRef} className={cn("relative h-full w-full bg-[#eef1ec]", className)}>
       <svg
         aria-label="Vietnam administrative map"
         className="h-full w-full"
@@ -136,8 +145,57 @@ export function VietnamSvgMap({
         role="img"
         viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
       >
-        <rect width={MAP_WIDTH} height={MAP_HEIGHT} fill="#f4f5f1" />
-        <g stroke="#34443a" strokeLinejoin="round" strokeWidth={0.9}>
+        <rect width={MAP_WIDTH} height={MAP_HEIGHT} fill={MAP_BACKGROUND} />
+        <rect
+          x={18}
+          y={18}
+          width={MAP_WIDTH - 36}
+          height={MAP_HEIGHT - 36}
+          rx={8}
+          fill={MAP_BACKGROUND_LAND}
+          stroke={MAP_CONTEXT_STROKE}
+          strokeWidth={1}
+        />
+
+        {backgroundFeatures.length > 0 ? (
+          <g fill="#e1e5de" stroke={MAP_CONTEXT_STROKE} strokeLinejoin="round" strokeWidth={0.8}>
+            {backgroundFeatures.map((feature, index) => {
+              const pathData = pathGenerator(feature as GeoPermissibleObjects);
+
+              if (!pathData) {
+                return null;
+              }
+
+              return (
+                <path
+                  key={`background-${getFeatureKey(feature, index)}`}
+                  d={pathData}
+                  vectorEffect="non-scaling-stroke"
+                />
+              );
+            })}
+          </g>
+        ) : null}
+
+        <g fill="#ffffff" stroke={MAP_CONTEXT_STROKE} strokeLinejoin="round" strokeWidth={2.5}>
+          {features.map((feature, index) => {
+            const pathData = pathGenerator(feature as GeoPermissibleObjects);
+
+            if (!pathData) {
+              return null;
+            }
+
+            return (
+              <path
+                key={`base-${getFeatureKey(feature, index)}`}
+                d={pathData}
+                vectorEffect="non-scaling-stroke"
+              />
+            );
+          })}
+        </g>
+
+        <g stroke={VIETNAM_BORDER} strokeLinejoin="round" strokeWidth={0.9}>
           {features.map((feature, index) => {
             const pathData = pathGenerator(feature as GeoPermissibleObjects);
 
@@ -154,10 +212,10 @@ export function VietnamSvgMap({
               <path
                 key={getFeatureKey(feature, index)}
                 d={pathData}
-                fill={isSelected || isHovered ? "#ffc107" : "#2ba84a"}
+                fill={isSelected || isHovered ? VIETNAM_HIGHLIGHT : VIETNAM_FILL}
                 className="cursor-pointer transition-colors duration-150"
                 opacity={isVisible || isSelected ? 1 : 0.16}
-                stroke={isSelected ? "#111827" : "#34443a"}
+                stroke={isSelected ? "#111827" : VIETNAM_BORDER}
                 strokeWidth={isSelected ? 1.8 : 0.9}
                 vectorEffect="non-scaling-stroke"
                 onClick={() => handleProvinceClick(feature)}
