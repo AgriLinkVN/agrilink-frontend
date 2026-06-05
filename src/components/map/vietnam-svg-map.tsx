@@ -2,12 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { geoMercator, geoPath, type GeoPermissibleObjects } from "d3-geo";
-import type {
-  Feature,
-  FeatureCollection,
-  Geometry,
-  Position,
-} from "geojson";
+import type { Feature, FeatureCollection, Geometry } from "geojson";
 import { cn } from "@/lib/utils";
 import { vietnamMapGeojson } from "@/lib/vietnam-map-data";
 
@@ -104,45 +99,6 @@ function getFeatureCode(feature: VietnamMapFeature) {
   return feature.properties?.code ?? null;
 }
 
-function getRingSignedArea(ring: Position[]) {
-  let signedArea = 0;
-
-  for (let index = 0; index < ring.length - 1; index += 1) {
-    const current = ring[index];
-    const next = ring[index + 1];
-    signedArea += current[0] * next[1] - next[0] * current[1];
-  }
-
-  return signedArea / 2;
-}
-
-function rewindRing(ring: Position[], clockwise: boolean) {
-  const isClockwise = getRingSignedArea(ring) < 0;
-  return isClockwise === clockwise ? ring : [...ring].reverse();
-}
-
-function rewindGeometryForD3(geometry: Geometry): Geometry {
-  if (geometry.type === "Polygon") {
-    return {
-      ...geometry,
-      coordinates: geometry.coordinates.map((ring, index) =>
-        rewindRing(ring, index === 0),
-      ),
-    };
-  }
-
-  if (geometry.type === "MultiPolygon") {
-    return {
-      ...geometry,
-      coordinates: geometry.coordinates.map((polygon) =>
-        polygon.map((ring, index) => rewindRing(ring, index === 0)),
-      ),
-    };
-  }
-
-  return geometry;
-}
-
 function applyRestingPathStyle(path: SVGPathElement) {
   path.style.fill = path.dataset.baseFill ?? VIETNAM_FILL;
   path.style.opacity = path.dataset.baseOpacity ?? "1";
@@ -193,10 +149,7 @@ export function VietnamSvgMap({
     );
     const pathGenerator = geoPath(projection);
     const buildPath = (feature: VietnamMapFeature, index: number): VietnamMapPath | null => {
-      const pathData = pathGenerator({
-        ...feature,
-        geometry: rewindGeometryForD3(feature.geometry),
-      } as GeoPermissibleObjects);
+      const pathData = pathGenerator(feature as GeoPermissibleObjects);
 
       if (!pathData) {
         return null;
@@ -412,10 +365,10 @@ export function VietnamSvgMap({
       style={{ backgroundColor: MAP_SEA }}
     >
       <svg
-        aria-label="Bản đồ hành chính Việt Nam"
+        aria-label="Vietnam administrative map"
         className="h-full w-full"
         preserveAspectRatio="xMidYMid meet"
-        role="group"
+        role="img"
         viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
       >
         <defs>
@@ -486,24 +439,12 @@ export function VietnamSvgMap({
                   data-province-path="true"
                   data-selected={isSelected}
                   fill={baseFill}
-                  className="cursor-pointer focus:outline-none"
+                  className="cursor-pointer"
                   opacity={baseOpacity}
-                  role={code ? "button" : undefined}
-                  aria-label={code ? `Chọn ${path.name}` : undefined}
-                  aria-pressed={code ? isSelected : undefined}
                   stroke={baseStroke}
                   strokeWidth={baseStrokeWidth}
-                  tabIndex={code ? 0 : -1}
                   vectorEffect="non-scaling-stroke"
                   onClick={() => handleProvinceClick(path.feature)}
-                  onBlur={(event) => applyRestingPathStyle(event.currentTarget)}
-                  onFocus={(event) => applyHoverPathStyle(event.currentTarget)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      handleProvinceClick(path.feature);
-                    }
-                  }}
                   onMouseEnter={(event) => handleProvinceEnter(event, path.name)}
                   onMouseLeave={handleProvinceLeave}
                   onMouseMove={(event) => handleProvinceMove(event, path.name)}
