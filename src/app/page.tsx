@@ -1,9 +1,9 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Search } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Badge } from "@/components/ui/badge";
 import { PageHero } from "@/components/ui/page-hero";
+import { HomeSearchIcon } from "@/components/home/home-search-icon";
 import { StatsSection } from "@/components/home/stats-section";
 import { LazySection } from "@/components/home/lazy-section";
 import { AdCarouselHome } from "@/components/ads/ad-carousel-home";
@@ -70,7 +70,7 @@ export default function HomePage() {
 
             {/* Hero search bar */}
             <div className="flex items-center gap-0 bg-white/95 backdrop-blur-sm rounded-full p-2 max-w-lg shadow-2xl mb-6">
-              <Search size={18} className="ml-4 text-muted shrink-0" />
+              <HomeSearchIcon />
               <input
                 type="text"
                 placeholder="Tìm nông sản, tỉnh thành, HTX..."
