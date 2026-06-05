@@ -1,20 +1,18 @@
 "use client";
 
-import { RefreshCw, WifiOff } from "lucide-react";
+import { MapPinOff, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  getOfflineFallbackMessage,
+  getMapUnavailableMessage,
   resolveInitialMapState,
   type MapRuntimeState,
 } from "./map-runtime-state";
 import { VietnamMapbox } from "./vietnam-mapbox";
-import { VietnamSvgMap } from "./vietnam-svg-map";
 
 const MAPBOX_READY_TIMEOUT_MS = 8_000;
 
 interface ResilientVietnamMapProps {
-  forceOffline?: boolean;
   selectedProvinceCode?: string | null;
   visibleProvinceCodes?: string[];
   onProvinceClick?: (code: string) => void;
@@ -34,7 +32,6 @@ function supportsWebGl(): boolean {
 }
 
 export function ResilientVietnamMap({
-  forceOffline = false,
   selectedProvinceCode,
   visibleProvinceCodes,
   onProvinceClick,
@@ -44,24 +41,21 @@ export function ResilientVietnamMap({
   );
   const [attempt, setAttempt] = useState(0);
   const [runtimeState, setRuntimeState] = useState<MapRuntimeState>(() =>
-    resolveInitialMapState({ forceOffline, hasMapboxToken }),
+    resolveInitialMapState({ hasMapboxToken }),
   );
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
-      const initialState = resolveInitialMapState({
-        forceOffline,
-        hasMapboxToken,
-      });
+      const initialState = resolveInitialMapState({ hasMapboxToken });
 
-      if (initialState.kind === "offline-fallback") {
+      if (initialState.kind === "unavailable") {
         setRuntimeState(initialState);
         return;
       }
 
       if (!supportsWebGl()) {
         setRuntimeState({
-          kind: "offline-fallback",
+          kind: "unavailable",
           reason: "webgl-unavailable",
         });
         return;
@@ -71,7 +65,7 @@ export function ResilientVietnamMap({
     });
 
     return () => window.cancelAnimationFrame(frameId);
-  }, [attempt, forceOffline, hasMapboxToken]);
+  }, [attempt, hasMapboxToken]);
 
   useEffect(() => {
     if (runtimeState.kind !== "loading") {
@@ -82,7 +76,7 @@ export function ResilientVietnamMap({
       setRuntimeState({
         kind: "error-with-retry",
         message:
-          "Mapbox mất quá nhiều thời gian để tải. Bản đồ ngoại tuyến đã được bật.",
+          "Mapbox mất quá nhiều thời gian để tải. Vui lòng kiểm tra kết nối và thử lại.",
       });
     }, MAPBOX_READY_TIMEOUT_MS);
 
@@ -93,7 +87,7 @@ export function ResilientVietnamMap({
     setRuntimeState({
       kind: "error-with-retry",
       message:
-        "Không thể kết nối Mapbox. Bạn vẫn có thể chọn tỉnh trên bản đồ ngoại tuyến.",
+        "Không thể kết nối Mapbox. Vui lòng kiểm tra kết nối và thử lại.",
     });
   }, []);
 
@@ -120,11 +114,7 @@ export function ResilientVietnamMap({
           onError={handleMapboxError}
         />
       ) : (
-        <VietnamSvgMap
-          selectedProvinceCode={selectedProvinceCode}
-          visibleProvinceCodes={visibleProvinceCodes}
-          onProvinceClick={onProvinceClick}
-        />
+        <div className="absolute inset-0 bg-[#eef1ec]" aria-hidden="true" />
       )}
 
       <div aria-live="polite">
@@ -142,37 +132,49 @@ export function ResilientVietnamMap({
           </div>
         ) : null}
 
-        {runtimeState.kind === "offline-fallback" ? (
-          <div className="absolute bottom-4 left-4 z-10 max-w-sm rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-950 shadow-sm">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <WifiOff aria-hidden="true" size={16} />
-              Bản đồ ngoại tuyến
+        {runtimeState.kind === "unavailable" ? (
+          <div className="absolute inset-0 z-10 grid place-items-center p-6">
+            <div className="max-w-sm rounded-xl border border-hairline bg-white p-5 text-center shadow-sm">
+              <MapPinOff
+                aria-hidden="true"
+                className="mx-auto text-muted"
+                size={28}
+              />
+              <p className="mt-3 font-semibold text-ink">
+                Bản đồ chưa khả dụng
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                {getMapUnavailableMessage(runtimeState.reason)}
+              </p>
             </div>
-            <p className="mt-1 text-xs leading-relaxed text-amber-900">
-              {getOfflineFallbackMessage(runtimeState.reason)}
-            </p>
           </div>
         ) : null}
 
         {runtimeState.kind === "error-with-retry" ? (
-          <div className="absolute bottom-4 left-4 z-10 max-w-sm rounded-lg border border-amber-300 bg-white p-4 shadow-md">
-            <div className="flex items-center gap-2 text-sm font-semibold text-ink">
-              <WifiOff aria-hidden="true" className="text-amber-700" size={16} />
-              Đang dùng bản đồ ngoại tuyến
+          <div className="absolute inset-0 z-10 grid place-items-center p-6">
+            <div className="max-w-sm rounded-xl border border-hairline bg-white p-5 text-center shadow-sm">
+              <MapPinOff
+                aria-hidden="true"
+                className="mx-auto text-muted"
+                size={28}
+              />
+              <p className="mt-3 font-semibold text-ink">
+                Không thể tải bản đồ
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                {runtimeState.message}
+              </p>
+              <Button
+                className="mt-4"
+                size="sm"
+                type="button"
+                variant="secondary"
+                onClick={retryMapbox}
+              >
+                <RefreshCw aria-hidden="true" size={14} />
+                Thử lại Mapbox
+              </Button>
             </div>
-            <p className="mt-1 text-xs leading-relaxed text-muted">
-              {runtimeState.message}
-            </p>
-            <Button
-              className="mt-3"
-              size="sm"
-              type="button"
-              variant="secondary"
-              onClick={retryMapbox}
-            >
-              <RefreshCw aria-hidden="true" size={14} />
-              Thử lại Mapbox
-            </Button>
           </div>
         ) : null}
       </div>

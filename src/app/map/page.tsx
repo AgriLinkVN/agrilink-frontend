@@ -68,13 +68,10 @@ export default function MapPage({
   searchParams: MapSearchParams;
 }) {
   const query = use(searchParams);
-  const forceOffline = getFirstSearchParam(query.map) === "offline";
   const isDemo = getFirstSearchParam(query.demo) === "1";
 
-  if (!forceOffline) {
-    ReactDOM.preconnect("https://api.mapbox.com", { crossOrigin: "anonymous" });
-    ReactDOM.preconnect("https://events.mapbox.com", { crossOrigin: "anonymous" });
-  }
+  ReactDOM.preconnect("https://api.mapbox.com", { crossOrigin: "anonymous" });
+  ReactDOM.preconnect("https://events.mapbox.com", { crossOrigin: "anonymous" });
 
   const [showFilter, setShowFilter] = useState(true);
   const [selectedProvince, setSelectedProvince] = useState<VietnamProvince | null>(null);
@@ -298,7 +295,6 @@ export default function MapPage({
         {/* ── Khu vực bản đồ ── */}
         <div className="flex-1 relative overflow-hidden bg-[#eef1ec]">
           <ResilientVietnamMap
-            forceOffline={forceOffline}
             selectedProvinceCode={selectedProvince?.code ?? null}
             visibleProvinceCodes={filteredProvinceCodes}
             onProvinceClick={(code) => {

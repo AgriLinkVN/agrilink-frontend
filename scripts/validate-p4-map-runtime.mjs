@@ -2,49 +2,32 @@
 
 import assert from "node:assert/strict";
 import {
-  getOfflineFallbackMessage,
+  getMapUnavailableMessage,
   resolveInitialMapState,
 } from "../src/components/map/map-runtime-state.ts";
 
 assert.deepEqual(
   resolveInitialMapState({
-    forceOffline: true,
-    hasMapboxToken: true,
-  }),
-  {
-    kind: "offline-fallback",
-    reason: "forced-offline",
-  },
-);
-
-assert.deepEqual(
-  resolveInitialMapState({
-    forceOffline: false,
     hasMapboxToken: false,
   }),
   {
-    kind: "offline-fallback",
+    kind: "unavailable",
     reason: "missing-token",
   },
 );
 
 assert.deepEqual(
   resolveInitialMapState({
-    forceOffline: false,
     hasMapboxToken: true,
   }),
   { kind: "loading" },
 );
 
-for (const reason of [
-  "forced-offline",
-  "missing-token",
-  "webgl-unavailable",
-]) {
+for (const reason of ["missing-token", "webgl-unavailable"]) {
   assert.ok(
-    getOfflineFallbackMessage(reason).length > 0,
-    `${reason} must have reader-facing fallback copy`,
+    getMapUnavailableMessage(reason).length > 0,
+    `${reason} must have reader-facing unavailable copy`,
   );
 }
 
-console.log("P4 map runtime states valid: forced, missing-token, WebGL, online");
+console.log("P4 map runtime states valid: missing-token, WebGL, online");
