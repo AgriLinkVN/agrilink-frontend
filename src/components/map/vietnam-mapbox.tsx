@@ -138,7 +138,9 @@ export function VietnamMapbox({
     onProvinceClick,
 }: VietnamMapboxProps) {
     const mapRef = useRef<MapRef>(null);
-    const [hoverInfo, setHoverInfo] = useState<string | null>(null);
+    const activeHoverCodeRef = useRef<string | null>(null);
+    const hoverFrameRef = useRef<number | null>(null);
+    const pendingHoverCodeRef = useRef<string | null>(null);
     const [zoom, setZoom] = useState(6);
     const [mapReady, setMapReady] = useState(false);
 
@@ -208,10 +210,31 @@ export function VietnamMapbox({
             .filter((label) => label.lat !== 0);
     }, []);
 
+    const commitHover = useCallback((code: string | null) => {
+        pendingHoverCodeRef.current = code;
+
+        if (hoverFrameRef.current !== null) return;
+
+        hoverFrameRef.current = requestAnimationFrame(() => {
+            hoverFrameRef.current = null;
+
+            const nextCode = pendingHoverCodeRef.current;
+            if (activeHoverCodeRef.current === nextCode) return;
+
+            activeHoverCodeRef.current = nextCode;
+
+            const map = mapRef.current?.getMap();
+            if (!map?.getLayer("provinces-hover")) return;
+
+            map.setFilter("provinces-hover", ["==", "code", nextCode ?? ""]);
+            map.getCanvas().style.cursor = nextCode ? "pointer" : "grab";
+        });
+    }, []);
+
     const onHover = useCallback((event: any) => {
         const hoveredFeature = event.features?.[0];
-        setHoverInfo(hoveredFeature?.properties?.code ?? null);
-    }, []);
+        commitHover(hoveredFeature?.properties?.code ?? null);
+    }, [commitHover]);
 
     const onClick = useCallback(
         (event: any) => {
@@ -272,10 +295,8 @@ export function VietnamMapbox({
             maxZoom: MIN_OVERVIEW_ZOOM,
         });
         requestAnimationFrame(() => setMapReady(true));
-        x``
     }, []);
 
-    const hoverFilter = useMemo(() => ["==", "code", hoverInfo || ""], [hoverInfo]);
     const selectedFilter = useMemo(
         () => ["==", "code", selectedProvinceCode || ""],
         [selectedProvinceCode]
@@ -303,14 +324,14 @@ export function VietnamMapbox({
                     interactiveLayerIds={["provinces-fill"]}
                     onLoad={onMapLoad}
                     onMouseMove={onHover}
-                    onMouseLeave={() => setHoverInfo(null)}
+                    onMouseLeave={() => commitHover(null)}
                     onClick={onClick}
                     onZoom={(event) => setZoom(event.viewState.zoom)}
-                    cursor={hoverInfo ? "pointer" : "grab"}
+                    cursor="grab"
                 >
                     <Source type="geojson" data={mapData as any}>
                         <Layer {...baseFillStyle} />
-                        <Layer {...hoverFillStyle} filter={hoverFilter as any} />
+                        <Layer {...hoverFillStyle} filter={["==", "code", ""]} />
                         <Layer {...selectedFillStyle} filter={selectedFilter as any} />
                         <Layer {...selectedLineStyle} filter={selectedFilter as any} />
                     </Source>
