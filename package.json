@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "generate:map-style": "node scripts/generate-mapbox-style.mjs",
     "start": "next start",
     "lint": "eslint"
   },

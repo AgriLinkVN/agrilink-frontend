@@ -1,12 +1,21 @@
 "use client";
 
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import Map, { Layer, Marker, MapRef, Source } from "react-map-gl/mapbox";
-import type { Map as MapboxMap } from "mapbox-gl";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Map, { Marker, MapRef } from "react-map-gl/mapbox";
+import type {
+    ExpressionSpecification,
+    FillLayerSpecification,
+    FilterSpecification,
+    LineLayerSpecification,
+    MapLayerMouseEvent,
+    StyleSpecification,
+} from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
+import mapboxOutdoorsClean from "@/data/mapbox-outdoors-clean.json";
 import { cn } from "@/lib/utils";
 import { vietnamMapGeojson } from "@/lib/vietnam-map-data";
+import { vietnamProvinces } from "@/lib/vietnam-provinces";
 
 const SPECIAL_LABELS = [
     {
@@ -48,7 +57,12 @@ export type VietnamMapboxProps = {
     onProvinceClick?: (code: string) => void;
 };
 
-const MAP_STYLE = "mapbox://styles/mapbox/outdoors-v12";
+const BASE_MAP_STYLE = mapboxOutdoorsClean as unknown as StyleSpecification;
+const PROVINCE_SOURCE_ID = "agrilink-provinces";
+const PROVINCE_FILL_LAYER_ID = "provinces-fill";
+const PROVINCE_HOVER_LAYER_ID = "provinces-hover";
+const PROVINCE_SELECTED_FILL_LAYER_ID = "provinces-selected-fill";
+const PROVINCE_SELECTED_LINE_LAYER_ID = "provinces-selected-line";
 const MIN_OVERVIEW_ZOOM = 5;
 const MAX_DETAIL_ZOOM = 8.2;
 const PROVINCE_LABEL_ZOOM = 6.5;
@@ -57,45 +71,30 @@ const VIETNAM_OVERVIEW_BOUNDS: [[number, number], [number, number]] = [
     [123.2, 24.8],
 ];
 
-function cleanBaseMapStyle(map: MapboxMap) {
-    const style = map.getStyle();
-    if (!style?.layers) return;
+const PROVINCE_LABEL_CENTERS: Record<string, { lat: number; lng: number }> = {
+    "Khánh Hòa": { lat: 12.124579, lng: 109.272056 },
+    "TP. Hồ Chí Minh": { lat: 10.720388, lng: 106.721878 },
+    "Đà Nẵng": { lat: 15.656788, lng: 108.075071 },
+    "Phú Thọ": { lat: 21.107451, lng: 105.083018 },
+    "Hải Phòng": { lat: 20.77218, lng: 106.500041 },
+    "Điện Biên": { lat: 21.733556, lng: 103.155499 },
+    "An Giang": { lat: 10.316131, lng: 104.761799 },
+    "Đồng Tháp": { lat: 10.483982, lng: 105.728057 },
+    "Tây Ninh": { lat: 11.223456, lng: 106.170975 },
+};
 
-    for (const layer of style.layers) {
-        const id = layer.id;
+const PROVINCE_LABELS = vietnamProvinces.map((province) => ({
+    key: province.code,
+    name: province.nameVi,
+    ...(PROVINCE_LABEL_CENTERS[province.nameVi] ?? {
+        lat: province.lat,
+        lng: province.lng,
+    }),
+}));
 
-        if (layer.type === "symbol") {
-            const keepCountryLabel =
-                id.includes("country-label") || id.includes("continent-label");
-
-            if (!keepCountryLabel) {
-                map.setLayoutProperty(id, "visibility", "none");
-            } else {
-                map.setLayoutProperty(id, "text-field", [
-                    "coalesce",
-                    ["get", "name_vi"],
-                    ["get", "name"],
-                ]);
-            }
-            continue;
-        }
-
-        const shouldHide =
-            id.includes("admin-1-boundary") ||
-            id.includes("contour") ||
-            id.includes("hillshade") ||
-            id.includes("road") ||
-            id.includes("path") ||
-            id.includes("trail");
-
-        if (shouldHide) {
-            map.setLayoutProperty(id, "visibility", "none");
-        }
-    }
-}
-
-const baseFillStyle: any = {
-    id: "provinces-fill",
+const baseFillStyle: FillLayerSpecification = {
+    id: PROVINCE_FILL_LAYER_ID,
+    source: PROVINCE_SOURCE_ID,
     type: "fill",
     paint: {
         "fill-color": "#2ba84a",
@@ -104,32 +103,100 @@ const baseFillStyle: any = {
     },
 };
 
-const hoverFillStyle: any = {
-    id: "provinces-hover",
+const hoverFillStyle: FillLayerSpecification = {
+    id: PROVINCE_HOVER_LAYER_ID,
+    source: PROVINCE_SOURCE_ID,
     type: "fill",
+    filter: ["==", ["get", "code"], ""],
     paint: {
         "fill-color": "#ffc107",
         "fill-opacity": 0.4,
     },
 };
 
-const selectedFillStyle: any = {
-    id: "provinces-selected-fill",
+const selectedFillStyle: FillLayerSpecification = {
+    id: PROVINCE_SELECTED_FILL_LAYER_ID,
+    source: PROVINCE_SOURCE_ID,
     type: "fill",
+    filter: ["==", ["get", "code"], ""],
     paint: {
         "fill-color": "#ffc107",
         "fill-opacity": 0.8,
     },
 };
 
-const selectedLineStyle: any = {
-    id: "provinces-selected-line",
+const selectedLineStyle: LineLayerSpecification = {
+    id: PROVINCE_SELECTED_LINE_LAYER_ID,
+    source: PROVINCE_SOURCE_ID,
     type: "line",
+    filter: ["==", ["get", "code"], ""],
     paint: {
         "line-color": "#000000",
         "line-width": 2,
     },
 };
+
+const MAP_STYLE: StyleSpecification = {
+    ...BASE_MAP_STYLE,
+    sources: {
+        ...BASE_MAP_STYLE.sources,
+        [PROVINCE_SOURCE_ID]: {
+            type: "geojson",
+            data: vietnamMapGeojson,
+        },
+    },
+    layers: [
+        ...BASE_MAP_STYLE.layers,
+        baseFillStyle,
+        hoverFillStyle,
+        selectedFillStyle,
+        selectedLineStyle,
+    ],
+};
+
+function getProvinceOpacity(
+    visibleProvinceCodes: string[] | undefined
+): number | ExpressionSpecification {
+    if (!visibleProvinceCodes) return 0.6;
+
+    return [
+        "case",
+        ["in", ["get", "code"], ["literal", visibleProvinceCodes]],
+        0.6,
+        0.05,
+    ];
+}
+
+function getCoordinateBounds(coordinates: unknown) {
+    const bounds = {
+        minLng: 180,
+        maxLng: -180,
+        minLat: 90,
+        maxLat: -90,
+    };
+
+    const visit = (value: unknown) => {
+        if (!Array.isArray(value)) return;
+
+        if (
+            value.length >= 2 &&
+            typeof value[0] === "number" &&
+            typeof value[1] === "number"
+        ) {
+            const [lng, lat] = value;
+            bounds.minLng = Math.min(bounds.minLng, lng);
+            bounds.maxLng = Math.max(bounds.maxLng, lng);
+            bounds.minLat = Math.min(bounds.minLat, lat);
+            bounds.maxLat = Math.max(bounds.maxLat, lat);
+            return;
+        }
+
+        value.forEach(visit);
+    };
+
+    visit(coordinates);
+    return bounds.minLng === 180 ? null : bounds;
+}
 
 export function VietnamMapbox({
     className,
@@ -137,78 +204,14 @@ export function VietnamMapbox({
     visibleProvinceCodes,
     onProvinceClick,
 }: VietnamMapboxProps) {
+    const containerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<MapRef>(null);
     const activeHoverCodeRef = useRef<string | null>(null);
     const hoverFrameRef = useRef<number | null>(null);
+    const resizeFrameRef = useRef<number | null>(null);
     const pendingHoverCodeRef = useRef<string | null>(null);
     const [zoom, setZoom] = useState(6);
-    const [mapReady, setMapReady] = useState(false);
-
-    const mapData = useMemo(() => vietnamMapGeojson, []);
-
-    const provinceLabels = useMemo(() => {
-        const customCenters: Record<string, { lat: number; lng: number }> = {
-            "Khánh Hòa": { lat: 12.124579, lng: 109.272056 },
-            "TP. Hồ Chí Minh": { lat: 10.720388, lng: 106.721878 },
-            "Đà Nẵng": { lat: 15.656788, lng: 108.075071 },
-            "Phú Thọ": { lat: 21.107451, lng: 105.083018 },
-            "Hải Phòng": { lat: 20.77218, lng: 106.500041 },
-            "Điện Biên": { lat: 21.733556, lng: 103.155499 },
-            "An Giang": { lat: 10.316131, lng: 104.761799 },
-            "Đồng Tháp": { lat: 10.483982, lng: 105.728057 },
-            "Tây Ninh": { lat: 11.223456, lng: 106.170975 },
-        };
-
-        return vietnamMapGeojson.features
-            .map((feature: any) => {
-                const name = feature.properties?.ten_tinh || feature.properties?.name;
-
-                if (customCenters[name]) {
-                    return {
-                        key: feature.properties?.code || name,
-                        name,
-                        lng: customCenters[name].lng,
-                        lat: customCenters[name].lat,
-                    };
-                }
-
-                let minLng = 180;
-                let maxLng = -180;
-                let minLat = 90;
-                let maxLat = -90;
-
-                const extractCoords = (coords: any[]) => {
-                    if (!Array.isArray(coords)) return;
-
-                    if (
-                        coords.length === 2 &&
-                        typeof coords[0] === "number" &&
-                        typeof coords[1] === "number"
-                    ) {
-                        const [lng, lat] = coords;
-                        if (lng < minLng) minLng = lng;
-                        if (lng > maxLng) maxLng = lng;
-                        if (lat < minLat) minLat = lat;
-                        if (lat > maxLat) maxLat = lat;
-                        return;
-                    }
-
-                    coords.forEach(extractCoords);
-                };
-
-                if (feature.geometry?.coordinates) {
-                    extractCoords(feature.geometry.coordinates);
-                }
-
-                return {
-                    key: feature.properties?.code || name,
-                    name,
-                    lng: minLng !== 180 ? (minLng + maxLng) / 2 : 0,
-                    lat: minLat !== 90 ? (minLat + maxLat) / 2 : 0,
-                };
-            })
-            .filter((label) => label.lat !== 0);
-    }, []);
+    const [provinceLayerReady, setProvinceLayerReady] = useState(false);
 
     const commitHover = useCallback((code: string | null) => {
         pendingHoverCodeRef.current = code;
@@ -224,59 +227,42 @@ export function VietnamMapbox({
             activeHoverCodeRef.current = nextCode;
 
             const map = mapRef.current?.getMap();
-            if (!map?.getLayer("provinces-hover")) return;
+            if (!map?.getLayer(PROVINCE_HOVER_LAYER_ID)) return;
 
-            map.setFilter("provinces-hover", ["==", "code", nextCode ?? ""]);
+            map.setFilter(PROVINCE_HOVER_LAYER_ID, [
+                "==",
+                ["get", "code"],
+                nextCode ?? "",
+            ]);
             map.getCanvas().style.cursor = nextCode ? "pointer" : "grab";
         });
     }, []);
 
-    const onHover = useCallback((event: any) => {
+    const onHover = useCallback((event: MapLayerMouseEvent) => {
         const hoveredFeature = event.features?.[0];
-        commitHover(hoveredFeature?.properties?.code ?? null);
+        const code = hoveredFeature?.properties?.code;
+        commitHover(typeof code === "string" ? code : null);
     }, [commitHover]);
 
     const onClick = useCallback(
-        (event: any) => {
+        (event: MapLayerMouseEvent) => {
             const clickedFeature = event.features?.[0];
             if (!clickedFeature) return;
 
             const code = clickedFeature.properties?.code;
-            if (code) onProvinceClick?.(code);
+            if (typeof code === "string") onProvinceClick?.(code);
 
-            let minLng = 180;
-            let maxLng = -180;
-            let minLat = 90;
-            let maxLat = -90;
+            const bounds = getCoordinateBounds(
+                "coordinates" in clickedFeature.geometry
+                    ? clickedFeature.geometry.coordinates
+                    : null
+            );
 
-            const extractCoords = (coords: any[]) => {
-                if (!Array.isArray(coords)) return;
-
-                if (
-                    coords.length === 2 &&
-                    typeof coords[0] === "number" &&
-                    typeof coords[1] === "number"
-                ) {
-                    const [lng, lat] = coords;
-                    if (lng < minLng) minLng = lng;
-                    if (lng > maxLng) maxLng = lng;
-                    if (lat < minLat) minLat = lat;
-                    if (lat > maxLat) maxLat = lat;
-                    return;
-                }
-
-                coords.forEach(extractCoords);
-            };
-
-            if (!clickedFeature.geometry?.coordinates) return;
-
-            extractCoords(clickedFeature.geometry.coordinates);
-
-            if (mapRef.current && minLng !== 180) {
+            if (mapRef.current && bounds) {
                 mapRef.current.fitBounds(
                     [
-                        [minLng, minLat],
-                        [maxLng, maxLat],
+                        [bounds.minLng, bounds.minLat],
+                        [bounds.maxLng, bounds.maxLat],
                     ],
                     { padding: 120, duration: 1000, maxZoom: MAX_DETAIL_ZOOM }
                 );
@@ -285,59 +271,103 @@ export function VietnamMapbox({
         [onProvinceClick]
     );
 
-    const onMapLoad = useCallback((event: any) => {
-        const map = event.target as MapboxMap;
+    const onMapLoad = useCallback(() => {
+        mapRef.current?.getMap().resize();
+    }, []);
 
-        cleanBaseMapStyle(map);
-        map.fitBounds(VIETNAM_OVERVIEW_BOUNDS, {
-            padding: 28,
-            animate: false,
-            maxZoom: MIN_OVERVIEW_ZOOM,
-        });
-        requestAnimationFrame(() => setMapReady(true));
+    const onMapRender = useCallback(() => {
+        if (provinceLayerReady) return;
+
+        const map = mapRef.current?.getMap();
+        if (
+            map?.getLayer(PROVINCE_FILL_LAYER_ID) &&
+            map.isSourceLoaded(PROVINCE_SOURCE_ID)
+        ) {
+            setProvinceLayerReady(true);
+        }
+    }, [provinceLayerReady]);
+
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container || typeof ResizeObserver === "undefined") return;
+
+        const resizeMap = () => {
+            if (resizeFrameRef.current !== null) {
+                cancelAnimationFrame(resizeFrameRef.current);
+            }
+
+            resizeFrameRef.current = requestAnimationFrame(() => {
+                resizeFrameRef.current = null;
+                mapRef.current?.getMap().resize();
+            });
+        };
+
+        const resizeObserver = new ResizeObserver(resizeMap);
+        resizeObserver.observe(container);
+
+        return () => {
+            resizeObserver.disconnect();
+
+            if (resizeFrameRef.current !== null) {
+                cancelAnimationFrame(resizeFrameRef.current);
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            if (hoverFrameRef.current !== null) {
+                cancelAnimationFrame(hoverFrameRef.current);
+            }
+        };
     }, []);
 
     const selectedFilter = useMemo(
-        () => ["==", "code", selectedProvinceCode || ""],
+        () => ["==", ["get", "code"], selectedProvinceCode || ""] as FilterSpecification,
         [selectedProvinceCode]
     );
 
+    useEffect(() => {
+        if (!provinceLayerReady) return;
+
+        const map = mapRef.current?.getMap();
+        if (!map?.getLayer(PROVINCE_FILL_LAYER_ID)) return;
+
+        map.setPaintProperty(
+            PROVINCE_FILL_LAYER_ID,
+            "fill-opacity",
+            getProvinceOpacity(visibleProvinceCodes)
+        );
+        map.setFilter(PROVINCE_SELECTED_FILL_LAYER_ID, selectedFilter);
+        map.setFilter(PROVINCE_SELECTED_LINE_LAYER_ID, selectedFilter);
+    }, [provinceLayerReady, selectedFilter, visibleProvinceCodes]);
     return (
-        <div className={cn("relative h-full w-full", className)}>
-            <div
-                className={cn(
-                    "absolute inset-0 transition-opacity duration-150",
-                    mapReady ? "opacity-100" : "opacity-0"
-                )}
-            >
+        <div ref={containerRef} className={cn("relative h-full w-full", className)}>
+            <div className="absolute inset-0">
                 <Map
                     ref={mapRef}
                     initialViewState={{
-                        longitude: 106.025002,
-                        latitude: 16.036903,
-                        zoom: MIN_OVERVIEW_ZOOM,
+                        bounds: VIETNAM_OVERVIEW_BOUNDS,
+                        fitBoundsOptions: {
+                            padding: 28,
+                            maxZoom: MIN_OVERVIEW_ZOOM,
+                        },
                     }}
                     minZoom={MIN_OVERVIEW_ZOOM}
                     maxZoom={MAX_DETAIL_ZOOM}
                     mapStyle={MAP_STYLE}
                     mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
-                    interactiveLayerIds={["provinces-fill"]}
+                    interactiveLayerIds={[PROVINCE_FILL_LAYER_ID]}
                     onLoad={onMapLoad}
+                    onRender={onMapRender}
                     onMouseMove={onHover}
                     onMouseLeave={() => commitHover(null)}
                     onClick={onClick}
                     onZoom={(event) => setZoom(event.viewState.zoom)}
                     cursor="grab"
                 >
-                    <Source type="geojson" data={mapData as any}>
-                        <Layer {...baseFillStyle} />
-                        <Layer {...hoverFillStyle} filter={["==", "code", ""]} />
-                        <Layer {...selectedFillStyle} filter={selectedFilter as any} />
-                        <Layer {...selectedLineStyle} filter={selectedFilter as any} />
-                    </Source>
-
-                    {zoom >= PROVINCE_LABEL_ZOOM &&
-                        provinceLabels.map((label) => (
+                    {provinceLayerReady && zoom >= PROVINCE_LABEL_ZOOM &&
+                        PROVINCE_LABELS.map((label) => (
                             <Marker
                                 key={`prov-label-${label.key}`}
                                 longitude={label.lng}
@@ -360,7 +390,7 @@ export function VietnamMapbox({
                             </Marker>
                         ))}
 
-                    {SPECIAL_LABELS.map((label) => (
+                    {provinceLayerReady && SPECIAL_LABELS.map((label) => (
                         <Marker
                             key={label.key}
                             longitude={label.lng}
