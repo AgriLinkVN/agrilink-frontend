@@ -1,21 +1,16 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
+import ReactDOM from "react-dom";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Filter, X, Search, ChevronRight, Layers, Users, Ruler, TrendingUp, GitMerge } from "lucide-react";
+import { MapPin, Filter, X, Search, ChevronRight, Users, Ruler, TrendingUp, GitMerge } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { VietnamSvgMap } from "@/components/map/vietnam-svg-map";
-import dynamic from "next/dynamic";
+import { VietnamMapbox } from "@/components/map/vietnam-mapbox";
 import { vietnamProvinces, type VietnamProvince } from "@/lib/vietnam-provinces";
-import { PROVINCE_CODE_TO_NAME, REGION_LABELS_VI, type Region } from "@/data/province-mapping";
-import type { FeatureCollection } from "geojson";
+import { REGION_LABELS_VI, type Region } from "@/data/province-mapping";
 
-const VietnamMapbox = dynamic(
-  () => import("@/components/map/vietnam-mapbox").then((mod) => mod.VietnamMapbox),
-  { ssr: false, loading: () => <div className="h-full w-full flex items-center justify-center bg-[#eef1ec]">Đang tải bản đồ Mapbox...</div> }
-);
 /* ── Bộ lọc ──────────────────────────────────────────────── */
 
 const REGIONS = [
@@ -58,6 +53,9 @@ const PROVINCE_GROUPS = (["North", "Central", "Highlands", "South"] as Region[])
 /* ── Trang chính ─────────────────────────────────────────── */
 
 export default function MapPage() {
+  ReactDOM.preconnect("https://api.mapbox.com", { crossOrigin: "anonymous" });
+  ReactDOM.preconnect("https://events.mapbox.com", { crossOrigin: "anonymous" });
+
   const [showFilter, setShowFilter] = useState(true);
   const [selectedProvince, setSelectedProvince] = useState<VietnamProvince | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -109,16 +107,6 @@ export default function MapPage() {
     selectedRegion !== "all" ||
     selectedProduct !== "Tất cả" ||
     selectedFarming !== "Tất cả";
-
-  /* ── Handlers for MapboxCanvas ── */
-  const handleProvinceClick = useCallback((code: string) => {
-    const prov = vietnamProvinces.find(p => p.code === code);
-    setSelectedProvince(prev => prev?.code === code ? null : prov ?? null);
-  }, []);
-
-  const handleProvinceHover = useCallback((_code: string | null) => {
-    // Could add hover state here if needed
-  }, []);
 
   const handleSelectProvince = useCallback((prov: VietnamProvince) => {
     setSelectedProvince(prev => prev?.code === prov.code ? null : prov);
