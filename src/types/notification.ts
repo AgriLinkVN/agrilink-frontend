@@ -10,6 +10,11 @@ export enum NotifType {
   AD_APPROVED = 'ad_approved',
   AD_REJECTED = 'ad_rejected',
   USER_LOCKED = 'user_locked',
+  MEMBER_APPROVED = 'member_approved',
+  MEMBER_REJECTED = 'member_rejected',
+  MEMBER_SUSPENDED = 'member_suspended',
+  MEMBER_REACTIVATED = 'member_reactivated',
+  HARVEST_REMINDER = 'harvest_reminder',
 }
 
 /**

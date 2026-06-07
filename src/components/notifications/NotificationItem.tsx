@@ -38,6 +38,11 @@ const TYPE_CONFIG: Record<
   [NotifType.PRICE_ALERT]:      { icon: TrendingUp,    color: 'text-teal-500',   bg: 'bg-teal-100' },
   [NotifType.NEW_MESSAGE]:      { icon: Bell,          color: 'text-indigo-500', bg: 'bg-indigo-100' },
   [NotifType.USER_LOCKED]:      { icon: Lock,          color: 'text-red-600',    bg: 'bg-red-100' },
+  [NotifType.MEMBER_APPROVED]:  { icon: CheckCircle,   color: 'text-green-600',  bg: 'bg-green-100' },
+  [NotifType.MEMBER_REJECTED]:  { icon: XCircle,       color: 'text-red-500',    bg: 'bg-red-100' },
+  [NotifType.MEMBER_SUSPENDED]: { icon: Ban,           color: 'text-orange-500', bg: 'bg-orange-100' },
+  [NotifType.MEMBER_REACTIVATED]: { icon: CheckCircle, color: 'text-emerald-600',bg: 'bg-emerald-100' },
+  [NotifType.HARVEST_REMINDER]: { icon: Bell,          color: 'text-amber-600',  bg: 'bg-amber-100' },
 };
 
 function safeFormatTimeAgo(iso?: string): string {
