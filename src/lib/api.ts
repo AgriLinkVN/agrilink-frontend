@@ -75,6 +75,40 @@ export const api = {
     request<T>(path, { method: 'DELETE' }, token),
 };
 
+// ── GET with query params + AbortSignal (dùng cho /search) ────────────────────
+
+/**
+ * GET helper hỗ trợ query params (skip undefined/empty) và AbortSignal.
+ * Public endpoint — không gửi Authorization. Vẫn unwrap envelope `{data}` như request().
+ */
+export async function apiGet<T>(
+  path: string,
+  params?: Record<string, string | number | undefined>,
+  signal?: AbortSignal,
+): Promise<T> {
+  const url = new URL(`${BASE}${path}`);
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null && v !== '') {
+        url.searchParams.set(k, String(v));
+      }
+    }
+  }
+
+  const res = await fetch(url.toString(), {
+    signal,
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body as Record<string, unknown>);
+  }
+
+  const json = (await res.json()) as { data: T };
+  return json.data;
+}
+
 // ── Cloudinary direct upload (unsigned preset) ────────────────────────────────
 
 /**
