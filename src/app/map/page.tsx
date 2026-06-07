@@ -1,6 +1,5 @@
 "use client";
 
-<<<<<<< Updated upstream
 import { useState, useMemo, useCallback } from "react";
 import ReactDOM from "react-dom";
 import { Navbar } from "@/components/layout/navbar";
@@ -11,29 +10,6 @@ import { cn } from "@/lib/utils";
 import { VietnamMapbox } from "@/components/map/vietnam-mapbox";
 import { vietnamProvinces, type VietnamProvince } from "@/lib/vietnam-provinces";
 import { REGION_LABELS_VI, type Region } from "@/data/province-mapping";
-=======
-<<<<<<< HEAD
-import { useState, useMemo } from "react";
-import { Navbar } from "@/components/layout/navbar";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, Filter, X, Search, ChevronRight, Layers } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { MapboxCanvas, type MapStyleKey } from "@/components/map/mapbox-canvas";
-import { vietnamProvinces, type VietnamProvince } from "@/lib/vietnam-provinces";
-=======
-import { useState, useMemo, useCallback } from "react";
-import ReactDOM from "react-dom";
-import { Navbar } from "@/components/layout/navbar";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, Filter, X, Search, ChevronRight, Users, Ruler, TrendingUp, GitMerge } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { VietnamMapbox } from "@/components/map/vietnam-mapbox";
-import { vietnamProvinces, type VietnamProvince } from "@/lib/vietnam-provinces";
-import { REGION_LABELS_VI, type Region } from "@/data/province-mapping";
->>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
->>>>>>> Stashed changes
 
 /* ── Bộ lọc ──────────────────────────────────────────────── */
 
@@ -49,7 +25,6 @@ const PRODUCTS_FILTER = ["Tất cả", "Lúa gạo", "Rau củ", "Trái cây", "
 
 const FARMING_TYPES = ["Tất cả", "Hữu cơ", "VietGAP", "GlobalGAP", "Truyền thống"] as const;
 
-/** Map farming type hiển thị → key trong data */
 const FARMING_MAP: Record<string, string> = {
   "Hữu cơ": "Organic",
   "VietGAP": "VietGAP",
@@ -57,7 +32,6 @@ const FARMING_MAP: Record<string, string> = {
   "Truyền thống": "Traditional",
 };
 
-/** Map product filter hiển thị → keyword trong data */
 const PRODUCT_MAP: Record<string, string[]> = {
   "Lúa gạo": ["Rice", "ST25"],
   "Rau củ": ["Vegetables", "Carrot", "Garlic"],
@@ -66,21 +40,6 @@ const PRODUCT_MAP: Record<string, string[]> = {
   "Thủy sản": ["Seafood", "Shrimp", "Crab", "Fish", "Tuna"],
 };
 
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-/* ── Region label helper ─────────────────────────────────── */
-
-function regionLabel(region: VietnamProvince["region"]): string {
-  switch (region) {
-    case "North": return "Miền Bắc";
-    case "Central": return "Miền Trung";
-    case "Highlands": return "Tây Nguyên";
-    case "South": return "Miền Nam";
-  }
-}
-=======
->>>>>>> Stashed changes
 /* ── Group provinces by region ──────────────────────────────── */
 
 const PROVINCE_GROUPS = (["North", "Central", "Highlands", "South"] as Region[]).map(region => ({
@@ -88,10 +47,6 @@ const PROVINCE_GROUPS = (["North", "Central", "Highlands", "South"] as Region[])
   label: REGION_LABELS_VI[region],
   provinces: vietnamProvinces.filter(p => p.region === region),
 }));
-<<<<<<< Updated upstream
-=======
->>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
->>>>>>> Stashed changes
 
 /* ── Trang chính ─────────────────────────────────────────── */
 
@@ -105,48 +60,11 @@ export default function MapPage() {
   const [selectedRegion, setSelectedRegion] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState("Tất cả");
   const [selectedFarming, setSelectedFarming] = useState("Tất cả");
-<<<<<<< Updated upstream
   const [expandedRegion, setExpandedRegion] = useState<string | null>(null);
-
-=======
-<<<<<<< HEAD
-  const [mapStyle, setMapStyle] = useState<MapStyleKey>("terrain");
-=======
-  const [expandedRegion, setExpandedRegion] = useState<string | null>(null);
-
->>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
->>>>>>> Stashed changes
 
   /* ── Lọc danh sách tỉnh ── */
   const filteredProvinces = useMemo(() => {
     return vietnamProvinces.filter((p) => {
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-      // Lọc theo tìm kiếm
-      if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return false;
-      }
-      // Lọc theo vùng miền
-      if (selectedRegion !== "all" && p.region !== selectedRegion) {
-        return false;
-      }
-      // Lọc theo sản phẩm
-      if (selectedProduct !== "Tất cả") {
-        const keywords = PRODUCT_MAP[selectedProduct] || [];
-        if (!p.products.some((prod) => keywords.some((kw) => prod.includes(kw)))) {
-          return false;
-        }
-      }
-      // Lọc theo loại canh tác
-      if (selectedFarming !== "Tất cả") {
-        const key = FARMING_MAP[selectedFarming];
-        if (key && !p.farmingTypes.includes(key)) {
-          return false;
-        }
-=======
->>>>>>> Stashed changes
-      // Tìm kiếm cả nameVi và name
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         if (!p.name.toLowerCase().includes(q) && !p.nameVi.toLowerCase().includes(q)) {
@@ -161,31 +79,18 @@ export default function MapPage() {
       if (selectedFarming !== "Tất cả") {
         const key = FARMING_MAP[selectedFarming];
         if (key && !p.farmingTypes.includes(key)) return false;
-<<<<<<< Updated upstream
-=======
->>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
->>>>>>> Stashed changes
       }
       return true;
     });
   }, [searchQuery, selectedRegion, selectedProduct, selectedFarming]);
 
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
-  /** Mã tỉnh đã filter — pass xuống MapboxCanvas để dim tỉnh không match */
+  /** Mã tỉnh đã filter — pass xuống map để dim tỉnh không match */
   const filteredProvinceCodes = useMemo(() => {
     const hasFilter = searchQuery !== "" || selectedRegion !== "all" || selectedProduct !== "Tất cả" || selectedFarming !== "Tất cả";
-    if (!hasFilter) return undefined; // no filter → show all
+    if (!hasFilter) return undefined;
     return filteredProvinces.map(p => p.code);
   }, [filteredProvinces, searchQuery, selectedRegion, selectedProduct, selectedFarming]);
 
-<<<<<<< Updated upstream
-=======
->>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
->>>>>>> Stashed changes
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedRegion("all");
@@ -198,19 +103,10 @@ export default function MapPage() {
     selectedRegion !== "all" ||
     selectedProduct !== "Tất cả" ||
     selectedFarming !== "Tất cả";
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
 
   const handleSelectProvince = useCallback((prov: VietnamProvince) => {
     setSelectedProvince(prev => prev?.code === prov.code ? null : prov);
   }, []);
-<<<<<<< Updated upstream
-=======
->>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
->>>>>>> Stashed changes
 
   return (
     <div className="h-dvh bg-canvas flex flex-col">
@@ -318,56 +214,13 @@ export default function MapPage() {
               )}
             </div>
 
-<<<<<<< Updated upstream
             {/* Danh sách tỉnh — grouped by region */}
-=======
-<<<<<<< HEAD
-            {/* Danh sách tỉnh */}
-=======
-            {/* Danh sách tỉnh — grouped by region */}
->>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
->>>>>>> Stashed changes
             <div className="border-t border-hairline flex flex-col overflow-hidden">
               <div className="px-5 pt-4 pb-2 flex items-center justify-between">
                 <h3 className="text-xs font-semibold text-muted uppercase tracking-wide">
                   Kết quả ({filteredProvinces.length})
                 </h3>
               </div>
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-              <div className="flex-1 flex flex-col gap-0.5 overflow-y-auto overscroll-contain px-3 pb-3 max-h-60">
-                {filteredProvinces.map((prov) => (
-                  <button
-                    key={prov.code}
-                    onClick={() =>
-                      setSelectedProvince(
-                        selectedProvince?.code === prov.code ? null : prov
-                      )
-                    }
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-all",
-                      selectedProvince?.code === prov.code
-                        ? "bg-primary-ultra-light text-primary font-semibold"
-                        : "text-muted hover:text-ink hover:bg-surface-soft"
-                    )}
-                  >
-                    <MapPin
-                      size={13}
-                      className={
-                        selectedProvince?.code === prov.code
-                          ? "text-primary"
-                          : "text-muted"
-                      }
-                    />
-                    <span className="flex-1 truncate">{prov.name}</span>
-                    <span className="text-[11px] opacity-60">
-                      {prov.activeFarms.toLocaleString("vi-VN")}
-                    </span>
-                  </button>
-                ))}
-=======
->>>>>>> Stashed changes
               <div className="flex-1 flex flex-col gap-0.5 overflow-y-auto overscroll-contain px-3 pb-3 max-h-72">
                 {PROVINCE_GROUPS.map((group) => {
                   const groupFiltered = filteredProvinces.filter(p => p.region === group.region);
@@ -383,10 +236,7 @@ export default function MapPage() {
                         <span>{group.label} ({groupFiltered.length})</span>
                         <ChevronRight
                           size={12}
-                          className={cn(
-                            "transition-transform",
-                            isExpanded && "rotate-90"
-                          )}
+                          className={cn("transition-transform", isExpanded && "rotate-90")}
                         />
                       </button>
                       {isExpanded && groupFiltered.map((prov) => (
@@ -402,11 +252,7 @@ export default function MapPage() {
                         >
                           <MapPin
                             size={13}
-                            className={
-                              selectedProvince?.code === prov.code
-                                ? "text-primary"
-                                : "text-muted"
-                            }
+                            className={selectedProvince?.code === prov.code ? "text-primary" : "text-muted"}
                           />
                           <span className="flex-1 truncate">{prov.nameVi}</span>
                           <span className="text-[11px] opacity-60">
@@ -417,10 +263,6 @@ export default function MapPage() {
                     </div>
                   );
                 })}
-<<<<<<< Updated upstream
-=======
->>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
->>>>>>> Stashed changes
                 {filteredProvinces.length === 0 && (
                   <p className="px-3 py-4 text-sm text-muted text-center">
                     Không tìm thấy tỉnh phù hợp
@@ -432,13 +274,6 @@ export default function MapPage() {
         )}
 
         {/* ── Khu vực bản đồ ── */}
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-        <div className="flex-1 relative bg-surface-green overflow-hidden">
-          <MapboxCanvas styleKey={mapStyle} />
-=======
->>>>>>> Stashed changes
         <div className="flex-1 relative overflow-hidden bg-[#eef1ec]">
           <VietnamMapbox
             selectedProvinceCode={selectedProvince?.code ?? null}
@@ -450,14 +285,9 @@ export default function MapPage() {
               }
             }}
           />
-<<<<<<< Updated upstream
-=======
->>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
->>>>>>> Stashed changes
 
           {/* Thanh công cụ trên bản đồ */}
           <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-            {/* Nút mở bộ lọc (khi sidebar đang ẩn) */}
             {!showFilter && (
               <button
                 onClick={() => setShowFilter(true)}
@@ -467,101 +297,10 @@ export default function MapPage() {
                 Bộ lọc
               </button>
             )}
-<<<<<<< Updated upstream
           </div>
 
-          {/* Panel thông tin tỉnh — right side on desktop, bottom on mobile */}
+          {/* Panel thông tin tỉnh — right side */}
           {selectedProvince && (
-=======
-<<<<<<< HEAD
-
-            {/* Nút chuyển style bản đồ */}
-            <button
-              onClick={() => setMapStyle("terrain")}
-              className={cn(
-                "inline-flex h-9 items-center gap-2 rounded-lg bg-white px-3 text-sm font-semibold shadow-md",
-                mapStyle === "terrain" ? "text-primary" : "text-muted"
-              )}
-            >
-              <Layers size={15} />
-              Địa hình
-            </button>
-            <button
-              onClick={() => setMapStyle("satellite")}
-              className={cn(
-                "inline-flex h-9 items-center gap-2 rounded-lg bg-white px-3 text-sm font-semibold shadow-md",
-                mapStyle === "satellite" ? "text-primary" : "text-muted"
-              )}
-            >
-              <Layers size={15} />
-              Vệ tinh
-            </button>
-          </div>
-
-          {/* Panel thông tin tỉnh */}
-          {selectedProvince && (
-            <div className="absolute bottom-4 left-4 right-4 sm:right-auto sm:w-96 bg-white rounded-2xl shadow-lg p-5 border border-hairline z-10">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="font-bold text-ink text-lg">{selectedProvince.name}</h3>
-                  <p className="text-xs text-muted">{regionLabel(selectedProvince.region)}</p>
-                </div>
-                <button
-                  onClick={() => setSelectedProvince(null)}
-                  className="w-8 h-8 rounded-full hover:bg-surface-soft flex items-center justify-center text-muted"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-
-              {/* Thống kê */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-surface-green rounded-lg p-3">
-                  <p className="text-xs text-muted">Nông trại đang hoạt động</p>
-                  <p className="text-lg font-bold text-primary">
-                    {selectedProvince.activeFarms.toLocaleString("vi-VN")}
-                  </p>
-                </div>
-                <div className="bg-surface-green rounded-lg p-3">
-                  <p className="text-xs text-muted">Giá trung bình</p>
-                  <p className="text-lg font-bold text-ink">
-                    {(selectedProvince.avgPrice / 1000).toFixed(0)}k₫/kg
-                  </p>
-                </div>
-              </div>
-
-              {/* Sản phẩm */}
-              <div className="mb-4">
-                <p className="text-xs text-muted mb-2">Nông sản chính</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedProvince.products.map((p) => (
-                    <Badge key={p} variant="organic">{p}</Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Loại canh tác */}
-              <div className="mb-4">
-                <p className="text-xs text-muted mb-2">Loại canh tác</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedProvince.farmingTypes.map((t) => (
-                    <Badge key={t} variant="vietgap">{t}</Badge>
-                  ))}
-                </div>
-              </div>
-
-              <Button size="sm" className="w-full" asChild>
-                <a href={`/marketplace?province=${selectedProvince.name}`}>
-                  Xem sản phẩm tại {selectedProvince.name}
-                  <ChevronRight size={14} />
-                </a>
-              </Button>
-=======
-          </div>
-
-          {/* Panel thông tin tỉnh — right side on desktop, bottom on mobile */}
-          {selectedProvince && (
->>>>>>> Stashed changes
             <div className="absolute top-4 right-4 sm:w-96 bg-white rounded-2xl shadow-lg border border-hairline z-10 animate-in slide-in-from-right-4 duration-300">
               <div className="p-5">
                 {/* Header */}
@@ -638,10 +377,6 @@ export default function MapPage() {
                   </a>
                 </Button>
               </div>
-<<<<<<< Updated upstream
-=======
->>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
->>>>>>> Stashed changes
             </div>
           )}
         </div>
