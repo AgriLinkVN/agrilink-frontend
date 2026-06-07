@@ -1,6 +1,28 @@
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:3001';
 const BASE = `${BACKEND}/api/v1`;
 
+/**
+ * Rich error thrown by `api.*` helpers when the response is not OK.
+ * Exposes `status` and the full parsed `body` so callers can branch on
+ * domain-specific fields like `code` or `affectedBulkListings`.
+ */
+export class ApiError extends Error {
+  readonly status: number;
+  readonly body: Record<string, unknown>;
+  constructor(status: number, body: Record<string, unknown>) {
+    const msg =
+      typeof body.message === 'string'
+        ? body.message
+        : Array.isArray(body.message)
+          ? body.message.join(', ')
+          : `HTTP ${status}`;
+    super(msg);
+    this.status = status;
+    this.body = body;
+    this.name = 'ApiError';
+  }
+}
+
 // ── Core fetch helpers ────────────────────────────────────────────────────────
 
 async function request<T>(
@@ -21,9 +43,7 @@ async function request<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(
-      (body as { message?: string }).message ?? `HTTP ${res.status}`,
-    );
+    throw new ApiError(res.status, body as Record<string, unknown>);
   }
 
   const json = (await res.json()) as { data: T };

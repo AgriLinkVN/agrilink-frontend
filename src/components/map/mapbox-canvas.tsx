@@ -2,10 +2,21 @@
 
 import "mapbox-gl/dist/mapbox-gl.css";
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+import mapboxgl from "mapbox-gl";
+import { useEffect, useRef } from "react";
+=======
+>>>>>>> Stashed changes
 import type { FeatureCollection } from "geojson";
 import mapboxgl from "mapbox-gl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PROVINCE_CODE_TO_NAME } from "@/data/province-mapping";
+<<<<<<< Updated upstream
+=======
+>>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
+>>>>>>> Stashed changes
 import { cn } from "@/lib/utils";
 
 const MAP_STYLES = {
@@ -15,6 +26,21 @@ const MAP_STYLES = {
 
 export type MapStyleKey = keyof typeof MAP_STYLES;
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+/** Bounding box Việt Nam [Tây, Nam, Đông, Bắc] */
+const VIETNAM_BOUNDS: [number, number, number, number] = [102.1, 8.2, 109.6, 23.4];
+
+const ALLOWED_LABELS = [
+  "country-label",
+  "state-label",
+  "continent-label",
+  "settlement-major-label",
+  "settlement-minor-label",
+];
+=======
+>>>>>>> Stashed changes
 const VIETNAM_BOUNDS: [number, number, number, number] = [102.1, 8.2, 109.6, 23.4];
 
 const COLORS = {
@@ -38,6 +64,10 @@ const SOURCE_IDS = {
   provinces: "provinces",
   worldMask: "world-mask",
 } as const;
+<<<<<<< Updated upstream
+=======
+>>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
+>>>>>>> Stashed changes
 
 function customizeMapStyle(map: mapboxgl.Map) {
   const style = map.getStyle();
@@ -47,10 +77,21 @@ function customizeMapStyle(map: mapboxgl.Map) {
     const id = layer.id;
 
     if (layer.type === "symbol") {
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+      const duocPhepHien = ALLOWED_LABELS.some((kw) => id.includes(kw));
+      if (duocPhepHien) {
+=======
+>>>>>>> Stashed changes
       const isCountryOrContinent =
         id.includes("country-label") || id.includes("continent-label");
 
       if (isCountryOrContinent) {
+<<<<<<< Updated upstream
+=======
+>>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
+>>>>>>> Stashed changes
         map.setLayoutProperty(id, "text-field", [
           "coalesce",
           ["get", "name_vi"],
@@ -63,12 +104,31 @@ function customizeMapStyle(map: mapboxgl.Map) {
 
     if (id.includes("admin-0-boundary") && layer.type === "line") {
       map.setPaintProperty(id, "line-color", "#1a6b3c");
+<<<<<<< Updated upstream
       map.setPaintProperty(id, "line-width", 2);
+=======
+<<<<<<< HEAD
+      map.setPaintProperty(id, "line-width", 3);
+=======
+      map.setPaintProperty(id, "line-width", 2);
+>>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
+>>>>>>> Stashed changes
       map.setPaintProperty(id, "line-opacity", 1);
     }
 
     if (id.includes("admin-1-boundary") && layer.type === "line") {
+<<<<<<< Updated upstream
       map.setLayoutProperty(id, "visibility", "none");
+=======
+<<<<<<< HEAD
+      map.setPaintProperty(id, "line-color", "#2d8a56");
+      map.setPaintProperty(id, "line-width", 1.8);
+      map.setPaintProperty(id, "line-opacity", 0.85);
+      map.setPaintProperty(id, "line-dasharray", [4, 2]);
+=======
+      map.setLayoutProperty(id, "visibility", "none");
+>>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
+>>>>>>> Stashed changes
     }
   }
 }
@@ -77,6 +137,29 @@ interface MapboxCanvasProps {
   className?: string;
   styleKey?: MapStyleKey;
   interactive?: boolean;
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+}
+
+export function MapboxCanvas({ className, styleKey = "terrain", interactive = true }: MapboxCanvasProps) {
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+  const mapError = mapboxToken ? null : "Missing NEXT_PUBLIC_MAPBOX_TOKEN in .env.local";
+
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) {
+      return;
+    }
+
+    if (mapError) {
+      return;
+    }
+
+    mapboxgl.accessToken = mapboxToken;
+=======
+>>>>>>> Stashed changes
   geojsonData?: FeatureCollection;
   filteredProvinceCodes?: string[];
   selectedProvinceCode?: string | null;
@@ -232,13 +315,25 @@ export function MapboxCanvas({
     if (mapError) return;
 
     mapboxgl.accessToken = mapboxToken ?? "";
+<<<<<<< Updated upstream
+=======
+>>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
+>>>>>>> Stashed changes
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: MAP_STYLES[styleKey],
       attributionControl: false,
+<<<<<<< Updated upstream
       minZoom: 5,
       maxZoom: 9,
+=======
+<<<<<<< HEAD
+=======
+      minZoom: 5,
+      maxZoom: 9,
+>>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
+>>>>>>> Stashed changes
       interactive,
       maxBounds: [
         [98, 5],
@@ -247,16 +342,34 @@ export function MapboxCanvas({
     });
 
     map.fitBounds(VIETNAM_BOUNDS, { padding: interactive ? 20 : 40, animate: false });
+<<<<<<< Updated upstream
 
+=======
+<<<<<<< HEAD
+=======
+
+>>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
+>>>>>>> Stashed changes
     if (interactive) {
       map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right");
       map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
     }
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+    map.on("load", () => customizeMapStyle(map));
+    map.on("style.load", () => customizeMapStyle(map));
+=======
+>>>>>>> Stashed changes
     map.on("style.load", () => {
       customizeMapStyle(map);
       setupChoroplethLayers(map);
     });
+<<<<<<< Updated upstream
+=======
+>>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
+>>>>>>> Stashed changes
 
     const resizeObserver = new ResizeObserver(() => map.resize());
     resizeObserver.observe(mapContainerRef.current);
@@ -268,6 +381,15 @@ export function MapboxCanvas({
       map.remove();
       mapRef.current = null;
     };
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+  }, [mapError, mapboxToken]);
+
+  // Khi styleKey thay đổi từ parent → đổi style
+  useEffect(() => {
+=======
+>>>>>>> Stashed changes
   }, [interactive, mapError, mapboxToken, setupChoroplethLayers, styleKey]);
 
   const initialStyleRef = useRef(true);
@@ -278,11 +400,20 @@ export function MapboxCanvas({
       return;
     }
 
+<<<<<<< Updated upstream
+=======
+>>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
+>>>>>>> Stashed changes
     if (mapRef.current) {
       mapRef.current.setStyle(MAP_STYLES[styleKey]);
     }
   }, [styleKey]);
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> Stashed changes
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !geojsonData) return;
@@ -399,16 +530,29 @@ export function MapboxCanvas({
     };
   }, [hoveredCode, interactive]);
 
+<<<<<<< Updated upstream
+=======
+>>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
+>>>>>>> Stashed changes
   return (
     <div className={cn("relative h-full w-full bg-surface-green", className)}>
       <div ref={mapContainerRef} className="h-full w-full" />
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> Stashed changes
       <div
         ref={tooltipRef}
         className="pointer-events-none absolute z-20 hidden rounded-md bg-[#1B4332] px-2.5 py-1 text-xs font-medium text-white shadow-md"
         style={{ display: "none" }}
       />
 
+<<<<<<< Updated upstream
+=======
+>>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
+>>>>>>> Stashed changes
       {mapError ? (
         <div className="absolute inset-0 flex items-center justify-center bg-surface-green/95 p-6">
           <div className="max-w-sm rounded-lg border border-hairline bg-white p-5 text-center shadow-sm">
@@ -419,4 +563,12 @@ export function MapboxCanvas({
       ) : null}
     </div>
   );
+<<<<<<< Updated upstream
 }
+=======
+<<<<<<< HEAD
+}
+=======
+}
+>>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
+>>>>>>> Stashed changes

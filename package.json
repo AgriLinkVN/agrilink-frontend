@@ -19,6 +19,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tanstack/react-query": "^5.100.14",
+<<<<<<< Updated upstream
     "@types/d3-geo": "^3.1.0",
     "clsx": "^2.1.1",
     "d3-geo": "^3.1.1",
@@ -26,6 +27,38 @@
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.17.0",
     "mapbox-gl": "^3.24.0",
+=======
+<<<<<<< HEAD
+<<<<<<< HEAD
+    "@types/d3-geo": "^3.1.0",
+    "clsx": "^2.1.1",
+    "d3-geo": "^3.1.1",
+=======
+    "@types/d3-geo": "^3.1.0",
+    "clsx": "^2.1.1",
+    "d3-geo": "^3.1.1",
+    "@types/d3-geo": "^3.1.0",
+    "clsx": "^2.1.1",
+    "d3-geo": "^3.1.1",
+    "framer-motion": "^12.40.0",
+    "lucide-react": "^1.16.0",
+    "mapbox-gl": "^3.24.0",
+    "@tanstack/react-query": "^5.100.14",
+    "clsx": "^2.1.1",
+>>>>>>> 3238f4a630d4661927eecd4c1d090860039caa5e
+    "date-fns": "^4.3.0",
+    "framer-motion": "^12.40.0",
+    "lucide-react": "^1.17.0",
+=======
+    "@types/d3-geo": "^3.1.0",
+    "clsx": "^2.1.1",
+    "d3-geo": "^3.1.1",
+    "date-fns": "^4.3.0",
+    "framer-motion": "^12.40.0",
+    "lucide-react": "^1.17.0",
+    "mapbox-gl": "^3.24.0",
+>>>>>>> 6fd922c3aa8d363c16bbb45a45ef27094466bd7d
+>>>>>>> Stashed changes
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
