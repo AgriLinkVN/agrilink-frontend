@@ -173,3 +173,63 @@ body {
   outline: 2px solid #2D6A4F;
   outline-offset: 2px;
 }
+
+/* Hero video — Ken Burns slow zoom */
+@keyframes heroKenBurns {
+  0%   { transform: scale(1.0) translate(0%, 0%); }
+  100% { transform: scale(1.06) translate(-1.5%, -1%); }
+}
+
+/* Hero content fade-up on load */
+@keyframes heroFadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* About page — gradient mesh blobs */
+@keyframes blobA {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(40px, -30px) scale(1.08); }
+  66%       { transform: translate(-20px, 20px) scale(0.95); }
+}
+@keyframes blobB {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(-50px, 20px) scale(1.05); }
+  66%       { transform: translate(30px, -40px) scale(1.1); }
+}
+@keyframes blobC {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(20px, 30px) scale(0.92); }
+}
+
+/* About page — aurora team section */
+@keyframes aurora {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+
+/* Category strip scrollbar — thin, dark */
+.category-scroll::-webkit-scrollbar {
+  height: 3px !important;
+}
+.category-scroll::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.category-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.4) !important;
+  border-radius: 9999px !important;
+}
+.category-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Problem card hover shadow */
+.problem-card:hover {
+  box-shadow: 0 8px 32px rgba(45,106,79,0.16), 0 2px 8px rgba(0,0,0,0.06) !important;
+}
+
+/* About page — dot grid float */
+@keyframes gridFloat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
