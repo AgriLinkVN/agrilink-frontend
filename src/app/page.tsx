@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { PageHero } from "@/components/ui/page-hero";
 import { StatsSection } from "@/components/home/stats-section";
 import { LazySection } from "@/components/home/lazy-section";
+import { AdCarouselHome } from "@/components/ads/ad-carousel-home";
+import { AdBanner } from "@/components/ads/ad-banner";
 import {
   CategorySkeleton,
   CarouselSkeleton,
@@ -102,6 +104,11 @@ export default function HomePage() {
       {/* ===== STATS ===== */}
       <StatsSection />
 
+      {/* ===== AD SLOT: home-carousel — nông cụ / vật tư ===== */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-2">
+        <AdCarouselHome />
+      </div>
+
       {/* ===== CATEGORY STRIP ===== */}
       <LazySection fallback={<CategorySkeleton />} rootMargin="300px">
         <CategoryStrip />
@@ -111,6 +118,11 @@ export default function HomePage() {
       <LazySection fallback={<CarouselSkeleton />} rootMargin="200px">
         <FeaturedCarousel />
       </LazySection>
+
+      {/* ===== AD SLOT: below-hero banner ===== */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-4">
+        <AdBanner slotId="below-hero" index={0} />
+      </div>
 
       {/* ===== FEATURES ===== */}
       <LazySection fallback={<SectionSkeleton height="h-96" />}>
