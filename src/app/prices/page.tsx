@@ -6,6 +6,8 @@ import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Bell, Download, RefreshCw, BarChart3, AlertCircle } from "lucide-react";
+import { AdBanner } from "@/components/ads/ad-banner";
+import { AdCarouselHome } from "@/components/ads/ad-carousel-home";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { cn } from "@/lib/utils";
 
@@ -72,6 +74,11 @@ export default function PricesPage() {
             <p className="text-sm text-[#9A3412]">Cà phê Arabica tăng <strong>8.1%</strong> trong 24h qua do ảnh hưởng thời tiết El Niño. Nông dân nên cân nhắc thời điểm bán.</p>
           </div>
         </div>
+      </div>
+
+      {/* AD SLOT: prices-carousel — nông cụ liên quan */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        <AdCarouselHome />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -199,6 +206,11 @@ export default function PricesPage() {
             </table>
           </div>
         </div>
+      </div>
+
+      {/* AD SLOT: prices-banner — sau bảng giá */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        <AdBanner slotId="below-hero" index={0} />
       </div>
 
       <Footer />

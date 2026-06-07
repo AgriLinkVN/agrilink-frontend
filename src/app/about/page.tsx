@@ -13,6 +13,7 @@ import { useAuth, ROLE_LABELS, ROLE_DASHBOARD } from "@/lib/auth-context";
 import { RoleExplorer } from "./role-explorer";
 import { MissionTimeline } from "./mission-timeline";
 import { ProblemCurve } from "./problem-curve";
+import { TeamOrbit } from "./team-orbit";
 import { ParticlesBg } from "@/components/ui/particles-bg";
 
 
@@ -245,6 +246,9 @@ export default function AboutPage() {
       </section>
 
     
+
+      {/* ── Team ── */}
+      <TeamOrbit />
 
       {/* ── CTA bottom — video background ── */}
       <section className="relative py-20 overflow-hidden">

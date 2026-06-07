@@ -7,6 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { PageHero } from "@/components/ui/page-hero";
 import { StatsSection } from "@/components/home/stats-section";
 import { LazySection } from "@/components/home/lazy-section";
+import { AdCarouselHome } from "@/components/ads/ad-carousel-home";
+import { AdBanner } from "@/components/ads/ad-banner";
+import { AdSidebarHome } from "@/components/ads/ad-sidebar-home";
 import {
   CategorySkeleton,
   CarouselSkeleton,
@@ -102,25 +105,57 @@ export default function HomePage() {
       {/* ===== STATS ===== */}
       <StatsSection />
 
-      {/* ===== CATEGORY STRIP ===== */}
-      <LazySection fallback={<CategorySkeleton />} rootMargin="300px">
-        <CategoryStrip />
-      </LazySection>
+      {/* ===== 3-COLUMN LAYOUT: left ad | main | right ad (xl+) ===== */}
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex gap-4 xl:gap-6 items-start">
 
-      {/* ===== FEATURED PRODUCTS ===== */}
-      <LazySection fallback={<CarouselSkeleton />} rootMargin="200px">
-        <FeaturedCarousel />
-      </LazySection>
+          {/* LEFT AD SIDEBAR — visible only xl+ */}
+          <div className="hidden xl:block w-[200px] shrink-0 sticky top-20 pt-4">
+            <AdSidebarHome side="left" />
+          </div>
 
-      {/* ===== FEATURES ===== */}
-      <LazySection fallback={<SectionSkeleton height="h-96" />}>
-        <FeaturesSection />
-      </LazySection>
+          {/* MAIN CONTENT */}
+          <div className="flex-1 min-w-0">
 
-      {/* ===== HOW IT WORKS ===== */}
-      <LazySection fallback={<SectionSkeleton height="h-80" />}>
-        <HowItWorks />
-      </LazySection>
+            {/* AD SLOT: home-carousel */}
+            <div className="pb-2 pt-2">
+              <AdCarouselHome />
+            </div>
+
+            {/* CATEGORY STRIP */}
+            <LazySection fallback={<CategorySkeleton />} rootMargin="300px">
+              <CategoryStrip />
+            </LazySection>
+
+            {/* FEATURED PRODUCTS */}
+            <LazySection fallback={<CarouselSkeleton />} rootMargin="200px">
+              <FeaturedCarousel />
+            </LazySection>
+
+            {/* AD SLOT: below-hero banner */}
+            <div className="pb-4">
+              <AdBanner slotId="below-hero" index={0} />
+            </div>
+
+            {/* FEATURES */}
+            <LazySection fallback={<SectionSkeleton height="h-96" />}>
+              <FeaturesSection />
+            </LazySection>
+
+            {/* HOW IT WORKS */}
+            <LazySection fallback={<SectionSkeleton height="h-80" />}>
+              <HowItWorks />
+            </LazySection>
+
+          </div>
+
+          {/* RIGHT AD SIDEBAR — visible only xl+ */}
+          <div className="hidden xl:block w-[200px] shrink-0 sticky top-20 pt-4">
+            <AdSidebarHome side="right" />
+          </div>
+
+        </div>
+      </div>
 
       {/* ===== MAP PREVIEW CTA ===== */}
       <LazySection fallback={<SectionSkeleton height="h-64" />}>

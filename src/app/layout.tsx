@@ -6,6 +6,10 @@ import { QueryProvider } from "@/components/providers/QueryProvider";
 export const metadata: Metadata = {
   title: "AgriLink Vietnam — Nền tảng nông sản sạch",
   description: "Kết nối nông dân Việt Nam với người mua trong nước và quốc tế",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

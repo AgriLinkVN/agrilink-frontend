@@ -52,7 +52,7 @@ export function PageHero({ variant = "full", children }: PageHeroProps) {
       )}
 
       {/* Wave divider */}
-      <div className="absolute bottom-0 left-0 right-0 z-10">
+      <div className="absolute bottom-0 left-0 right-0 z-10" style={{ marginBottom: "-2px" }}>
         <svg
           viewBox="0 0 1440 60"
           fill="none"

@@ -91,6 +91,39 @@ export function Footer() {
         </div>
       </div>
 
+      {/* AD SLOT: partner logo strip — nhà tài trợ / đối tác nông cụ */}
+      <div className="border-t border-hairline">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
+          <p className="text-[10px] text-muted/50 uppercase tracking-widest text-center mb-4">Đối tác & Nhà tài trợ</p>
+          <div className="flex items-center justify-center gap-8 flex-wrap">
+            {[
+              { name: "Kubota", color: "#E65C00", abbr: "KBT", desc: "Máy nông nghiệp" },
+              { name: "Netafim", color: "#0066CC", abbr: "NTF", desc: "Hệ thống tưới" },
+              { name: "DJI Agri", color: "#1A1A1A", abbr: "DJI", desc: "Drone nông nghiệp" },
+              { name: "BioFarm", color: "#2D6A4F", abbr: "BIO", desc: "Phân bón hữu cơ" },
+              { name: "Yanmar", color: "#C41E3A", abbr: "YNM", desc: "Máy gặt đập" },
+            ].map((p) => (
+              <a
+                key={p.name}
+                href="#"
+                className="flex items-center gap-2 opacity-40 hover:opacity-80 transition-opacity group"
+              >
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[9px] font-black shrink-0"
+                  style={{ background: p.color }}
+                >
+                  {p.abbr}
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-ink leading-none">{p.name}</div>
+                  <div className="text-[9px] text-muted leading-none mt-0.5">{p.desc}</div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Legal band */}
       <div className="border-t border-hairline bg-surface-soft">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">

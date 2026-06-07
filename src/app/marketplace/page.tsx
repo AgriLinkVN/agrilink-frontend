@@ -10,6 +10,7 @@ import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { ProductGridCard, ProductListCard } from "@/components/marketplace/product-card";
 import { AdCarousel } from "@/components/marketplace/ad-carousel";
+import { AdBanner } from "@/components/ads/ad-banner";
 import { cn } from "@/lib/utils";
 import {
   fetchProducts,
@@ -431,26 +432,47 @@ export default function MarketplacePage() {
 
             {/* Product grid */}
             {!loading && products.length === 0 && (
-              <div className="py-24 text-center">
+              <div className="py-16 text-center">
                 <p className="text-4xl mb-3">🌾</p>
                 <p className="font-semibold text-ink mb-1">Không tìm thấy sản phẩm</p>
                 <p className="text-sm text-muted mb-4">Thử thay đổi bộ lọc hoặc tìm kiếm với từ khóa khác</p>
                 <Button variant="secondary" size="sm" onClick={clearFilters}>Xóa bộ lọc</Button>
+                {/* AD SLOT: empty-state — gợi ý nông cụ khi không có sản phẩm */}
+                <div className="mt-8 max-w-md mx-auto">
+                  <AdBanner slotId="inline" index={0} />
+                </div>
               </div>
             )}
 
             {!loading && products.length > 0 && (
-              <div className={cn(
-                viewMode === "grid"
-                  ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"
-                  : "flex flex-col gap-3"
-              )}>
-                {products.map((product) =>
-                  viewMode === "grid"
-                    ? <ProductGridCard key={product.id} product={product} />
-                    : <ProductListCard key={product.id} product={product} />
-                )}
-              </div>
+              viewMode === "grid" ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {products.map((product, idx) => (
+                    <>
+                      <ProductGridCard key={product.id} product={product} />
+                      {/* Native ad after row 3 (index 8 = end of 3rd row in 3-col grid) */}
+                      {idx === 8 && (
+                        <div key="native-ad-row3" className="col-span-full">
+                          <AdBanner slotId="below-hero" index={0} />
+                        </div>
+                      )}
+                    </>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {products.map((product, idx) => (
+                    <>
+                      <ProductListCard key={product.id} product={product} />
+                      {idx === 4 && (
+                        <div key="native-ad-list">
+                          <AdBanner slotId="inline" index={0} />
+                        </div>
+                      )}
+                    </>
+                  ))}
+                </div>
+              )
             )}
 
             {/* Pagination */}
@@ -510,63 +532,8 @@ export default function MarketplacePage() {
           {/* ── Right ad column ───────────────────────────────── */}
           <aside className="w-52 shrink-0 hidden xl:block">
             <div className="sticky top-28 flex flex-col gap-4">
-
-              {/* Ad slot 1 — Banner dọc lớn */}
-              <div className="rounded-2xl border-2 border-dashed border-hairline bg-white overflow-hidden">
-                <div className="bg-surface-soft px-3 py-1.5 flex items-center justify-between border-b border-hairline">
-                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Quảng cáo</span>
-                  <span className="text-[9px] text-muted/60">300×250</span>
-                </div>
-                <div className="h-[250px] flex flex-col items-center justify-center gap-2 p-4">
-                  <div className="w-10 h-10 rounded-full bg-surface-soft flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted/50">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <path d="M3 9h18M9 21V9" />
-                    </svg>
-                  </div>
-                  <p className="text-[11px] text-muted/60 text-center leading-relaxed">
-                    Vị trí quảng cáo<br />sẽ được triển khai
-                  </p>
-                </div>
-              </div>
-
-              {/* Ad slot 2 — Promoted product */}
-              <div className="rounded-2xl border-2 border-dashed border-hairline bg-white overflow-hidden">
-                <div className="bg-surface-soft px-3 py-1.5 flex items-center justify-between border-b border-hairline">
-                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Nổi bật</span>
-                  <span className="text-[9px] text-muted/60">Sponsored</span>
-                </div>
-                <div className="h-[200px] flex flex-col items-center justify-center gap-2 p-4">
-                  <div className="w-10 h-10 rounded-full bg-surface-soft flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted/50">
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                    </svg>
-                  </div>
-                  <p className="text-[11px] text-muted/60 text-center leading-relaxed">
-                    Sản phẩm được<br />đề xuất bởi thuật toán
-                  </p>
-                </div>
-              </div>
-
-              {/* Ad slot 3 — Small banner */}
-              <div className="rounded-2xl border-2 border-dashed border-hairline bg-white overflow-hidden">
-                <div className="bg-surface-soft px-3 py-1.5 flex items-center justify-between border-b border-hairline">
-                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Quảng cáo</span>
-                  <span className="text-[9px] text-muted/60">300×160</span>
-                </div>
-                <div className="h-[160px] flex flex-col items-center justify-center gap-2 p-4">
-                  <div className="w-8 h-8 rounded-full bg-surface-soft flex items-center justify-center">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted/50">
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="M12 8v4l3 3" />
-                    </svg>
-                  </div>
-                  <p className="text-[11px] text-muted/60 text-center leading-relaxed">
-                    Sắp ra mắt
-                  </p>
-                </div>
-              </div>
-
+              <AdBanner slotId="sidebar" index={0} />
+              <AdBanner slotId="sidebar" index={1} />
             </div>
           </aside>
 

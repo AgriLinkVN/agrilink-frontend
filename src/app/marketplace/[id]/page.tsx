@@ -18,6 +18,7 @@ import {
   type Product,
 } from "@/lib/products-api";
 import { notFound } from "next/navigation";
+import { AdBanner } from "@/components/ads/ad-banner";
 
 // Mock seller info (no users table join yet — seller data from products only)
 const MOCK_SELLER: Record<string, { name: string; sellerType: string; phone: string; trustScore: number; totalSales: number; responseRate: string }> = {
@@ -335,13 +336,24 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   </div>
                 ))}
               </div>
+
+              {/* AD SLOT: sidebar — nông cụ / vật tư */}
+              <div className="border-t border-hairline pt-4 flex flex-col gap-3">
+                <AdBanner slotId="sidebar" index={0} />
+                <AdBanner slotId="sidebar" index={1} />
+              </div>
             </div>
           </div>
         </div>
 
+        {/* AD SLOT: inline banner — between main content and similar products */}
+        <div className="mt-12">
+          <AdBanner slotId="inline" index={0} />
+        </div>
+
         {/* Similar products */}
         {similarProducts.length > 0 && (
-          <div className="mt-16">
+          <div className="mt-10">
             <h2 className="text-xl font-bold text-ink mb-6">Sản phẩm tương tự</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               {similarProducts.map((p) => (
