@@ -2,7 +2,6 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Search } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHero } from "@/components/ui/page-hero";
 import { StatsSection } from "@/components/home/stats-section";
