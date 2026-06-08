@@ -43,9 +43,7 @@ export default function LoginPage() {
   const [loading, setLoading]         = useState(false);
   const [success, setSuccess]         = useState(false);
 
-  /* entrance animation */
-  const [visible, setVisible]         = useState(false);
-  useEffect(() => { const t = setTimeout(() => setVisible(true), 60); return () => clearTimeout(t); }, []);
+
 
   /* OTP countdown */
   useEffect(() => {
@@ -162,11 +160,7 @@ export default function LoginPage() {
           {/* Stats */}
           <div
             className="grid grid-cols-3 gap-4 mb-10"
-            style={{
-              opacity: visible ? 1 : 0,
-              transform: visible ? "translateY(0)" : "translateY(20px)",
-              transition: "opacity 0.7s ease 0.2s, transform 0.7s ease 0.2s",
-            }}
+            style={{ animation: "heroFadeUp 0.7s ease backwards" }}
           >
             {[["10,000+","Nông dân"], ["34","Tỉnh thành"], ["500+","HTX"]].map(([n,l]) => (
               <div key={l} className="bg-white/10 backdrop-blur border border-white/15 rounded-2xl p-4 text-center">
@@ -177,13 +171,7 @@ export default function LoginPage() {
           </div>
 
           {/* Quote */}
-          <div
-            style={{
-              opacity: visible ? 1 : 0,
-              transform: visible ? "translateY(0)" : "translateY(20px)",
-              transition: "opacity 0.7s ease 0.4s, transform 0.7s ease 0.4s",
-            }}
-          >
+          <div style={{ animation: "heroFadeUp 0.7s ease 0.2s backwards" }}>
             <div className="inline-flex items-center gap-2 bg-primary-ultra-light/20 border border-primary-ultra-light/40 rounded-full px-3.5 py-1.5 mb-5">
               <span className="w-1.5 h-1.5 rounded-full bg-primary-ultra-light animate-pulse" />
               <span className="text-primary-ultra-light text-xs font-semibold tracking-wide">Nền tảng Nông nghiệp Số #1 Việt Nam</span>
@@ -213,11 +201,7 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12 overflow-y-auto">
         <div
           className="w-full max-w-md"
-          style={{
-            opacity: visible ? 1 : 0,
-            transform: visible ? "translateY(0)" : "translateY(28px)",
-            transition: "opacity 0.55s ease 0.1s, transform 0.55s ease 0.1s",
-          }}
+          style={{ animation: "heroFadeUp 0.6s ease backwards" }}
         >
           {/* Mobile logo */}
           <Link href="/" className="flex items-center gap-2 mb-8 lg:hidden">

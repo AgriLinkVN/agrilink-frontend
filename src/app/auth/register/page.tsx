@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { type UserRole } from "@/types";
+import { useAuth } from "@/lib/auth-context";
 
 const ROLES: { value: UserRole; label: string; icon: string; desc: string }[] = [
   { value: "farmer", label: "Nông dân / Hộ sản xuất", icon: "👨‍🌾", desc: "Đăng bán nông sản, xem giá, nhận đơn" },
@@ -20,6 +21,7 @@ const ROLES: { value: UserRole; label: string; icon: string; desc: string }[] = 
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [step, setStep] = useState(1);
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   
@@ -28,6 +30,7 @@ export default function RegisterPage() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -115,9 +118,20 @@ export default function RegisterPage() {
       
       if (regRes.ok) {
         setSuccessMsg("Đăng ký thành công! Đang chuyển hướng...");
-        setTimeout(() => {
-          router.push("/auth/login");
-        }, 1500);
+        
+        // Auto login with the created credentials
+        const loginResult = await login(formatPhone(phone), password, "password");
+        if ("error" in loginResult) {
+          // If auto-login fails, redirect to login page
+          setTimeout(() => {
+            router.push("/auth/login");
+          }, 1500);
+        } else {
+          // If auto-login succeeds, redirect to dashboard
+          setTimeout(() => {
+            router.push(loginResult.dashboard);
+          }, 1000);
+        }
       } else {
         setError(regData.message || "Đăng ký thất bại. Số điện thoại có thể đã tồn tại.");
       }
@@ -354,20 +368,27 @@ export default function RegisterPage() {
                 />
 
                 <div className="flex items-start gap-2 -mt-2">
-                  <input type="checkbox" required className="accent-primary w-4 h-4 mt-0.5" />
-                  <span className="text-sm text-muted">
+                  <input 
+                    type="checkbox" 
+                    required 
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className="accent-primary w-4 h-4 mt-0.5 cursor-pointer" 
+                    id="terms"
+                  />
+                  <label htmlFor="terms" className="text-sm text-muted cursor-pointer select-none">
                     Tôi đồng ý với{" "}
                     <Link href="/terms" className="text-primary hover:underline">Điều khoản sử dụng</Link>
                     {" "}và{" "}
                     <Link href="/privacy" className="text-primary hover:underline">Chính sách bảo mật</Link>
-                  </span>
+                  </label>
                 </div>
 
                 <div className="flex gap-3 mt-2">
                   <Button type="button" variant="secondary" size="lg" className="flex-1" onClick={() => setStep(2)}>
                     Quay lại
                   </Button>
-                  <Button type="submit" size="lg" className="flex-1" disabled={isLoading || password.length < 6 || otp.join("").length < 6}>
+                  <Button type="submit" size="lg" className="flex-1" disabled={isLoading || password.length < 6 || otp.join("").length < 6 || !agreedToTerms}>
                     {isLoading ? "Đang xử lý..." : "Đăng ký"} <Check size={18} />
                   </Button>
                 </div>
