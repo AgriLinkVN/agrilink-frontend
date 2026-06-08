@@ -355,11 +355,7 @@ export default function LoginPage() {
 
               {/* Remember / Forgot */}
               {method === "password" && (
-                <div className="flex items-center justify-between text-sm">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input type="checkbox" className="accent-primary w-4 h-4 rounded" />
-                    <span className="text-muted">Ghi nhớ đăng nhập</span>
-                  </label>
+                <div className="flex justify-end text-sm">
                   <Link href="/auth/forgot-password" className="text-primary hover:underline font-medium">
                     Quên mật khẩu?
                   </Link>

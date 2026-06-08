@@ -7,9 +7,9 @@ import { Package, Megaphone, TrendingUp, BarChart3, Plus, Eye, MousePointer } fr
 
 const STATS = [
   { title: "Sản phẩm đang bán", value: "34", subtitle: "5 chờ duyệt", icon: Package, variant: "green" as const },
-  { title: "Chiến dịch quảng cáo", value: "3", subtitle: "2 đang chạy", icon: Megaphone, variant: "default" as const },
-  { title: "Doanh thu tháng", value: "95M đ", subtitle: "↑ 12% vs tháng trước", icon: TrendingUp, variant: "harvest" as const },
-  { title: "Lượt xem tổng", value: "28.5K", subtitle: "Tháng 6/2025", icon: BarChart3, variant: "accent" as const },
+  { title: "Lượt xem quảng cáo", value: "28.5K", subtitle: "Tháng 6/2025", icon: Eye, variant: "default" as const },
+  { title: "Tỷ lệ Click (CTR)", value: "3.2%", subtitle: "↑ 0.5% vs tháng trước", icon: MousePointer, variant: "harvest" as const },
+  { title: "Chi phí chuyển đổi", value: "12,000 đ", subtitle: "Trung bình mỗi đơn", icon: BarChart3, variant: "accent" as const },
 ];
 
 const PRODUCTS = [
@@ -97,6 +97,17 @@ export default function SupplierDashboardPage() {
                 <p className="text-xs text-muted mt-1">Kết thúc: {ad.end_date}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Ad Funnel Chart Placeholder */}
+      <div className="mt-6 bg-white rounded-xl border border-hairline card-shadow p-5">
+        <h2 className="font-semibold text-ink mb-4">Phễu quảng cáo (Gợi ý)</h2>
+        <div className="w-full h-64 bg-slate-50 border border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400">
+          <div className="flex flex-col items-center">
+            <BarChart3 size={32} className="mb-2 opacity-50" />
+            <p className="text-sm">[Funnel Chart Placeholder]</p>
           </div>
         </div>
       </div>

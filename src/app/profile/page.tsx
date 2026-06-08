@@ -9,8 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   User, Phone, Mail, MapPin, FileText, Bell, Shield,
-  Camera, Check, ChevronRight, Star, Package, ShoppingBag
+  Camera, Check, ChevronRight, Star, Package, ShoppingBag, ShieldCheck
 } from "lucide-react";
+import { useAuth, ROLE_LABELS } from "@/lib/auth-context";
+import { ImageCropperModal } from "@/components/shared/ImageCropperModal";
+import { useAuthStore } from "@/store/authStore";
 
 const TABS = [
   { id: "profile", label: "Hồ sơ cá nhân", icon: User },
@@ -21,6 +24,78 @@ const TABS = [
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("profile");
+  const [selectedImageForCrop, setSelectedImageForCrop] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const { user } = useAuth();
+  const userName = (user as any)?.fullName || (user as any)?.full_name || user?.phone || "Người dùng";
+  const userRoleLabel = user ? ROLE_LABELS[user.role] : "Khách";
+  const isCooperative = user?.role === 'cooperative';
+  const isEnterprise = user?.role === 'enterprise';
+  const isFarmer = user?.role === 'farmer';
+
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Đọc file thành local URL để đưa vào Cropper
+    const url = URL.createObjectURL(file);
+    setSelectedImageForCrop(url);
+    // Reset input để có thể chọn lại cùng 1 file
+    e.target.value = '';
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    if (!user) return;
+    setIsUploadingAvatar(true);
+    
+    try {
+      const formData = new FormData();
+      // Gắn blob với một filename giả để upload
+      formData.append('file', croppedBlob, 'avatar.jpg');
+      formData.append('type', 'avatar_' + (user.role || ''));
+
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || `http://${window.location.hostname}:3001`;
+      const token = useAuthStore.getState().accessToken;
+      
+      const response = await fetch(`${backendUrl}/api/v1/storage/images/upload`, {
+        method: 'POST',
+        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+        body: formData
+      });
+      
+      const json = await response.json();
+      const secureUrl = json.data?.secure_url || json.secure_url;
+      
+      if (response.ok && secureUrl) {
+        // Cập nhật URL vào database
+        const updateRes = await fetch(`${backendUrl}/api/v1/users/me`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ avatarUrl: secureUrl })
+        });
+
+        if (updateRes.ok) {
+          const updateJson = await updateRes.json();
+          useAuthStore.getState().setAuth(token as string, updateJson.data);
+          alert('Cập nhật avatar thành công!');
+          setSelectedImageForCrop(null); // Đóng modal
+        } else {
+          alert('Tải ảnh lên Cloudinary thành công nhưng lỗi khi lưu vào hồ sơ');
+        }
+      } else {
+        console.error('API Error Response:', json);
+        alert(`Lỗi upload: ${json.message || 'Không có phản hồi secure_url'}`);
+      }
+    } catch (e: any) {
+      console.error('Lỗi upload avatar (network/catch):', e);
+      alert(`Lỗi upload avatar: ${e.message || 'Không thể kết nối tới server'}`);
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-surface-soft">
@@ -31,20 +106,25 @@ export default function ProfilePage() {
         <div className="bg-white rounded-2xl border border-hairline card-shadow mb-6 overflow-hidden">
           <div className="hero-gradient h-28" />
           <div className="px-6 pb-6">
-            <div className="flex items-end gap-4 -mt-12 mb-4">
-              <div className="relative">
-                <div className="w-24 h-24 rounded-2xl border-4 border-white bg-primary-light flex items-center justify-center text-white text-3xl font-bold card-shadow">
-                  N
+            <div className="flex items-end gap-4 -mt-[38px] mb-4">
+              <div className="relative group">
+                <div className="w-24 h-24 rounded-2xl border-4 border-white bg-primary-light flex items-center justify-center text-white text-3xl font-bold card-shadow overflow-hidden">
+                  {user?.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    userName.charAt(0).toUpperCase()
+                  )}
                 </div>
-                <button className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white hover:bg-primary-active transition-colors">
+                <label className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white hover:bg-primary-active transition-colors cursor-pointer shadow-sm">
                   <Camera size={14} />
-                </button>
+                  <input type="file" className="hidden" accept="image/*" onChange={handleAvatarSelect} />
+                </label>
               </div>
               <div className="flex-1 min-w-0 pb-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl font-bold text-ink">Nguyễn Văn Hùng</h1>
-                  <Badge variant="organic">✅ Đã xác thực</Badge>
-                  <Badge variant="vietgap">Nông dân</Badge>
+                  <h1 className="text-xl font-bold text-ink">{userName}</h1>
+                  <Badge variant="organic"><ShieldCheck size={14} className="mr-1 inline" /> Đã xác thực</Badge>
+                  <Badge variant="vietgap">{userRoleLabel}</Badge>
                 </div>
                 <p className="text-sm text-muted mt-1 flex items-center gap-1">
                   <MapPin size={13} className="text-primary" /> Cái Bè, Tiền Giang
@@ -56,8 +136,11 @@ export default function ProfilePage() {
                   { value: "12", label: "Sản phẩm", icon: Package },
                   { value: "38", label: "Đơn hàng", icon: ShoppingBag },
                 ].map(({ value, label, icon: Icon }) => (
-                  <div key={label}>
-                    <p className="text-xl font-bold text-ink">{value}</p>
+                  <div key={label} className="flex flex-col items-center">
+                    <div className="flex items-center gap-1 mb-0.5">
+                      <Icon size={16} className="text-primary" />
+                      <p className="text-xl font-bold text-ink leading-none">{value}</p>
+                    </div>
                     <p className="text-xs text-muted">{label}</p>
                   </div>
                 ))}
@@ -93,9 +176,9 @@ export default function ProfilePage() {
               <div className="bg-white rounded-xl border border-hairline card-shadow p-6">
                 <h2 className="text-lg font-bold text-ink mb-6">Thông tin cá nhân</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                  <Input label="Họ và tên" defaultValue="Nguyễn Văn Hùng" leftIcon={<User size={16} />} />
-                  <Input label="Số điện thoại" defaultValue="0901 234 567" leftIcon={<Phone size={16} />} disabled />
-                  <Input label="Email" defaultValue="hung.nguyen@gmail.com" leftIcon={<Mail size={16} />} />
+                  <Input label="Họ và tên / Tên tổ chức" defaultValue={userName} leftIcon={<User size={16} />} />
+                  <Input label="Số điện thoại" defaultValue={user?.phone || ""} leftIcon={<Phone size={16} />} disabled />
+                  <Input label="Email" defaultValue={user?.email || ""} leftIcon={<Mail size={16} />} />
                   <div>
                     <label className="text-sm font-medium text-ink mb-1.5 block">Tỉnh thành</label>
                     <select className="w-full h-12 px-3.5 rounded-lg border border-border-strong bg-white text-base outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors">
@@ -122,12 +205,17 @@ export default function ProfilePage() {
                 <h2 className="text-lg font-bold text-ink mb-6">Giấy tờ & Xác thực danh tính (KYC)</h2>
                 <div className="flex flex-col gap-4">
                   {[
-                    { label: "Căn cước công dân (CCCD)", status: "verified", date: "01/01/2025" },
-                    { label: "Địa chỉ cư trú", status: "verified", date: "01/01/2025" },
-                    { label: "Chứng nhận VietGAP", status: "verified", date: "15/03/2025", expires: "15/03/2027" },
-                    { label: "Chứng nhận OCOP 4 sao", status: "pending" },
-                    { label: "Hợp đồng thuê đất (nếu có)", status: "not_uploaded" },
-                  ].map(({ label, status, date, expires }) => (
+                    ...(isCooperative || isEnterprise ? [] : [
+                      { label: "Căn cước công dân (CCCD)", status: "verified", date: "01/01/2025" }
+                    ]),
+                    { label: "Địa chỉ / Trụ sở chính", status: "verified", date: "01/01/2025" },
+                    ...(isCooperative ? [
+                      { label: "Giấy chứng nhận đăng ký hợp tác xã", status: "verified", date: "10/05/2024" }
+                    ] : []),
+                    ...(isEnterprise ? [
+                      { label: "Giấy chứng nhận đăng ký doanh nghiệp", status: "verified", date: "15/08/2023" }
+                    ] : []),
+                  ].map(({ label, status, date, expires }: any) => (
                     <div key={label} className="flex items-center justify-between p-4 rounded-xl border border-hairline hover:bg-surface-soft transition-colors">
                       <div className="flex items-center gap-3">
                         <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center",
@@ -225,6 +313,16 @@ export default function ProfilePage() {
       </div>
 
       <Footer />
+
+      {/* Render Image Cropper Modal khi người dùng chọn ảnh */}
+      {selectedImageForCrop && (
+        <ImageCropperModal
+          imageSrc={selectedImageForCrop}
+          onClose={() => setSelectedImageForCrop(null)}
+          onCropComplete={handleCropComplete}
+          isUploading={isUploadingAvatar}
+        />
+      )}
     </div>
   );
 }

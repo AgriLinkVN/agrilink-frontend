@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3001",
+    "dev": "next dev",
     "build": "next build",
     "generate:map-style": "node scripts/generate-mapbox-style.mjs",
-    "start": "next start -p 3001",
+    "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
@@ -29,6 +29,7 @@
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-easy-crop": "^5.5.7",
     "react-map-gl": "^8.1.1",
     "recharts": "^3.8.1",
     "socket.io-client": "^4.8.3",
