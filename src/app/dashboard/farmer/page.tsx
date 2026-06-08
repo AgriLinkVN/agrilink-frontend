@@ -61,8 +61,20 @@ export default function FarmerDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Recent orders */}
-        <div className="xl:col-span-2">
+        {/* Main Content Column */}
+        <div className="xl:col-span-2 space-y-6">
+          {/* Chart Placeholder */}
+          <div className="bg-white rounded-xl border border-hairline card-shadow p-5">
+            <h2 className="font-semibold text-ink mb-4">Biểu đồ Giá của tôi vs Giá thị trường (Gợi ý)</h2>
+            <div className="w-full h-64 bg-slate-50 border border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400">
+              <div className="flex flex-col items-center">
+                <TrendingUp size={32} className="mb-2 opacity-50" />
+                <p className="text-sm">[Line Chart Placeholder]</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent orders */}
           <div className="bg-white rounded-xl border border-hairline card-shadow">
             <div className="flex items-center justify-between p-5 border-b border-hairline">
               <h2 className="font-semibold text-ink">Đơn hàng gần đây</h2>

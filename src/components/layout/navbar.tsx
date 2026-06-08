@@ -29,7 +29,7 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  const userName = user?.fullName || user?.full_name || user?.phone || "User";
+  const userName = (user as any)?.fullName || user?.full_name || user?.phone || "User";
 
   function handleLogout() {
     logout();
@@ -79,6 +79,20 @@ export function Navbar() {
                 </Link>
               );
             })}
+            {user && (
+              <Link
+                href="/profile"
+                className={cn(
+                  "flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13.5px] font-medium whitespace-nowrap transition-all duration-150",
+                  pathname.startsWith("/profile")
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-body-text hover:text-primary hover:bg-surface-green"
+                )}
+              >
+                <User size={14} className={cn("shrink-0", pathname.startsWith("/profile") ? "opacity-100" : "opacity-70")} />
+                Hồ sơ cá nhân
+              </Link>
+            )}
           </nav>
 
           {/* Right side actions — right col */}
@@ -225,6 +239,11 @@ export function Navbar() {
                   <Button variant="secondary" size="sm" asChild>
                     <Link href={ROLE_DASHBOARD[user.role]} onClick={() => setMobileOpen(false)}>
                       <LayoutDashboard size={15} /> Dashboard
+                    </Link>
+                  </Button>
+                  <Button variant="secondary" size="sm" asChild>
+                    <Link href="/profile" onClick={() => setMobileOpen(false)}>
+                      <User size={15} /> Hồ sơ cá nhân
                     </Link>
                   </Button>
                   <Button

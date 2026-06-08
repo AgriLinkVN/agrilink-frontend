@@ -92,6 +92,17 @@ export default function EnterpriseDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Heat Map Placeholder */}
+      <div className="mt-6 bg-white rounded-xl border border-hairline card-shadow p-5">
+        <h2 className="font-semibold text-ink mb-4">Nguồn cung theo khu vực (Gợi ý)</h2>
+        <div className="w-full h-64 bg-slate-50 border border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400">
+          <div className="flex flex-col items-center">
+            <MapPin size={32} className="mb-2 opacity-50" />
+            <p className="text-sm">[Heat Map Placeholder]</p>
+          </div>
+        </div>
+      </div>
     </DashboardLayout>
   );
 }

@@ -23,7 +23,6 @@ const ROLE_NAV: Record<UserRole, NavItem[]> = {
     { label: "Tổng quan", href: "/dashboard/farmer", icon: LayoutDashboard },
     { label: "Sản phẩm của tôi", href: "/dashboard/farmer/products", icon: Package },
     { label: "Đơn hàng", href: "/dashboard/farmer/orders", icon: ShoppingBag, badge: "3" },
-    { label: "Hợp tác xã", href: "/dashboard/farmer/cooperative", icon: Users },
     { label: "Giá tham khảo", href: "/prices", icon: TrendingUp },
     { label: "Hồ sơ nông trại", href: "/dashboard/farmer/profile", icon: FileText },
     { label: "Cài đặt", href: "/dashboard/farmer/settings", icon: Settings },
@@ -128,8 +127,8 @@ export function Sidebar({ role, userName = "Người dùng", userAvatar }: Sideb
 
       {/* User info */}
       <div className="p-4 border-b border-hairline">
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-green">
-          <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-white font-bold text-sm shrink-0">
+        <Link href="/profile" className="flex items-center gap-3 p-3 rounded-xl bg-surface-green hover:bg-surface-soft transition-colors cursor-pointer group">
+          <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-white font-bold text-sm shrink-0 group-hover:ring-2 group-hover:ring-primary/20 transition-all">
             {userAvatar ? (
               <img src={userAvatar} alt={userName} className="w-full h-full rounded-full object-cover" />
             ) : (
@@ -137,15 +136,12 @@ export function Sidebar({ role, userName = "Người dùng", userAvatar }: Sideb
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-ink truncate">{userName}</p>
+            <p className="text-sm font-semibold text-ink truncate group-hover:text-primary transition-colors">{userName}</p>
             <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-primary text-white mt-0.5">
               {ROLE_LABEL[role]}
             </span>
           </div>
-          <button className="text-muted hover:text-ink shrink-0">
-            <Bell size={16} />
-          </button>
-        </div>
+        </Link>
       </div>
 
       {/* Navigation */}

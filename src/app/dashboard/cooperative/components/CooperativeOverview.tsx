@@ -226,6 +226,17 @@ export function CooperativeOverview() {
               )}
             </div>
           </div>
+
+          {/* Chart Placeholder */}
+          <div className="bg-white rounded-xl border border-hairline card-shadow p-5 mt-6">
+            <h2 className="font-semibold text-ink mb-4">Phân bổ nông sản (Gợi ý)</h2>
+            <div className="w-full h-48 bg-slate-50 border border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400">
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 rounded-full border-4 border-slate-300 border-t-emerald-400 border-r-emerald-400 mb-2 opacity-50" />
+                <p className="text-sm">[Pie Chart Placeholder]</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </>
