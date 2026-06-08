@@ -29,6 +29,8 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
+  const userName = user?.fullName || user?.full_name || user?.phone || "User";
+
   function handleLogout() {
     logout();
     setUserMenuOpen(false);
@@ -101,10 +103,10 @@ export function Navbar() {
                   className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full border border-hairline hover:border-primary-light hover:bg-surface-green transition-all"
                 >
                   <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
-                    {user.full_name.charAt(0).toUpperCase()}
+                    {userName.charAt(0).toUpperCase()}
                   </div>
                   <span className="text-sm font-medium text-ink hidden md:block max-w-20 truncate">
-                    {user.full_name.split(" ").slice(-1)[0]}
+                    {userName.split(" ").slice(-1)[0]}
                   </span>
                   <ChevronDown
                     size={13}
@@ -117,7 +119,7 @@ export function Navbar() {
                     <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
                     <div className="absolute right-0 mt-2 w-56 bg-white border border-hairline rounded-xl shadow-lg z-50 overflow-hidden">
                       <div className="px-4 py-3 border-b border-hairline bg-surface-soft">
-                        <p className="text-sm font-semibold text-ink truncate">{user.full_name}</p>
+                        <p className="text-sm font-semibold text-ink truncate">{userName}</p>
                         <p className="text-xs text-muted mt-0.5">{ROLE_LABELS[user.role]}</p>
                       </div>
                       <div className="py-1">
@@ -213,10 +215,10 @@ export function Navbar() {
                 <>
                   <div className="flex items-center gap-3 px-3 py-2 bg-surface-soft rounded-lg">
                     <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold shrink-0">
-                      {user.full_name.charAt(0)}
+                      {userName.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-ink leading-none">{user.full_name}</p>
+                      <p className="text-sm font-semibold text-ink leading-none">{userName}</p>
                       <p className="text-xs text-muted mt-0.5">{ROLE_LABELS[user.role]}</p>
                     </div>
                   </div>
