@@ -302,6 +302,158 @@ export async function fetchProducts(params?: {
   }
 }
 
+// ── Product Detail (full response with seller + location populated) ─────
+
+export interface ProductDetailLocation {
+  id: string;
+  name: string;
+  code: string | null;
+  region?: "north" | "central" | "south" | "highlands" | null;
+}
+
+export interface ProductDetailCategory {
+  id: string;
+  name: string;
+  slug: string;
+  iconUrl: string | null;
+  description: string | null;
+  parent: { id: string; name: string; slug: string } | null;
+}
+
+export interface ProductDetailImage {
+  id: string;
+  imageUrl: string;
+  altText: string | null;
+  sortOrder: number;
+  isPrimary: boolean;
+}
+
+export interface ProductDetailCertification {
+  id: string;
+  certType: "vietgap" | "organic" | "globalgap" | "ocop" | "other";
+  certNumber: string | null;
+  issuedBy: string | null;
+  issuedDate: string | null;
+  expiryDate: string | null;
+  documentUrl: string | null;
+  isVerified: boolean;
+}
+
+export interface ProductDetailSeller {
+  id: string;
+  fullName: string | null;
+  phone: string;
+  avatarUrl: string | null;
+  sellerType: "farmer" | "cooperative" | "supplier";
+  bio?: string | null;
+  farmName?: string | null;
+  experienceYears?: number | null;
+  cooperativeName?: string;
+  memberCount?: number;
+  companyName?: string;
+  supplierType?: "fertilizer" | "pesticide" | "equipment" | "mixed" | null;
+  province?: ProductDetailLocation | null;
+}
+
+export interface ProductDetail {
+  id: string;
+  name: string;
+  description: string | null;
+  sku: string | null;
+  variety: string | null;
+  pricePerUnit: number;
+  unit: string;
+  availableQuantity: number;
+  minOrderQuantity: number | null;
+  farmingType: "organic" | "traditional" | "vietgap" | "globalgap" | null;
+  status: string;
+  harvestDate: string | null;
+  expiryDate: string | null;
+  rejectionReason: string | null;
+  isFeatured: boolean;
+  viewCount: number;
+  soldCount: number;
+  avgRating: number;
+  farmLatitude: number | null;
+  farmLongitude: number | null;
+  createdAt: string;
+  updatedAt: string;
+  province: ProductDetailLocation | null;
+  district: ProductDetailLocation | null;
+  category: ProductDetailCategory | null;
+  images: ProductDetailImage[];
+  certifications: ProductDetailCertification[];
+  seller: ProductDetailSeller | null;
+}
+
+/** Adapt legacy Product (mock) → ProductDetail for fallback only. */
+function adaptLegacyToDetail(p: Product): ProductDetail {
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    sku: null,
+    variety: null,
+    pricePerUnit: p.pricePerUnit,
+    unit: p.unit,
+    availableQuantity: p.availableQuantity,
+    minOrderQuantity: p.minOrderQuantity,
+    farmingType: p.farmingType,
+    status: p.status,
+    harvestDate: p.harvestDate,
+    expiryDate: p.expiryDate,
+    rejectionReason: null,
+    isFeatured: false,
+    viewCount: p.viewCount,
+    soldCount: 0,
+    avgRating: 0,
+    farmLatitude: null,
+    farmLongitude: null,
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
+    province: null,
+    district: null,
+    category: p.category
+      ? { id: p.category.id, name: p.category.name, slug: p.category.slug, iconUrl: null, description: null, parent: null }
+      : null,
+    images: p.images.map((img) => ({
+      id: img.id, imageUrl: img.imageUrl, altText: null,
+      sortOrder: img.sortOrder, isPrimary: img.isPrimary,
+    })),
+    certifications: (p.certifications ?? []).map((c) => ({
+      id: c.id, certType: c.certType as ProductDetailCertification["certType"],
+      certNumber: c.certNumber, issuedBy: c.issuedBy,
+      issuedDate: c.issuedDate, expiryDate: c.expiryDate,
+      documentUrl: c.documentUrl, isVerified: true,
+    })),
+    seller: null,
+  };
+}
+
+export async function fetchProductDetail(id: string): Promise<ProductDetail | null> {
+  // Mock IDs fallback (legacy compatibility)
+  if (/^\d+$/.test(id)) {
+    const m = MOCK_PRODUCTS[parseInt(id, 10) - 1] ?? MOCK_PRODUCTS[0];
+    return m ? adaptLegacyToDetail(m) : null;
+  }
+  if (id.startsWith("mock-")) {
+    const m = MOCK_PRODUCTS.find((p) => p.id === id);
+    return m ? adaptLegacyToDetail(m) : null;
+  }
+
+  try {
+    const res = await fetch(`${BASE}/products/${id}`, { cache: "no-store" });
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      throw new Error(`HTTP ${res.status}`);
+    }
+    const json = await res.json();
+    return (json?.data ?? json) as ProductDetail;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchProduct(id: string): Promise<Product | null> {
   if (/^\d+$/.test(id)) {
     return MOCK_PRODUCTS[parseInt(id, 10) - 1] ?? MOCK_PRODUCTS[0];
