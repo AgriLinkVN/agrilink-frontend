@@ -27,6 +27,13 @@ interface FarmProfile {
   address: string | null;
   bio: string | null;
   experienceYears: number | null;
+  // New fields from entity v2
+  phoneNumber: string | null;
+  avatarUrl: string | null;
+  coverImageUrl: string | null;
+  isVerified: boolean;
+  verifiedAt: string | null;
+  certifications: string[] | null;
 }
 
 // ── Mock data (fallback when BE unreachable) ───────────────────
@@ -130,20 +137,22 @@ export default async function FarmProfilePage({ params }: PageProps) {
   const profile = profileRaw ?? mock;
   const farmName = profile.farmName ?? mock.farmName;
   const displayName = (profile as typeof mock).displayName ?? mock.displayName;
-  const avatarUrl = (profile as typeof mock).avatarUrl ?? mock.avatarUrl;
-  const coverUrl = (profile as typeof mock).coverUrl ?? mock.coverUrl;
-  const phone = (profile as typeof mock).phone ?? mock.phone;
+  const avatarUrl = profile.avatarUrl ?? (profile as typeof mock).avatarUrl ?? mock.avatarUrl;
+  const coverUrl = profile.coverImageUrl ?? (profile as typeof mock).coverUrl ?? mock.coverUrl;
+  const phone = profile.phoneNumber ?? (profile as typeof mock).phone ?? mock.phone;
   const trustScore = (profile as typeof mock).trustScore ?? mock.trustScore;
   const totalSales = (profile as typeof mock).totalSales ?? mock.totalSales;
   const responseRate = (profile as typeof mock).responseRate ?? mock.responseRate;
   const provinceLabel = (profile as typeof mock).provinceLabel ?? mock.provinceLabel;
+  const isVerified = profile.isVerified ?? false;
+  // Certifications: from profile.certifications (new field) OR derived from products
+  const profileCerts = profile.certifications ?? [];
 
   const displayProducts = products.length > 0 ? products : [] as Product[];
 
-  // Collect unique cert types from products
-  const certTypes = [...new Set(
-    displayProducts.flatMap(p => (p.certifications ?? []).map(c => c.certType.toLowerCase()))
-  )];
+  // Collect unique cert types: from profile.certifications + product certifications
+  const productCertTypes = displayProducts.flatMap(p => (p.certifications ?? []).map(c => c.certType.toLowerCase()));
+  const certTypes = [...new Set([...profileCerts.map(c => c.toLowerCase()), ...productCertTypes])];
 
   // Harvest timeline from products with harvestDate
   const harvestItems = displayProducts
@@ -495,10 +504,10 @@ export default async function FarmProfilePage({ params }: PageProps) {
               <h3 className="text-xs font-semibold text-primary uppercase tracking-wide mb-3">Đã xác minh</h3>
               <div className="flex flex-col gap-2">
                 {[
-                  { label: "CCCD / Định danh cá nhân", ok: true },
-                  { label: "Giấy phép kinh doanh", ok: true },
-                  { label: "Chứng nhận canh tác", ok: !!profile.farmingType },
-                  { label: "Tài khoản ngân hàng", ok: true },
+                  { label: "CCCD / Định danh cá nhân", ok: isVerified },
+                  { label: "Giấy phép kinh doanh", ok: isVerified },
+                  { label: "Chứng nhận canh tác", ok: !!profile.farmingType && certTypes.length > 0 },
+                  { label: "Tài khoản ngân hàng", ok: !!profile.phoneNumber },
                 ].map(item => (
                   <div key={item.label} className="flex items-center gap-2 text-sm">
                     <ShieldCheck size={14} className={item.ok ? "text-primary" : "text-muted"} />
