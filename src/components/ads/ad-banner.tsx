@@ -31,6 +31,46 @@ interface Ad {
 
 // ── Mock ads — replace with API fetch later ──────────────────────────
 const MOCK_ADS: Record<string, Ad[]> = {
+  "profile-sidebar": [
+    {
+      id: "ps1",
+      imageUrl: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=400&h=200&fit=crop&auto=format",
+      title: "Máy phun thuốc không người lái",
+      subtitle: "DJI Agras T40 — phun 40ha/ngày, tiết kiệm 30% chi phí nhân công",
+      cta: "Xem báo giá",
+      href: "#",
+      advertiser: "AgriTech Pro",
+      badge: "Mới 2026",
+    },
+    {
+      id: "ps2",
+      imageUrl: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=200&fit=crop&auto=format",
+      title: "Phân bón hữu cơ vi sinh",
+      subtitle: "Tăng năng suất 25%, cải tạo đất lâu dài. Chứng nhận hữu cơ",
+      cta: "Đặt mua ngay",
+      href: "#",
+      advertiser: "BioFarm VN",
+      badge: "Khuyến mãi",
+    },
+    {
+      id: "ps3",
+      imageUrl: "https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=400&h=200&fit=crop&auto=format",
+      title: "Hệ thống tưới nhỏ giọt Netafim",
+      subtitle: "Tiết kiệm 60% nước. Lắp đặt và bảo trì toàn quốc",
+      cta: "Nhận tư vấn",
+      href: "#",
+      advertiser: "Netafim Vietnam",
+    },
+    {
+      id: "ps4",
+      imageUrl: "https://images.unsplash.com/photo-1589923188900-85dae523342b?w=400&h=200&fit=crop&auto=format",
+      title: "Máy kéo Kubota L4018",
+      subtitle: "40 mã lực, đa năng, phù hợp mọi loại đất",
+      cta: "Xem chi tiết",
+      href: "#",
+      advertiser: "Kubota VN",
+    },
+  ],
   sidebar: [
     {
       id: "s1",
@@ -82,7 +122,7 @@ const MOCK_ADS: Record<string, Ad[]> = {
 
 interface AdBannerProps {
   /** Which slot this banner occupies — used for future server-side targeting */
-  slotId?: "sidebar" | "below-hero" | "inline";
+  slotId?: "sidebar" | "below-hero" | "inline" | "profile-sidebar";
   /** Index into the mock ad list for this slot */
   index?: number;
   className?: string;
@@ -93,6 +133,7 @@ export function AdBanner({ slotId = "sidebar", index = 0, className = "" }: AdBa
   const ad = ads[index % ads.length];
 
   const isWide = slotId === "below-hero" || slotId === "inline";
+  const isSidebar = slotId === "sidebar" || slotId === "profile-sidebar";
 
   return (
     <Link

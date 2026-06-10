@@ -198,9 +198,9 @@ export default function LoginPage() {
       {/* ══════════════════════════════════════
           RIGHT  —  Form Panel
           ══════════════════════════════════════ */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 overflow-y-auto">
+      <div className="flex-1 flex items-start justify-center p-6 overflow-y-auto">
         <div
-          className="w-full max-w-md"
+          className="w-full max-w-lg py-8"
           style={{ animation: "heroFadeUp 0.6s ease backwards" }}
         >
           {/* Mobile logo */}
@@ -228,7 +228,7 @@ export default function LoginPage() {
               </div>
             </div>
           ) : (
-          <div className="bg-white rounded-3xl card-shadow p-8 sm:p-10">
+          <div>
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-2xl font-extrabold text-ink mb-1.5">Đăng nhập</h1>

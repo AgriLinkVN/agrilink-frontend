@@ -24,7 +24,7 @@ const ROLE_NAV: Record<UserRole, NavItem[]> = {
     { label: "Sản phẩm của tôi", href: "/dashboard/farmer/products", icon: Package },
     { label: "Đơn hàng", href: "/dashboard/farmer/orders", icon: ShoppingBag, badge: "3" },
     { label: "Giá tham khảo", href: "/prices", icon: TrendingUp },
-    { label: "Hồ sơ nông trại", href: "/dashboard/farmer/profile", icon: FileText },
+    { label: "Hồ sơ nông trại", href: "/profile", icon: FileText },
     { label: "Cài đặt", href: "/dashboard/farmer/settings", icon: Settings },
   ],
   cooperative: [
