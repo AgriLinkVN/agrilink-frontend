@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Bell, Download, RefreshCw, BarChart3, AlertCircle } from "lucide-react";
 import { AdBanner } from "@/components/ads/ad-banner";
 import { AdCarouselHome } from "@/components/ads/ad-carousel-home";
+import { AdSidebarHome } from "@/components/ads/ad-sidebar-home";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { cn } from "@/lib/utils";
 
@@ -76,141 +77,163 @@ export default function PricesPage() {
         </div>
       </div>
 
-      {/* AD SLOT: prices-carousel — nông cụ liên quan */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        <AdCarouselHome />
-      </div>
+      {/* 3-COLUMN LAYOUT: left ad | main | right ad (xl+) */}
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex gap-4 xl:gap-6 items-start">
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Price chart */}
-        <div className="bg-white rounded-xl border border-hairline card-shadow p-6 mb-8">
-          <div className="flex items-center justify-between mb-2 flex-wrap gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-ink">{selectedProduct} — Tiền Giang</h2>
-              <p className="text-sm text-muted">So sánh giá nông dân nhận vs giá bán lẻ tại siêu thị</p>
+          {/* LEFT AD SIDEBAR */}
+          <div className="hidden xl:block w-[200px] shrink-0 sticky top-20 pt-6">
+            <AdSidebarHome side="left" />
+          </div>
+
+          {/* MAIN CONTENT */}
+          <div className="flex-1 min-w-0">
+
+            {/* AD SLOT: prices-carousel */}
+            <div className="pt-6 pb-2">
+              <AdCarouselHome />
             </div>
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-1.5 rounded-full bg-primary" />
-                <span className="text-muted">Giá nông dân</span>
+
+            <div className="py-8">
+              {/* Price chart */}
+              <div className="bg-white rounded-xl border border-hairline card-shadow p-6 mb-8">
+                <div className="flex items-center justify-between mb-2 flex-wrap gap-3">
+                  <div>
+                    <h2 className="text-lg font-bold text-ink">{selectedProduct} — Tiền Giang</h2>
+                    <p className="text-sm text-muted">So sánh giá nông dân nhận vs giá bán lẻ tại siêu thị</p>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-1.5 rounded-full bg-primary" />
+                      <span className="text-muted">Giá nông dân</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-1.5 rounded-full bg-accent" />
+                      <span className="text-muted">Giá bán lẻ</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="bg-surface-green rounded-xl p-4">
+                    <p className="text-xs text-muted mb-1">Giá nông dân hôm nay</p>
+                    <p className="text-2xl font-bold text-primary">45,000đ/kg</p>
+                    <p className="text-xs text-primary font-semibold mt-1">↑ 5.2% hôm qua</p>
+                  </div>
+                  <div className="bg-[#FFF7ED] rounded-xl p-4">
+                    <p className="text-xs text-muted mb-1">Giá bán lẻ siêu thị</p>
+                    <p className="text-2xl font-bold text-accent-active">82,000đ/kg</p>
+                    <p className="text-xs text-muted mt-1">Khoảng cách: 37,000đ (82%)</p>
+                  </div>
+                  <div className="hidden sm:block bg-[#DBEAFE] rounded-xl p-4">
+                    <p className="text-xs text-muted mb-1">Dự báo AI 2 tuần tới</p>
+                    <p className="text-2xl font-bold text-[#1E40AF]">48–55K đ</p>
+                    <p className="text-xs text-[#1E40AF] font-semibold mt-1">Xu hướng tăng</p>
+                  </div>
+                </div>
+
+                <ResponsiveContainer width="100%" height={260}>
+                  <AreaChart data={PRICE_DATA_XOAI} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="farmerGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2D6A4F" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#2D6A4F" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="retailGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#F4A261" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#F4A261" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                    <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#6B7280" }} />
+                    <YAxis tick={{ fontSize: 12, fill: "#6B7280" }} tickFormatter={(v) => `${(v/1000).toFixed(0)}K`} />
+                    <Tooltip
+                      formatter={(val, name) => [`${Number(val).toLocaleString("vi-VN")}đ/kg`, name === "farmer" ? "Giá nông dân" : "Giá bán lẻ"]}
+                      labelFormatter={(l) => `Ngày ${l}`}
+                    />
+                    <Area type="monotone" dataKey="retail" stroke="#F4A261" strokeWidth={2} fill="url(#retailGrad)" dot={false} />
+                    <Area type="monotone" dataKey="farmer" stroke="#2D6A4F" strokeWidth={2.5} fill="url(#farmerGrad)" dot={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-1.5 rounded-full bg-accent" />
-                <span className="text-muted">Giá bán lẻ</span>
+
+              {/* Price table */}
+              <div className="bg-white rounded-xl border border-hairline card-shadow">
+                <div className="flex items-center justify-between p-5 border-b border-hairline">
+                  <h2 className="font-bold text-ink flex items-center gap-2">
+                    <BarChart3 size={18} className="text-primary" /> Bảng giá hôm nay
+                  </h2>
+                  <div className="flex gap-2 flex-wrap">
+                    {CATEGORIES.map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedCat(cat)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+                          selectedCat === cat ? "bg-primary text-white" : "border border-hairline text-muted hover:border-primary hover:text-primary"
+                        )}
+                      >{cat}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-surface-soft border-b border-hairline">
+                        <th className="text-left text-xs font-semibold text-muted px-5 py-3">Sản phẩm</th>
+                        <th className="text-left text-xs font-semibold text-muted px-4 py-3">Tỉnh thành</th>
+                        <th className="text-right text-xs font-semibold text-muted px-4 py-3">Giá thấp nhất</th>
+                        <th className="text-right text-xs font-semibold text-muted px-4 py-3">Giá cao nhất</th>
+                        <th className="text-right text-xs font-semibold text-muted px-4 py-3">Giá trung bình</th>
+                        <th className="text-right text-xs font-semibold text-muted px-4 py-3">Biến động</th>
+                        <th className="px-4 py-3" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-hairline-soft">
+                      {MARKET_PRICES.map((p) => (
+                        <tr
+                          key={p.product}
+                          onClick={() => setSelectedProduct(p.product)}
+                          className={cn("cursor-pointer transition-colors", selectedProduct === p.product ? "bg-surface-green" : "hover:bg-surface-soft")}
+                        >
+                          <td className="px-5 py-4">
+                            <span className="text-sm font-semibold text-ink">{p.product}</span>
+                          </td>
+                          <td className="px-4 py-4 text-sm text-muted">{p.province}</td>
+                          <td className="px-4 py-4 text-right text-sm text-ink">{p.min.toLocaleString("vi-VN")}đ</td>
+                          <td className="px-4 py-4 text-right text-sm text-ink">{p.max.toLocaleString("vi-VN")}đ</td>
+                          <td className="px-4 py-4 text-right text-sm font-bold text-primary">{p.avg.toLocaleString("vi-VN")}đ/{p.unit}</td>
+                          <td className="px-4 py-4 text-right">
+                            <span className={cn("flex items-center justify-end gap-1 text-sm font-bold", p.trend === "up" ? "text-primary" : "text-error")}>
+                              {p.trend === "up" ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                              {p.trend === "up" ? "+" : ""}{p.change}%
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <button className="text-xs text-primary hover:underline whitespace-nowrap">Đặt cảnh báo</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* AD SLOT: prices-banner — sau bảng giá */}
+              <div className="pt-6 pb-8">
+                <AdBanner slotId="below-hero" index={0} />
               </div>
             </div>
+
           </div>
 
-          <div className="flex items-center gap-4 mb-6">
-            <div className="bg-surface-green rounded-xl p-4">
-              <p className="text-xs text-muted mb-1">Giá nông dân hôm nay</p>
-              <p className="text-2xl font-bold text-primary">45,000đ/kg</p>
-              <p className="text-xs text-primary font-semibold mt-1">↑ 5.2% hôm qua</p>
-            </div>
-            <div className="bg-[#FFF7ED] rounded-xl p-4">
-              <p className="text-xs text-muted mb-1">Giá bán lẻ siêu thị</p>
-              <p className="text-2xl font-bold text-accent-active">82,000đ/kg</p>
-              <p className="text-xs text-muted mt-1">Khoảng cách: 37,000đ (82%)</p>
-            </div>
-            <div className="hidden sm:block bg-[#DBEAFE] rounded-xl p-4">
-              <p className="text-xs text-muted mb-1">Dự báo AI 2 tuần tới</p>
-              <p className="text-2xl font-bold text-[#1E40AF]">48–55K đ</p>
-              <p className="text-xs text-[#1E40AF] font-semibold mt-1">Xu hướng tăng</p>
-            </div>
+          {/* RIGHT AD SIDEBAR */}
+          <div className="hidden xl:block w-[200px] shrink-0 sticky top-20 pt-6">
+            <AdSidebarHome side="right" />
           </div>
 
-          <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={PRICE_DATA_XOAI} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-              <defs>
-                <linearGradient id="farmerGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2D6A4F" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#2D6A4F" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="retailGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#F4A261" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#F4A261" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-              <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#6B7280" }} />
-              <YAxis tick={{ fontSize: 12, fill: "#6B7280" }} tickFormatter={(v) => `${(v/1000).toFixed(0)}K`} />
-              <Tooltip
-                formatter={(val, name) => [`${Number(val).toLocaleString("vi-VN")}đ/kg`, name === "farmer" ? "Giá nông dân" : "Giá bán lẻ"]}
-                labelFormatter={(l) => `Ngày ${l}`}
-              />
-              <Area type="monotone" dataKey="retail" stroke="#F4A261" strokeWidth={2} fill="url(#retailGrad)" dot={false} />
-              <Area type="monotone" dataKey="farmer" stroke="#2D6A4F" strokeWidth={2.5} fill="url(#farmerGrad)" dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
         </div>
-
-        {/* Price table */}
-        <div className="bg-white rounded-xl border border-hairline card-shadow">
-          <div className="flex items-center justify-between p-5 border-b border-hairline">
-            <h2 className="font-bold text-ink flex items-center gap-2">
-              <BarChart3 size={18} className="text-primary" /> Bảng giá hôm nay
-            </h2>
-            <div className="flex gap-2">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCat(cat)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
-                    selectedCat === cat ? "bg-primary text-white" : "border border-hairline text-muted hover:border-primary hover:text-primary"
-                  )}
-                >{cat}</button>
-              ))}
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-surface-soft border-b border-hairline">
-                  <th className="text-left text-xs font-semibold text-muted px-5 py-3">Sản phẩm</th>
-                  <th className="text-left text-xs font-semibold text-muted px-4 py-3">Tỉnh thành</th>
-                  <th className="text-right text-xs font-semibold text-muted px-4 py-3">Giá thấp nhất</th>
-                  <th className="text-right text-xs font-semibold text-muted px-4 py-3">Giá cao nhất</th>
-                  <th className="text-right text-xs font-semibold text-muted px-4 py-3">Giá trung bình</th>
-                  <th className="text-right text-xs font-semibold text-muted px-4 py-3">Biến động</th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-hairline-soft">
-                {MARKET_PRICES.map((p) => (
-                  <tr
-                    key={p.product}
-                    onClick={() => setSelectedProduct(p.product)}
-                    className={cn("cursor-pointer transition-colors", selectedProduct === p.product ? "bg-surface-green" : "hover:bg-surface-soft")}
-                  >
-                    <td className="px-5 py-4">
-                      <span className="text-sm font-semibold text-ink">{p.product}</span>
-                    </td>
-                    <td className="px-4 py-4 text-sm text-muted">{p.province}</td>
-                    <td className="px-4 py-4 text-right text-sm text-ink">{p.min.toLocaleString("vi-VN")}đ</td>
-                    <td className="px-4 py-4 text-right text-sm text-ink">{p.max.toLocaleString("vi-VN")}đ</td>
-                    <td className="px-4 py-4 text-right text-sm font-bold text-primary">{p.avg.toLocaleString("vi-VN")}đ/{p.unit}</td>
-                    <td className="px-4 py-4 text-right">
-                      <span className={cn("flex items-center justify-end gap-1 text-sm font-bold", p.trend === "up" ? "text-primary" : "text-error")}>
-                        {p.trend === "up" ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                        {p.trend === "up" ? "+" : ""}{p.change}%
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <button className="text-xs text-primary hover:underline whitespace-nowrap">Đặt cảnh báo</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* AD SLOT: prices-banner — sau bảng giá */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        <AdBanner slotId="below-hero" index={0} />
       </div>
 
       <Footer />
