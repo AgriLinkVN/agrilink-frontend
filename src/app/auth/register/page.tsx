@@ -58,7 +58,7 @@ export default function RegisterPage() {
     setIsLoading(true);
     
     try {
-      const res = await fetch("http://localhost:3001/api/v1/auth/send-otp", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ target: formatPhone(phone), type: "sms", purpose: "register" }),
@@ -89,7 +89,7 @@ export default function RegisterPage() {
     
     try {
       // 1. Verify OTP
-      const otpRes = await fetch("http://localhost:3001/api/v1/auth/verify-otp", {
+      const otpRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ target: formatPhone(phone), code: otpCode, purpose: "register" }),
@@ -103,7 +103,7 @@ export default function RegisterPage() {
       }
       
       // 2. Register
-      const regRes = await fetch("http://localhost:3001/api/v1/auth/register", {
+      const regRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 

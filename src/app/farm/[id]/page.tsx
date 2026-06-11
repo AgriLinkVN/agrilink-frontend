@@ -57,7 +57,7 @@ const MOCK_FARM_PROFILES: Record<string, FarmProfile & { displayName: string; av
 
 // ── Fetch functions ────────────────────────────────────────────
 
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
 const BASE = `${BACKEND}/api/v1`;
 
 async function fetchFarmProfile(userId: string) {

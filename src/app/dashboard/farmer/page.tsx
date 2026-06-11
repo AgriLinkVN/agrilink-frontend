@@ -1,11 +1,11 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { StatCard } from "@/components/ui/stat-card";
 import { Button } from "@/components/ui/button";
-import { Badge, FarmingBadge, OrderStatusBadge } from "@/components/ui/badge";
+import { FarmingBadge, OrderStatusBadge } from "@/components/ui/badge";
 import Link from "next/link";
 import {
   Package, ShoppingBag, TrendingUp, Star, Plus,
-  ArrowRight, MapPin, Calendar, AlertCircle
+  ArrowRight, AlertCircle
 } from "lucide-react";
 
 const STATS = [

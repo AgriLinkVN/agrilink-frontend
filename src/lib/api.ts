@@ -1,4 +1,4 @@
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:3001';
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:5000';
 const BASE = `${BACKEND}/api/v1`;
 
 /**

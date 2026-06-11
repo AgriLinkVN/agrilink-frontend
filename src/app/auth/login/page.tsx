@@ -18,13 +18,13 @@ type OtpStep = "idle" | "sent" | "verified";
 
 /* ─── Demo accounts quick-fill ─── */
 const DEMO_ACCOUNTS = [
-  { role: "Nông dân",       phone: "0901111001", icon: Sprout },
-  { role: "HTX",            phone: "0901111002", icon: Users },
-  { role: "Người mua",      phone: "0901111003", icon: ShoppingCart },
-  { role: "Doanh nghiệp",   phone: "0901111004", icon: Building2 },
-  { role: "Nhà cung cấp",   phone: "0901111005", icon: Package },
-  { role: "Logistics",      phone: "0901111007", icon: Truck },
-  { role: "Admin",          phone: "0901111099", icon: Shield },
+  { role: "Nông dân", phone: "0901111001", icon: Sprout },
+  { role: "HTX", phone: "0901111002", icon: Users },
+  { role: "Người mua", phone: "0901111003", icon: ShoppingCart },
+  { role: "Doanh nghiệp", phone: "0901111004", icon: Building2 },
+  { role: "Nhà cung cấp", phone: "0901111005", icon: Package },
+  { role: "Logistics", phone: "0901111007", icon: Truck },
+  { role: "Admin", phone: "0901111099", icon: Shield },
 ];
 
 export default function LoginPage() {
@@ -32,16 +32,16 @@ export default function LoginPage() {
   const { login } = useAuth();
 
   /* form state */
-  const [method, setMethod]           = useState<Method>("password");
-  const [phone, setPhone]             = useState("");
-  const [password, setPassword]       = useState("");
-  const [showPwd, setShowPwd]         = useState(false);
-  const [otpDigits, setOtpDigits]     = useState(["", "", "", "", "", ""]);
-  const [otpStep, setOtpStep]         = useState<OtpStep>("idle");
-  const [countdown, setCountdown]     = useState(0);
-  const [error, setError]             = useState("");
-  const [loading, setLoading]         = useState(false);
-  const [success, setSuccess]         = useState(false);
+  const [method, setMethod] = useState<Method>("password");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const [otpStep, setOtpStep] = useState<OtpStep>("idle");
+  const [countdown, setCountdown] = useState(0);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
 
 
@@ -56,11 +56,11 @@ export default function LoginPage() {
 
   /* ── Handlers ── */
   const handleSendOtp = async () => {
-    if (phone.replace(/\s/g,"").length < 9) { setError("Vui lòng nhập số điện thoại hợp lệ."); return; }
+    if (phone.replace(/\s/g, "").length < 9) { setError("Vui lòng nhập số điện thoại hợp lệ."); return; }
     setError("");
     try {
       setLoading(true);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/auth/send-otp`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ target: phone.replace(/\s/g, ""), purpose: 'login', type: 'sms' })
@@ -71,7 +71,7 @@ export default function LoginPage() {
       }
       setOtpStep("sent");
       setCountdown(60);
-      setOtpDigits(["","","","","",""]);
+      setOtpDigits(["", "", "", "", "", ""]);
       setTimeout(() => otpRefs.current[0]?.focus(), 300);
     } catch (err: any) {
       setError(err.message || 'Lỗi kết nối máy chủ');
@@ -85,18 +85,18 @@ export default function LoginPage() {
     const next = [...otpDigits];
     if (value.length > 1) {
       // paste
-      value.slice(0,6).split("").forEach((c,j) => { if (i+j<6) next[i+j]=c; });
+      value.slice(0, 6).split("").forEach((c, j) => { if (i + j < 6) next[i + j] = c; });
       setOtpDigits(next);
       otpRefs.current[Math.min(i + value.length, 5)]?.focus();
       return;
     }
     next[i] = value;
     setOtpDigits(next);
-    if (value && i < 5) otpRefs.current[i+1]?.focus();
+    if (value && i < 5) otpRefs.current[i + 1]?.focus();
   };
 
   const handleOtpBackspace = (i: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !otpDigits[i] && i > 0) otpRefs.current[i-1]?.focus();
+    if (e.key === "Backspace" && !otpDigits[i] && i > 0) otpRefs.current[i - 1]?.focus();
   };
 
   async function handleSubmit(e: React.FormEvent) {
@@ -119,12 +119,12 @@ export default function LoginPage() {
   const fillDemo = (p: string) => {
     setPhone(p);
     setPassword("demo123");
-    setOtpDigits(["1","2","3","4","5","6"]);
+    setOtpDigits(["1", "2", "3", "4", "5", "6"]);
     setError("");
   };
 
   const fmt = (s: number) =>
-    `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
   /* ── Render ── */
   return (
@@ -162,7 +162,7 @@ export default function LoginPage() {
             className="grid grid-cols-3 gap-4 mb-10"
             style={{ animation: "heroFadeUp 0.7s ease backwards" }}
           >
-            {[["10,000+","Nông dân"], ["34","Tỉnh thành"], ["500+","HTX"]].map(([n,l]) => (
+            {[["10,000+", "Nông dân"], ["34", "Tỉnh thành"], ["500+", "HTX"]].map(([n, l]) => (
               <div key={l} className="bg-white/10 backdrop-blur border border-white/15 rounded-2xl p-4 text-center">
                 <div className="text-2xl font-black text-white">{n}</div>
                 <div className="text-white/60 text-xs mt-0.5">{l}</div>
@@ -218,7 +218,7 @@ export default function LoginPage() {
               style={{ animation: "heroFadeUp 0.4s ease" }}
             >
               <div className="w-20 h-20 rounded-full bg-primary-ultra-light flex items-center justify-center mx-auto mb-5"
-                   style={{ animation: "heroFadeUp 0.5s cubic-bezier(0.68,-0.55,0.27,1.55)" }}>
+                style={{ animation: "heroFadeUp 0.5s cubic-bezier(0.68,-0.55,0.27,1.55)" }}>
                 <CheckCircle2 size={40} className="text-primary" />
               </div>
               <h2 className="text-2xl font-extrabold text-ink mb-2">Đăng nhập thành công!</h2>
@@ -228,196 +228,194 @@ export default function LoginPage() {
               </div>
             </div>
           ) : (
-          <div className="bg-white rounded-3xl card-shadow p-8 sm:p-10">
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-2xl font-extrabold text-ink mb-1.5">Đăng nhập</h1>
-              <p className="text-muted text-sm">Chào mừng trở lại hệ sinh thái nông nghiệp số</p>
-            </div>
+            <div className="bg-white rounded-3xl card-shadow p-8 sm:p-10">
+              {/* Header */}
+              <div className="mb-8">
+                <h1 className="text-2xl font-extrabold text-ink mb-1.5">Đăng nhập</h1>
+                <p className="text-muted text-sm">Chào mừng trở lại hệ sinh thái nông nghiệp số</p>
+              </div>
 
-            {/* Method toggle */}
-            <div className="flex bg-surface-strong rounded-xl p-1 mb-7">
-              {(["password","otp"] as Method[]).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => { setMethod(m); setError(""); setOtpStep("idle"); }}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                    method === m
+              {/* Method toggle */}
+              <div className="flex bg-surface-strong rounded-xl p-1 mb-7">
+                {(["password", "otp"] as Method[]).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => { setMethod(m); setError(""); setOtpStep("idle"); }}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${method === m
                       ? "bg-white text-primary shadow-sm"
                       : "text-muted hover:text-ink"
-                  }`}
-                >
-                  {m === "password" ? "  Mật khẩu" : "  OTP điện thoại"}
-                </button>
-              ))}
-            </div>
+                      }`}
+                  >
+                    {m === "password" ? "  Mật khẩu" : "  OTP điện thoại"}
+                  </button>
+                ))}
+              </div>
 
-            {/* Form */}
-            <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-              {/* Phone */}
-              <Input
-                label="Số điện thoại"
-                type="tel"
-                placeholder="0901 234 567"
-                leftIcon={<Phone size={16} />}
-                value={phone}
-                onChange={(e) => { setPhone(e.target.value); setError(""); }}
-                required
-              />
-
-              {/* Password method */}
-              {method === "password" && (
+              {/* Form */}
+              <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+                {/* Phone */}
                 <Input
-                  label="Mật khẩu"
-                  type={showPwd ? "text" : "password"}
-                  placeholder="Nhập mật khẩu"
-                  leftIcon={<Lock size={16} />}
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                  rightIcon={
-                    <button type="button" onClick={() => setShowPwd(!showPwd)} className="text-muted hover:text-ink transition-colors">
-                      {showPwd ? <EyeOff size={16}/> : <Eye size={16}/>}
-                    </button>
-                  }
+                  label="Số điện thoại"
+                  type="tel"
+                  placeholder="0901 234 567"
+                  leftIcon={<Phone size={16} />}
+                  value={phone}
+                  onChange={(e) => { setPhone(e.target.value); setError(""); }}
                   required
                 />
-              )}
 
-              {/* OTP method */}
-              {method === "otp" && (
-                <div className="space-y-4">
-                  {otpStep === "idle" && (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="w-full border-primary text-primary hover:bg-surface-green bg-transparent border-2"
-                      onClick={handleSendOtp}
-                    >
-                      Gửi mã OTP <ChevronRight size={16} />
-                    </Button>
-                  )}
+                {/* Password method */}
+                {method === "password" && (
+                  <Input
+                    label="Mật khẩu"
+                    type={showPwd ? "text" : "password"}
+                    placeholder="Nhập mật khẩu"
+                    leftIcon={<Lock size={16} />}
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                    rightIcon={
+                      <button type="button" onClick={() => setShowPwd(!showPwd)} className="text-muted hover:text-ink transition-colors">
+                        {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    }
+                    required
+                  />
+                )}
 
-                  {otpStep === "sent" && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-ink">Mã OTP (6 chữ số)</label>
-                        {countdown > 0 ? (
-                          <span className="text-xs text-muted font-mono">Gửi lại sau {fmt(countdown)}</span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={handleSendOtp}
-                            className="text-xs text-primary font-semibold hover:underline"
-                          >
-                            Gửi lại mã
-                          </button>
-                        )}
-                      </div>
-                      {/* 6-box OTP */}
-                      <div className="flex gap-2">
-                        {otpDigits.map((d, i) => (
-                          <input
-                            key={i}
-                            ref={(el) => { otpRefs.current[i] = el; }}
-                            type="text"
-                            inputMode="numeric"
-                            maxLength={6}
-                            value={d}
-                            onChange={(e) => handleOtpKey(i, e.target.value)}
-                            onKeyDown={(e) => handleOtpBackspace(i, e)}
-                            className={`flex-1 min-w-0 w-full h-12 text-center text-lg font-bold rounded-xl border-2 bg-white text-ink focus:outline-none transition-all duration-150 ${
-                              d
+                {/* OTP method */}
+                {method === "otp" && (
+                  <div className="space-y-4">
+                    {otpStep === "idle" && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full border-primary text-primary hover:bg-surface-green bg-transparent border-2"
+                        onClick={handleSendOtp}
+                      >
+                        Gửi mã OTP <ChevronRight size={16} />
+                      </Button>
+                    )}
+
+                    {otpStep === "sent" && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium text-ink">Mã OTP (6 chữ số)</label>
+                          {countdown > 0 ? (
+                            <span className="text-xs text-muted font-mono">Gửi lại sau {fmt(countdown)}</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleSendOtp}
+                              className="text-xs text-primary font-semibold hover:underline"
+                            >
+                              Gửi lại mã
+                            </button>
+                          )}
+                        </div>
+                        {/* 6-box OTP */}
+                        <div className="flex gap-2">
+                          {otpDigits.map((d, i) => (
+                            <input
+                              key={i}
+                              ref={(el) => { otpRefs.current[i] = el; }}
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={6}
+                              value={d}
+                              onChange={(e) => handleOtpKey(i, e.target.value)}
+                              onKeyDown={(e) => handleOtpBackspace(i, e)}
+                              className={`flex-1 min-w-0 w-full h-12 text-center text-lg font-bold rounded-xl border-2 bg-white text-ink focus:outline-none transition-all duration-150 ${d
                                 ? "border-primary bg-surface-green scale-105"
                                 : "border-hairline focus:border-primary focus:bg-surface-green focus:scale-105"
-                            }`}
-                          />
-                        ))}
+                                }`}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted text-center">
+                          💡 Demo: nhập <span className="font-mono font-semibold text-ink">123456</span>
+                        </p>
                       </div>
-                      <p className="text-xs text-muted text-center">
-                        💡 Demo: nhập <span className="font-mono font-semibold text-ink">123456</span>
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Error */}
-              {error && (
-                <div
-                  className="flex items-start gap-2 text-sm text-error bg-[#FEE2E2] px-3.5 py-3 rounded-xl"
-                  style={{ animation: "heroFadeUp 0.2s ease" }}
-                >
-                  <span className="shrink-0 mt-0.5">⚠️</span>
-                  {error}
-                </div>
-              )}
-
-              {/* Remember / Forgot */}
-              {method === "password" && (
-                <div className="flex justify-end text-sm">
-                  <Link href="/auth/forgot-password" className="text-primary hover:underline font-medium">
-                    Quên mật khẩu?
-                  </Link>
-                </div>
-              )}
-
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading || (method === "otp" && otpDigits.join("").length < 6)}
-                className="w-full h-12 mt-1 rounded-xl bg-primary hover:bg-primary-active disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] shadow-sm"
-              >
-                {loading ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : (
-                  <>Đăng nhập <ArrowRight size={16} /></>
+                    )}
+                  </div>
                 )}
-              </button>
-            </form>
 
-            {/* Register link */}
-            <p className="text-center text-sm text-muted mt-6">
-              Chưa có tài khoản?{" "}
-              <Link href="/auth/register" className="text-primary font-semibold hover:underline">
-                Đăng ký miễn phí
-              </Link>
-            </p>
+                {/* Error */}
+                {error && (
+                  <div
+                    className="flex items-start gap-2 text-sm text-error bg-[#FEE2E2] px-3.5 py-3 rounded-xl"
+                    style={{ animation: "heroFadeUp 0.2s ease" }}
+                  >
+                    <span className="shrink-0 mt-0.5">⚠️</span>
+                    {error}
+                  </div>
+                )}
 
-            {/* Security note */}
-            <div className="mt-5 flex items-center gap-2 bg-surface-green rounded-xl px-4 py-3 border border-primary-light">
-              <ShieldCheck size={16} className="text-primary shrink-0" />
-              <p className="text-xs text-muted leading-relaxed">
-                Thông tin được mã hóa SSL. AgriLink tuân thủ PDPA Việt Nam.
+                {/* Remember / Forgot */}
+                {method === "password" && (
+                  <div className="flex justify-end text-sm">
+                    <Link href="/auth/forgot-password" className="text-primary hover:underline font-medium">
+                      Quên mật khẩu?
+                    </Link>
+                  </div>
+                )}
+
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={loading || (method === "otp" && otpDigits.join("").length < 6)}
+                  className="w-full h-12 mt-1 rounded-xl bg-primary hover:bg-primary-active disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] shadow-sm"
+                >
+                  {loading ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <>Đăng nhập <ArrowRight size={16} /></>
+                  )}
+                </button>
+              </form>
+
+              {/* Register link */}
+              <p className="text-center text-sm text-muted mt-6">
+                Chưa có tài khoản?{" "}
+                <Link href="/auth/register" className="text-primary font-semibold hover:underline">
+                  Đăng ký miễn phí
+                </Link>
               </p>
-            </div>
 
-            {/* Demo accounts */}
-            <div className="mt-4 p-4 bg-[#FFFBEB] rounded-2xl border border-[#FDE68A]">
-                  <p className="text-xs text-muted mb-4 font-medium text-center">Tài khoản demo · mật khẩu: <span className="font-mono text-ink">demo123</span> · OTP: <span className="font-mono text-ink">123456</span></p>
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                {DEMO_ACCOUNTS.map((acc) => {
-                  const IconComponent = acc.icon;
-                  return (
-                    <button
-                      key={acc.role}
-                      type="button"
-                      onClick={() => fillDemo(acc.phone)}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-white border border-amber-200 hover:border-amber-400 hover:bg-amber-50 text-left transition-colors group"
-                    >
-                      <div className="w-8 h-8 rounded-md bg-amber-100 flex items-center justify-center text-amber-700 group-hover:scale-110 transition-transform">
-                        <IconComponent size={16} />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-ink">{acc.role}</div>
-                        <div className="text-[10px] text-muted-soft">{acc.phone}</div>
-                      </div>
-                    </button>
-                  );
-                })}
+              {/* Security note */}
+              <div className="mt-5 flex items-center gap-2 bg-surface-green rounded-xl px-4 py-3 border border-primary-light">
+                <ShieldCheck size={16} className="text-primary shrink-0" />
+                <p className="text-xs text-muted leading-relaxed">
+                  Thông tin được mã hóa SSL. AgriLink tuân thủ PDPA Việt Nam.
+                </p>
+              </div>
+
+              {/* Demo accounts */}
+              <div className="mt-4 p-4 bg-[#FFFBEB] rounded-2xl border border-[#FDE68A]">
+                <p className="text-xs text-muted mb-4 font-medium text-center">Tài khoản demo · mật khẩu: <span className="font-mono text-ink">demo123</span> · OTP: <span className="font-mono text-ink">123456</span></p>
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  {DEMO_ACCOUNTS.map((acc) => {
+                    const IconComponent = acc.icon;
+                    return (
+                      <button
+                        key={acc.role}
+                        type="button"
+                        onClick={() => fillDemo(acc.phone)}
+                        className="flex items-center gap-2 p-2 rounded-lg bg-white border border-amber-200 hover:border-amber-400 hover:bg-amber-50 text-left transition-colors group"
+                      >
+                        <div className="w-8 h-8 rounded-md bg-amber-100 flex items-center justify-center text-amber-700 group-hover:scale-110 transition-transform">
+                          <IconComponent size={16} />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-ink">{acc.role}</div>
+                          <div className="text-[10px] text-muted-soft">{acc.phone}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
           )}
         </div>
       </div>
