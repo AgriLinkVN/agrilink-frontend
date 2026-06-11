@@ -39,7 +39,7 @@ export function ProductionReportView() {
 
   const downloadCsv = async () => {
     if (!accessToken) return;
-    const backend = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:3001';
+    const backend = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:5000';
     const url = `${backend}/api/v1/cooperatives/me/reports/production.csv?from=${from}&to=${to}`;
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },

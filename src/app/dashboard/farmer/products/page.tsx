@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import {
   MOCK_PRODUCTS,
-  FARMING_TYPE_LABELS,
   PRODUCT_STATUS_LABELS,
   UNIT_LABELS,
   getPrimaryImage,

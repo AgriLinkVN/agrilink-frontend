@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             : { target: normalizedPhone, code: credential, purpose: "login" };
 
         const backend =
-          process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+          process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
 
         const res = await fetch(`${backend}/api/v1${endpoint}`, {
           method: "POST",
