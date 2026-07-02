@@ -117,7 +117,7 @@ export async function apiGet<T>(
  */
 export async function uploadToCloudinary(
   file: File,
-  folder: 'ads' | 'reviews' | 'products' | 'profiles' | 'misc' = 'misc',
+  folder: 'ads' | 'reviews' | 'products' | 'certifications' | 'profiles' | 'misc' = 'misc',
 ): Promise<string> {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;

@@ -11,8 +11,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { FARMING_TYPE_LABELS, UNIT_LABELS } from "@/lib/products-api";
-import type { ProductFormData } from "../page";
+import { UNIT_LABELS } from "@/lib/products-api";
+import type { ProductFormData } from "../types";
 import type { FarmingType } from "@/types";
 
 interface SuccessScreenProps {
