@@ -19,7 +19,9 @@ interface Props {
 }
 
 export function CertificationBadges({ certifications }: Props) {
-  const verified = certifications.filter((c) => c.isVerified);
+  const verified = certifications.filter(
+    (c) => c.isVerified || c.status === "verified",
+  );
   if (verified.length === 0) return null;
 
   return (

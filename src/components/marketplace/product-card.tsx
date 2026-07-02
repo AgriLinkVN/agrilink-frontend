@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, Phone, Eye, Package, ShoppingCart, Award, Leaf, Calendar } from "lucide-react";
-import { FarmingBadge, Badge } from "@/components/ui/badge";
+import { MapPin, Phone, Eye, Package, ShoppingCart, Award, Calendar } from "lucide-react";
+import { FarmingBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   getPrimaryImage,
@@ -11,6 +11,7 @@ import {
   UNIT_LABELS,
   SELLER_TYPE_LABELS,
   CERT_TYPE_LABELS,
+  getVerifiedCertifications,
   type Product,
 } from "@/lib/products-api";
 
@@ -41,7 +42,7 @@ export function ProductGridCard({ product }: { product: Product }) {
   const province = getProductProvince(product);
   const unitLabel = UNIT_LABELS[product.unit] ?? product.unit;
   const pct = stockPercent(product);
-  const primaryCert = product.certifications?.[0];
+  const primaryCert = getVerifiedCertifications(product.certifications)[0];
   const harvestFmt = formatDate(product.harvestDate);
   const sellerLabel = SELLER_TYPE_LABELS[product.sellerType] ?? product.sellerType;
 
@@ -166,7 +167,7 @@ export function ProductListCard({ product }: { product: Product }) {
   const province = getProductProvince(product);
   const unitLabel = UNIT_LABELS[product.unit] ?? product.unit;
   const pct = stockPercent(product);
-  const primaryCert = product.certifications?.[0];
+  const primaryCert = getVerifiedCertifications(product.certifications)[0];
   const harvestFmt = formatDate(product.harvestDate);
   const sellerLabel = SELLER_TYPE_LABELS[product.sellerType] ?? product.sellerType;
 
