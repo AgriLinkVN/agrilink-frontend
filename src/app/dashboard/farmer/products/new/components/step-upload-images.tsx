@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import type { ProductFormData, ImageFile } from "../page";
+import type { ProductFormData, ImageFile } from "../types";
 
 interface StepUploadImagesProps {
   data: ProductFormData;

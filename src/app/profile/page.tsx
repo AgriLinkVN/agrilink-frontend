@@ -28,6 +28,7 @@ export default function ProfilePage() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const { user } = useAuth();
   const userName = (user as any)?.fullName || (user as any)?.full_name || user?.phone || "Người dùng";
+  const avatarUrl = user?.avatar_url;
   const userRoleLabel = user ? ROLE_LABELS[user.role] : "Khách";
   const isCooperative = user?.role === 'cooperative';
   const isEnterprise = user?.role === 'enterprise';
@@ -109,8 +110,8 @@ export default function ProfilePage() {
             <div className="flex items-end gap-4 -mt-[38px] mb-4">
               <div className="relative group">
                 <div className="w-24 h-24 rounded-2xl border-4 border-white bg-primary-light flex items-center justify-center text-white text-3xl font-bold card-shadow overflow-hidden">
-                  {user?.avatarUrl ? (
-                    <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
                     userName.charAt(0).toUpperCase()
                   )}

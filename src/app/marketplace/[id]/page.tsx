@@ -15,6 +15,7 @@ import {
   fetchProducts,
   getPrimaryImage,
   getProductProvince,
+  getVerifiedCertifications,
   type Product,
 } from "@/lib/products-api";
 import { notFound } from "next/navigation";
@@ -65,6 +66,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
   const SellerIcon = SELLER_TYPE_LABEL[product.sellerType]?.icon ?? User;
   const sellerLabel = SELLER_TYPE_LABEL[product.sellerType]?.label ?? "Người bán";
   const qrCode = `QR-${product.id.slice(0, 8).toUpperCase()}`;
+  const verifiedCertifications = getVerifiedCertifications(product.certifications);
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -185,11 +187,11 @@ export default async function ProductDetailPage({ params }: PageProps) {
             </div>
 
             {/* Certifications */}
-            {product.certifications && product.certifications.length > 0 && (
+            {verifiedCertifications.length > 0 && (
               <div className="border-t border-hairline pt-6">
                 <h2 className="text-lg font-semibold text-ink mb-4">Chứng nhận chất lượng</h2>
                 <div className="flex flex-col gap-3">
-                  {product.certifications.map((cert) => (
+                  {verifiedCertifications.map((cert) => (
                     <div key={cert.id} className="bg-white rounded-xl border border-hairline p-4 card-shadow flex items-start gap-4">
                       <div className="w-10 h-10 rounded-lg bg-surface-green flex items-center justify-center shrink-0">
                         <Award size={20} className="text-primary" />
@@ -327,7 +329,9 @@ export default async function ProductDetailPage({ params }: PageProps) {
               <div className="flex flex-col gap-2 border-t border-hairline pt-4">
                 {[
                   { icon: ShieldCheck, text: "Người bán đã được xác thực danh tính" },
-                  { icon: Award, text: "Sản phẩm có chứng nhận chất lượng" },
+                  ...(verifiedCertifications.length > 0
+                    ? [{ icon: Award, text: "Sản phẩm có chứng nhận chất lượng" }]
+                    : []),
                   { icon: Truck, text: "Hỗ trợ giao hàng toàn quốc" },
                 ].map(({ icon: Icon, text }) => (
                   <div key={text} className="flex items-start gap-2 text-xs text-muted">

@@ -78,7 +78,7 @@ export default function NewProductPage() {
             if (cert.documentFile) {
               documentUrl = await uploadToCloudinary(
                 cert.documentFile,
-                "products"
+                "certifications"
               );
             }
             return {

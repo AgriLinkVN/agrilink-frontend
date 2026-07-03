@@ -13,7 +13,7 @@ import {
   FALLBACK_CATEGORIES,
 } from "@/lib/products-api";
 import { vietnamProvinces } from "@/lib/vietnam-provinces";
-import type { ProductFormData } from "../page";
+import type { ProductFormData } from "../types";
 
 interface StepBasicInfoProps {
   data: ProductFormData;

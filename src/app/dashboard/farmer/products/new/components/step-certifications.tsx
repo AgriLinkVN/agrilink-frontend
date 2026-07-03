@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CERT_TYPE_LABELS } from "@/lib/products-api";
-import type { ProductFormData, CertificationEntry } from "../page";
+import type { ProductFormData, CertificationEntry } from "../types";
 
 interface StepCertificationsProps {
   data: ProductFormData;

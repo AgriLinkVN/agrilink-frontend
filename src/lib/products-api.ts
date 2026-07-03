@@ -18,6 +18,10 @@ export interface ProductCertification {
   issuedDate: string | null;
   expiryDate: string | null;
   documentUrl: string | null;
+  isVerified: boolean;
+  status?: "pending" | "verified" | "rejected";
+  verifiedAt?: string | null;
+  rejectionReason?: string | null;
 }
 
 export interface ProductCategory {
@@ -196,6 +200,20 @@ export const CERT_TYPE_LABELS: Record<string, string> = {
   other:    "Khác",
 };
 
+export const CERT_STATUS_LABELS: Record<string, string> = {
+  pending: "Chờ duyệt",
+  verified: "Đã xác thực",
+  rejected: "Bị từ chối",
+};
+
+export function getVerifiedCertifications<T extends { isVerified?: boolean; status?: string }>(
+  certifications: T[] | undefined,
+): T[] {
+  return (certifications ?? []).filter(
+    (cert) => cert.isVerified || cert.status === "verified",
+  );
+}
+
 // ── Province extraction ────────────────────────────────────────
 // Extract tỉnh/thành từ tên sản phẩm (seed data không có provinceId)
 const PROVINCE_KEYWORDS: [string, string][] = [
@@ -337,6 +355,10 @@ export interface ProductDetailCertification {
   expiryDate: string | null;
   documentUrl: string | null;
   isVerified: boolean;
+  status: "pending" | "verified" | "rejected";
+  verifiedBy: string | null;
+  verifiedAt: string | null;
+  rejectionReason: string | null;
 }
 
 export interface ProductDetailSeller {
@@ -425,6 +447,10 @@ function adaptLegacyToDetail(p: Product): ProductDetail {
       certNumber: c.certNumber, issuedBy: c.issuedBy,
       issuedDate: c.issuedDate, expiryDate: c.expiryDate,
       documentUrl: c.documentUrl, isVerified: true,
+      status: "verified",
+      verifiedBy: null,
+      verifiedAt: null,
+      rejectionReason: null,
     })),
     seller: null,
   };

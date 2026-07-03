@@ -112,12 +112,12 @@ export async function apiGet<T>(
 // ── Cloudinary direct upload (unsigned preset) ────────────────────────────────
 
 /**
- * Upload a file to Cloudinary. Pass a `folder` to organize uploads
- * (defaults to "misc" so we don't pollute the ads folder with review images).
+ * Upload a file to Cloudinary. Pass a `folder` to organize uploads.
+ * Uses auto resource type so certification PDFs are accepted alongside images.
  */
 export async function uploadToCloudinary(
   file: File,
-  folder: 'ads' | 'reviews' | 'products' | 'profiles' | 'misc' = 'misc',
+  folder: 'ads' | 'reviews' | 'products' | 'certifications' | 'profiles' | 'misc' = 'misc',
 ): Promise<string> {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
@@ -134,7 +134,7 @@ export async function uploadToCloudinary(
   form.append('folder', `agrilink/${folder}`);
 
   const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+    `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
     { method: 'POST', body: form },
   );
 
