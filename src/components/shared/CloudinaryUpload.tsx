@@ -3,12 +3,13 @@
 import React, { useState } from 'react';
 import { UploadCloud, X, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { uploadImageToStorage, type StorageImageType } from '@/lib/api';
 
 interface CloudinaryUploadProps {
   label: string;
   value?: string;
   onChange: (url: string) => void;
-  type?: string; // e.g. 'avatar_farmer', 'cccd', 'product'
+  type?: StorageImageType;
 }
 
 export function CloudinaryUpload({ label, value, onChange, type = 'product' }: CloudinaryUploadProps) {
@@ -20,31 +21,10 @@ export function CloudinaryUpload({ label, value, onChange, type = 'product' }: C
 
     setIsUploading(true);
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('type', type);
-
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || `http://${window.location.hostname}:3001`;
       const token = useAuthStore.getState().accessToken;
-      
-      const response = await fetch(`${backendUrl}/api/v1/storage/images/upload`, {
-        method: 'POST',
-        headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: formData,
-      });
-
-      const json = await response.json();
-      const secureUrl = json.data?.secure_url || json.secure_url;
-      
-      if (response.ok && secureUrl) {
-        onChange(secureUrl);
-      } else {
-        console.error('Upload error:', json);
-        alert('Upload ảnh thất bại: ' + (json.message || 'Lỗi không xác định'));
-      }
+      const secureUrl = await uploadImageToStorage(file, type, token);
+      onChange(secureUrl);
     } catch (error) {
       console.error('Lỗi khi upload:', error);
       alert('Tải ảnh lên thất bại do lỗi mạng. Vui lòng thử lại.');

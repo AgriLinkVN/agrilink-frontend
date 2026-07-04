@@ -111,11 +111,14 @@ export async function apiGet<T>(
 
 // ── Storage uploads via backend ───────────────────────────────────────────────
 
-type StorageImageType =
+export type StorageImageType =
   | 'product'
   | 'ads'
   | 'reviews'
   | 'profile'
+  | 'cccd'
+  | 'business_license'
+  | 'document'
   | 'avatar'
   | `avatar_${string}`;
 
