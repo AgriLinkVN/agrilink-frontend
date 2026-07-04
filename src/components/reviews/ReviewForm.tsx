@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Star, ImagePlus, X, Loader2, LogIn } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { api, uploadToCloudinary } from '@/lib/api';
+import { api, uploadImageToStorage } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/authStore';
 import { type CreateReviewPayload } from '@/types/review';
@@ -68,7 +68,9 @@ export function ReviewForm({ productId, sellerId }: Props) {
 
     setUploading(true);
     try {
-      const urls = await Promise.all(toUpload.map((f) => uploadToCloudinary(f, 'reviews')));
+      const urls = await Promise.all(
+        toUpload.map((file) => uploadImageToStorage(file, 'reviews', accessToken)),
+      );
       setImages((prev) => [...prev, ...urls]);
     } catch {
       setUploadError('Upload ảnh thất bại. Vui lòng thử lại.');

@@ -8,7 +8,7 @@ import {
   X, Globe, MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { api, uploadToCloudinary } from '@/lib/api';
+import { api, uploadImageToStorage } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
@@ -314,7 +314,7 @@ function Step2({
 
     setUploading(true);
     try {
-      const url = await uploadToCloudinary(file);
+      const url = await uploadImageToStorage(file, 'ads');
       setImageUrl(url);
     } catch {
       setUploadError('Upload thất bại. Vui lòng thử lại.');
