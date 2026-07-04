@@ -109,36 +109,95 @@ export async function apiGet<T>(
   return json.data;
 }
 
-// ── Cloudinary direct upload (unsigned preset) ────────────────────────────────
+// ── Storage uploads via backend ───────────────────────────────────────────────
 
-/**
- * Upload a file to Cloudinary. Pass a `folder` to organize uploads.
- * Uses auto resource type so certification PDFs are accepted alongside images.
- */
-export async function uploadToCloudinary(
-  file: File,
-  folder: 'ads' | 'reviews' | 'products' | 'certifications' | 'profiles' | 'misc' = 'misc',
-): Promise<string> {
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+type StorageImageType =
+  | 'product'
+  | 'ads'
+  | 'reviews'
+  | 'profile'
+  | 'avatar'
+  | `avatar_${string}`;
 
-  if (!cloudName || !preset) {
-    throw new Error(
-      'Missing NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME or NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET',
-    );
+interface StorageImageUploadResult {
+  secure_url: string;
+}
+
+interface StorageDocumentUploadResult {
+  path: string;
+  fullPath: string;
+}
+
+interface StorageDownloadUrlResult {
+  path: string;
+  signedUrl: string;
+  expiresIn: number;
+}
+
+async function uploadForm<T>(
+  path: string,
+  form: FormData,
+  token?: string | null,
+): Promise<T> {
+  const headers: HeadersInit = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers,
+    body: form,
+  });
+
+  const json = (await res.json().catch(() => ({}))) as { data?: T } & Record<string, unknown>;
+
+  if (!res.ok) {
+    throw new ApiError(res.status, json);
   }
 
+  return (json.data ?? json) as T;
+}
+
+export async function uploadImageToStorage(
+  file: File,
+  type: StorageImageType = 'product',
+  token?: string | null,
+): Promise<string> {
   const form = new FormData();
   form.append('file', file);
-  form.append('upload_preset', preset);
-  form.append('folder', `agrilink/${folder}`);
+  form.append('type', type);
 
-  const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
-    { method: 'POST', body: form },
+  const data = await uploadForm<StorageImageUploadResult>(
+    '/storage/images/upload',
+    form,
+    token,
   );
 
-  if (!res.ok) throw new Error('Cloudinary upload failed');
-  const data = (await res.json()) as { secure_url: string };
   return data.secure_url;
+}
+
+export async function uploadDocumentToStorage(
+  file: File,
+  path: string,
+  token?: string | null,
+): Promise<StorageDocumentUploadResult> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('path', path);
+
+  return uploadForm<StorageDocumentUploadResult>(
+    '/storage/files/upload',
+    form,
+    token,
+  );
+}
+
+export async function getDocumentDownloadUrl(
+  path: string,
+  token?: string | null,
+): Promise<StorageDownloadUrlResult> {
+  return api.get<StorageDownloadUrlResult>(
+    `/storage/files/download-url?path=${encodeURIComponent(path)}`,
+    token,
+  );
 }
