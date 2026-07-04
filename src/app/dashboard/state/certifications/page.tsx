@@ -6,7 +6,7 @@ import { Award, Check, ExternalLink, FileText, RefreshCcw, X } from "lucide-reac
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { api } from "@/lib/api";
+import { api, getDocumentDownloadUrl } from "@/lib/api";
 import { CERT_TYPE_LABELS } from "@/lib/products-api";
 import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
@@ -53,6 +53,7 @@ export default function StateCertificationsPage() {
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [documentActionId, setDocumentActionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadCertifications = async () => {
@@ -113,6 +114,26 @@ export default function StateCertificationsPage() {
       setError(err instanceof Error ? err.message : "Không cập nhật được chứng nhận");
     } finally {
       setActionId(null);
+    }
+  };
+
+  const openCertificationDocument = async (cert: PendingCertification) => {
+    if (!cert.documentUrl) return;
+
+    setDocumentActionId(cert.id);
+    setError(null);
+    try {
+      if (/^https?:\/\//i.test(cert.documentUrl)) {
+        window.open(cert.documentUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      const data = await getDocumentDownloadUrl(cert.documentUrl, accessToken);
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không mở được giấy chứng nhận");
+    } finally {
+      setDocumentActionId(null);
     }
   };
 
@@ -189,10 +210,13 @@ export default function StateCertificationsPage() {
 
                       <div className="flex flex-wrap gap-2 mt-3">
                         {cert.documentUrl && (
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href={cert.documentUrl} target="_blank" rel="noreferrer">
-                              <FileText size={14} /> Xem giấy chứng nhận <ExternalLink size={12} />
-                            </Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            loading={documentActionId === cert.id}
+                            onClick={() => openCertificationDocument(cert)}
+                          >
+                            <FileText size={14} /> Xem giấy chứng nhận <ExternalLink size={12} />
                           </Button>
                         )}
                         {cert.product?.id && (

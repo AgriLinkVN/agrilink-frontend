@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
-import { api, uploadToCloudinary } from "@/lib/api";
+import { api, uploadDocumentToStorage, uploadImageToStorage } from "@/lib/api";
 
 import { StepBasicInfo } from "./components/step-basic-info";
 import { StepUploadImages } from "./components/step-upload-images";
@@ -25,6 +25,16 @@ const STEPS = [
   { id: 3, label: "Chứng nhận", icon: Award },
   { id: 4, label: "Xem trước", icon: Eye },
 ];
+
+function buildCertificationPath(certType: string, file: File) {
+  const safeType = (certType || "other")
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const extension = file.name.split(".").pop()?.toLowerCase() || "bin";
+
+  return `certifications/${safeType}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+}
 
 export default function NewProductPage() {
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -61,7 +71,7 @@ export default function NewProductPage() {
     try {
       const uploadedImages = await Promise.all(
         formData.images.map(async (img, index) => {
-          const url = await uploadToCloudinary(img.file, "products");
+          const url = await uploadImageToStorage(img.file, "product", accessToken);
           return {
             imageUrl: url,
             isPrimary: img.isPrimary,
@@ -76,10 +86,12 @@ export default function NewProductPage() {
           .map(async (cert) => {
             let documentUrl: string | null = null;
             if (cert.documentFile) {
-              documentUrl = await uploadToCloudinary(
+              const storedDocument = await uploadDocumentToStorage(
                 cert.documentFile,
-                "certifications"
+                buildCertificationPath(cert.certType, cert.documentFile),
+                accessToken,
               );
+              documentUrl = storedDocument.path;
             }
             return {
               certType: cert.certType,
