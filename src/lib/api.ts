@@ -204,3 +204,23 @@ export async function getDocumentDownloadUrl(
     token,
   );
 }
+
+// ── Cloudinary upload (forum editor, etc.) ──────────────────────────────────────
+
+export async function uploadToCloudinary(
+  file: File,
+  folder: 'ads' | 'reviews' | 'products' | 'profiles' | 'forum' | 'misc' = 'misc',
+): Promise<string> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET ?? '');
+  form.append('folder', folder);
+
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? '';
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+    { method: 'POST', body: form },
+  );
+  const data = await res.json();
+  return data.secure_url;
+}
