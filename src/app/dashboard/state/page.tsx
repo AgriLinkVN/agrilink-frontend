@@ -1,106 +1,246 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { StatCard } from "@/components/ui/stat-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { ShieldCheck, Users, AlertTriangle, Award, Check, X, Eye } from "lucide-react";
+import {
+  ShieldCheck, Users, AlertTriangle, Award, Check, X, Eye,
+  Loader2, Clock, FileText, Building2, Tractor, ChevronRight, Download,
+} from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
 
-const STATS = [
-  { title: "Chờ duyệt HTX/DN", value: "12", subtitle: "Cần xử lý trong 48h", icon: ShieldCheck, variant: "green" as const },
-  { title: "Người dùng hoạt động", value: "2,340", subtitle: "Trên toàn hệ thống", icon: Users, variant: "default" as const },
-  { title: "Tranh chấp chờ xử lý", value: "5", subtitle: "2 khẩn cấp", icon: AlertTriangle, variant: "harvest" as const },
-  { title: "Chứng nhận cấp tháng này", value: "38", subtitle: "VietGAP, OCOP, Hữu cơ", icon: Award, variant: "accent" as const },
-];
+const API = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+const getToken = () => useAuthStore.getState().accessToken;
 
-const APPROVAL_QUEUE = [
-  { id: "HTX-001", name: "HTX Xoài Cát Cái Bè", type: "cooperative", province: "Tiền Giang", submitted: "20/06/2025", docs: 5 },
-  { id: "DN-002", name: "Cty TNHH Rau Sạch Xanh", type: "enterprise", province: "Hà Nội", submitted: "19/06/2025", docs: 7 },
-  { id: "HTX-003", name: "HTX Gạo Hữu Cơ Trà Vinh", type: "cooperative", province: "Trà Vinh", submitted: "18/06/2025", docs: 6 },
-  { id: "DN-004", name: "Cty CP Chế Biến Đông Lạnh", type: "enterprise", province: "Cần Thơ", submitted: "17/06/2025", docs: 8 },
-];
+function apiFetch(path: string) {
+  const token = getToken();
+  return fetch(`${API}/api/v1${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  }).then((r) => r.json());
+}
 
-const DISPUTES = [
-  { id: "TC-001", product: "Xoài cát Hòa Lộc", buyer: "Cty Rau Sạch HN", seller: "HTX TG", issue: "Hàng không đúng chất lượng", priority: "high", submitted: "21/06/2025" },
-  { id: "TC-002", product: "Gạo ST25", buyer: "Hộ bà Lan", seller: "Hộ ông Cua", issue: "Giao hàng trễ hẹn", priority: "medium", submitted: "20/06/2025" },
-];
+const TYPE_LABEL: Record<string, string> = {
+  farmer: "Nông dân", cooperative: "HTX", enterprise: "Doanh nghiệp", supplier: "Nhà cung cấp",
+};
+const TYPE_ICON: Record<string, string> = {
+  farmer: "🌾", cooperative: "🏡", enterprise: "🏭", supplier: "📦",
+};
 
 export default function StateAgencyDashboardPage() {
+  const user = useAuthStore((s) => s.user);
+  const [stats, setStats] = useState<any>(null);
+  const [pendingProfiles, setPendingProfiles] = useState<any[]>([]);
+  const [disputes, setDisputes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExportPdf() {
+    setExporting(true);
+    try {
+      const token = getToken();
+      const res = await fetch(`${API}/api/v1/admin/reports/system.pdf`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `agrilink-system-report-${Date.now()}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  useEffect(() => {
+    Promise.all([
+      apiFetch("/admin/stats"),
+      apiFetch("/admin/pending-profiles"),
+      apiFetch("/admin/disputes?status=open&limit=5"),
+    ]).then(([statsRes, profilesRes, disputesRes]) => {
+      setStats(statsRes.data ?? statsRes);
+      const raw = profilesRes.data ?? profilesRes;
+      const flat: any[] = [
+        ...(raw.cooperative ?? []).map((p: any) => ({ ...p, _type: "cooperative" })),
+        ...(raw.enterprise ?? []).map((p: any) => ({ ...p, _type: "enterprise" })),
+        ...(raw.farmer ?? []).map((p: any) => ({ ...p, _type: "farmer" })),
+        ...(raw.supplier ?? []).map((p: any) => ({ ...p, _type: "supplier" })),
+      ];
+      setPendingProfiles(flat.slice(0, 5));
+      const dr = disputesRes.data ?? disputesRes;
+      setDisputes(Array.isArray(dr) ? dr.slice(0, 5) : (dr.data ?? []).slice(0, 5));
+    }).finally(() => setLoading(false));
+  }, []);
+
+  const statCards = stats ? [
+    {
+      title: "Chờ duyệt hồ sơ",
+      value: String(stats.pendingProfiles?.total ?? "—"),
+      subtitle: "HTX, DN, Nông dân, NCC",
+      icon: ShieldCheck,
+      variant: "green" as const,
+    },
+    {
+      title: "Người dùng hoạt động",
+      value: String(stats.activeUsers ?? "—"),
+      subtitle: `Tổng: ${stats.totalUsers ?? "—"} tài khoản`,
+      icon: Users,
+      variant: "default" as const,
+    },
+    {
+      title: "Tranh chấp đang mở",
+      value: String(stats.openDisputes ?? "—"),
+      subtitle: "Cần xử lý",
+      icon: AlertTriangle,
+      variant: "harvest" as const,
+    },
+    {
+      title: "Chứng nhận tháng này",
+      value: String(stats.certificationsThisMonth ?? "—"),
+      subtitle: "VietGAP, OCOP, Hữu cơ",
+      icon: Award,
+      variant: "accent" as const,
+    },
+  ] : [];
+
   return (
     <DashboardLayout
       role="state_agency"
-      userName="Sở NN&PTNT Tiền Giang"
+      userName={(user as any)?.fullName ?? "Cơ quan nhà nước"}
       pageTitle="Quản lý & Giám sát"
-      pageDescription="Dashboard cơ quan nhà nước — duyệt hồ sơ, cấp chứng nhận, xử lý tranh chấp"
+      pageDescription="Dashboard cơ quan nhà nước — duyệt hồ sơ, xử lý tranh chấp, giám sát hệ thống"
+      actions={
+        <Button size="sm" variant="secondary" onClick={handleExportPdf} disabled={exporting}>
+          {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Xuất báo cáo PDF
+        </Button>
+      }
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-        {STATS.map((stat) => <StatCard key={stat.title} {...stat} />)}
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Approval queue */}
-        <div className="bg-white rounded-xl border border-hairline card-shadow">
-          <div className="flex items-center justify-between p-5 border-b border-hairline">
-            <h2 className="font-semibold text-ink">Hàng chờ duyệt HTX / Doanh nghiệp</h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/dashboard/state/approvals">Xem tất cả</Link>
-            </Button>
-          </div>
-          <div className="divide-y divide-hairline-soft">
-            {APPROVAL_QUEUE.map((item) => (
-              <div key={item.id} className="flex items-center gap-3 p-4">
-                <div className="w-10 h-10 rounded-xl bg-surface-green flex items-center justify-center text-xl shrink-0">
-                  {item.type === "cooperative" ? "🏡" : "🏭"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-ink truncate">{item.name}</p>
-                  <p className="text-xs text-muted">{item.province} · {item.docs} tài liệu · {item.submitted}</p>
-                </div>
-                <div className="flex gap-1.5 shrink-0">
-                  <button className="w-8 h-8 rounded-lg border border-hairline flex items-center justify-center text-muted hover:border-primary hover:text-primary transition-colors">
-                    <Eye size={14} />
-                  </button>
-                  <button className="w-8 h-8 rounded-lg bg-surface-green flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
-                    <Check size={14} />
-                  </button>
-                  <button className="w-8 h-8 rounded-lg bg-[#FEE2E2] flex items-center justify-center text-error hover:bg-error hover:text-white transition-colors">
-                    <X size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+      {loading ? (
+        <div className="flex items-center justify-center h-48">
+          <Loader2 size={28} className="animate-spin text-primary" />
         </div>
+      ) : (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+            {statCards.map((s) => <StatCard key={s.title} {...s} />)}
+          </div>
 
-        {/* Disputes */}
-        <div className="bg-white rounded-xl border border-hairline card-shadow">
-          <div className="flex items-center justify-between p-5 border-b border-hairline">
-            <h2 className="font-semibold text-ink flex items-center gap-2">
-              <AlertTriangle size={18} className="text-warning" /> Tranh chấp cần xử lý
-            </h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/dashboard/state/disputes">Xem tất cả</Link>
-            </Button>
-          </div>
-          <div className="divide-y divide-hairline-soft">
-            {DISPUTES.map((d) => (
-              <div key={d.id} className="p-4 hover:bg-surface-soft transition-colors">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-semibold text-ink">{d.product}</p>
-                  <Badge variant={d.priority === "high" ? "harvest" : "traditional"}>
-                    {d.priority === "high" ? "⚠ Khẩn cấp" : "Bình thường"}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted mb-1">Người mua: {d.buyer} · Người bán: {d.seller}</p>
-                <p className="text-xs text-ink font-medium">{d.issue}</p>
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-xs text-muted">{d.submitted}</span>
-                  <Button size="sm" variant="secondary" className="text-xs h-7 px-3">Xử lý</Button>
-                </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Pending profiles */}
+            <div className="bg-white rounded-xl border border-hairline card-shadow">
+              <div className="flex items-center justify-between p-5 border-b border-hairline">
+                <h2 className="font-semibold text-ink flex items-center gap-2">
+                  <FileText size={16} className="text-primary" /> Hàng chờ duyệt hồ sơ
+                </h2>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/dashboard/state/approvals">Xem tất cả <ChevronRight size={14} /></Link>
+                </Button>
               </div>
-            ))}
+              {pendingProfiles.length === 0 ? (
+                <div className="p-8 text-center text-muted text-sm">Không có hồ sơ chờ duyệt</div>
+              ) : (
+                <div className="divide-y divide-hairline">
+                  {pendingProfiles.map((item) => (
+                    <div key={item.id} className="flex items-center gap-3 p-4 hover:bg-surface-soft transition-colors">
+                      <div className="w-10 h-10 rounded-xl bg-surface-green flex items-center justify-center text-xl shrink-0">
+                        {TYPE_ICON[item._type] ?? "📄"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-ink truncate">
+                          {item.cooperativeName ?? item.companyName ?? item.user?.fullName ?? item.id}
+                        </p>
+                        <p className="text-xs text-muted">
+                          {TYPE_LABEL[item._type]} · {item.user?.phone ?? "—"} · {new Date(item.createdAt).toLocaleDateString("vi-VN")}
+                        </p>
+                      </div>
+                      <div className="flex gap-1.5 shrink-0">
+                        <Link href={`/dashboard/state/approvals?highlight=${item.id}`}
+                          className="w-8 h-8 rounded-lg border border-hairline flex items-center justify-center text-muted hover:border-primary hover:text-primary transition-colors">
+                          <Eye size={14} />
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Disputes */}
+            <div className="bg-white rounded-xl border border-hairline card-shadow">
+              <div className="flex items-center justify-between p-5 border-b border-hairline">
+                <h2 className="font-semibold text-ink flex items-center gap-2">
+                  <AlertTriangle size={16} className="text-warning" /> Tranh chấp cần xử lý
+                </h2>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/dashboard/state/disputes">Xem tất cả <ChevronRight size={14} /></Link>
+                </Button>
+              </div>
+              {disputes.length === 0 ? (
+                <div className="p-8 text-center text-muted text-sm">Không có tranh chấp đang mở</div>
+              ) : (
+                <div className="divide-y divide-hairline">
+                  {disputes.map((d) => (
+                    <div key={d.id} className="p-4 hover:bg-surface-soft transition-colors">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-mono text-muted">{d.id.slice(0, 8)}…</span>
+                        <Badge variant="harvest">Đang mở</Badge>
+                      </div>
+                      <p className="text-sm font-semibold text-ink mb-0.5 line-clamp-1">{d.description ?? "—"}</p>
+                      <p className="text-xs text-muted mb-3">{d.incidentType ?? "—"} · {new Date(d.createdAt).toLocaleDateString("vi-VN")}</p>
+                      <Link href={`/dashboard/state/disputes?id=${d.id}`}>
+                        <Button size="sm" variant="secondary" className="text-xs h-7 px-3">Xử lý</Button>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
+
+          {/* Oversight quick links */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+            <Link href="/dashboard/state/cooperatives"
+              className="bg-white rounded-xl border border-hairline card-shadow p-5 flex items-center gap-3 hover:border-primary transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-surface-green flex items-center justify-center shrink-0">
+                <Building2 size={18} className="text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-ink">Danh sách HTX & Doanh nghiệp</p>
+                <p className="text-xs text-muted">Toàn bộ HTX/DN đã đăng ký</p>
+              </div>
+              <ChevronRight size={16} className="text-muted shrink-0" />
+            </Link>
+            <Link href="/dashboard/state/violations"
+              className="bg-white rounded-xl border border-hairline card-shadow p-5 flex items-center gap-3 hover:border-primary transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-surface-green flex items-center justify-center shrink-0">
+                <AlertTriangle size={18} className="text-warning" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-ink">Sản phẩm vi phạm</p>
+                <p className="text-xs text-muted">Sản phẩm bị khóa/từ chối</p>
+              </div>
+              <ChevronRight size={16} className="text-muted shrink-0" />
+            </Link>
+            <Link href="/dashboard/state/audit-logs"
+              className="bg-white rounded-xl border border-hairline card-shadow p-5 flex items-center gap-3 hover:border-primary transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-surface-green flex items-center justify-center shrink-0">
+                <FileText size={18} className="text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-ink">Audit log</p>
+                <p className="text-xs text-muted">Lịch sử thao tác quản trị</p>
+              </div>
+              <ChevronRight size={16} className="text-muted shrink-0" />
+            </Link>
+          </div>
+        </>
+      )}
     </DashboardLayout>
   );
 }
