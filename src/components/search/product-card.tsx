@@ -1,18 +1,47 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Heart, MapPin } from "lucide-react";
 import { FarmingBadge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
-import type { ApiProduct, ApiProvince } from "@/types/search";
+import type { ApiProduct } from "@/types/search";
+import { useAuthStore } from "@/store/authStore";
 
 interface Props {
   product: ApiProduct;
   provinceName?: string;
 }
 
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+const BASE = `${BACKEND}/api/v1`;
+
 export function ProductCard({ product, provinceName }: Props) {
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const [wishlisted, setWishlisted] = useState(false);
+  const [pending, startTransition] = useTransition();
   const primary = product.images?.find((i) => i.isPrimary) ?? product.images?.[0];
+
+  const toggleWishlist = () => {
+    if (!accessToken || pending) return;
+    const next = !wishlisted;
+
+    startTransition(async () => {
+      try {
+        const res = await fetch(`${BASE}/wishlist/${encodeURIComponent(product.id)}`, {
+          method: next ? "POST" : "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        setWishlisted(next);
+      } catch {
+        setWishlisted(wishlisted);
+      }
+    });
+  };
 
   return (
     <article className="group bg-white rounded-xl border border-hairline overflow-hidden card-shadow card-shadow-hover">
@@ -37,12 +66,23 @@ export function ProductCard({ product, provinceName }: Props) {
           type="button"
           onClick={(e) => {
             e.preventDefault();
-            // TODO: wire to wishlist (task khác)
+            e.stopPropagation();
+            toggleWishlist();
           }}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/85 backdrop-blur flex items-center justify-center hover:bg-white"
-          aria-label="Thêm vào yêu thích"
+          disabled={pending}
+          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/85 backdrop-blur flex items-center justify-center hover:bg-white disabled:opacity-60"
+          aria-label={wishlisted ? "Bỏ khỏi yêu thích" : "Thêm vào yêu thích"}
+          aria-pressed={wishlisted}
+          title={accessToken ? undefined : "Đăng nhập để lưu sản phẩm"}
         >
-          <Heart size={15} className="text-muted hover:text-red-500" />
+          <Heart
+            size={15}
+            className={
+              wishlisted
+                ? "fill-rose-500 text-rose-500"
+                : "text-muted hover:text-rose-500"
+            }
+          />
         </button>
       </Link>
 
