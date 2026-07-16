@@ -55,15 +55,18 @@ export default function StateCertificationsPage() {
   const [actionId, setActionId] = useState<string | null>(null);
   const [documentActionId, setDocumentActionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const loadCertifications = async () => {
     if (!accessToken) {
       setLoading(false);
+      setError("Vui lòng đăng nhập bằng tài khoản admin hoặc cơ quan quản lý.");
       return;
     }
 
     setLoading(true);
     setError(null);
+    setNotice(null);
     try {
       const data = await api.get<PendingCertification[]>(
         "/products/certifications/pending",
@@ -87,6 +90,11 @@ export default function StateCertificationsPage() {
   }, [accessToken]);
 
   const verify = async (certId: string, status: "verified" | "rejected") => {
+    if (!accessToken) {
+      setError("Vui lòng đăng nhập để duyệt chứng nhận.");
+      return;
+    }
+
     const rejectionReason = reasons[certId]?.trim();
     if (status === "rejected" && !rejectionReason) {
       setError("Vui lòng nhập lý do từ chối chứng nhận");
@@ -95,6 +103,7 @@ export default function StateCertificationsPage() {
 
     setActionId(certId);
     setError(null);
+    setNotice(null);
     try {
       await api.patch(
         `/products/certifications/${certId}/verify`,
@@ -110,6 +119,11 @@ export default function StateCertificationsPage() {
         delete next[certId];
         return next;
       });
+      setNotice(
+        status === "verified"
+          ? "Đã xác thực chứng nhận sản phẩm."
+          : "Đã từ chối chứng nhận và lưu lý do xử lý.",
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không cập nhật được chứng nhận");
     } finally {
@@ -119,9 +133,14 @@ export default function StateCertificationsPage() {
 
   const openCertificationDocument = async (cert: PendingCertification) => {
     if (!cert.documentUrl) return;
+    if (!accessToken) {
+      setError("Vui lòng đăng nhập để mở giấy chứng nhận.");
+      return;
+    }
 
     setDocumentActionId(cert.id);
     setError(null);
+    setNotice(null);
     try {
       if (/^https?:\/\//i.test(cert.documentUrl)) {
         window.open(cert.documentUrl, "_blank", "noopener,noreferrer");
@@ -154,6 +173,11 @@ export default function StateCertificationsPage() {
           {error}
         </div>
       )}
+      {notice && (
+        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-primary">
+          {notice}
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border border-hairline card-shadow overflow-hidden">
         <div className="flex items-center justify-between p-5 border-b border-hairline">
@@ -179,6 +203,7 @@ export default function StateCertificationsPage() {
             {items.map((cert) => {
               const certLabel = CERT_TYPE_LABELS[cert.certType] ?? cert.certType.toUpperCase();
               const isActing = actionId === cert.id;
+              const rejectionReason = reasons[cert.id]?.trim() ?? "";
 
               return (
                 <div key={cert.id} className="p-5">
@@ -255,6 +280,7 @@ export default function StateCertificationsPage() {
                           size="sm"
                           className="flex-1"
                           loading={isActing}
+                          disabled={!rejectionReason}
                           onClick={() => verify(cert.id, "rejected")}
                         >
                           <X size={14} /> Từ chối
