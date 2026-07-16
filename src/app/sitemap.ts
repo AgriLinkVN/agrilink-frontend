@@ -1,6 +1,14 @@
 import type { MetadataRoute } from "next";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://agrilink.vn";
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
+const BASE = `${BACKEND}/api/v1`;
+
+interface SitemapProduct {
+  id: string;
+  updatedAt?: string;
+  updated_at?: string;
+}
 
 const STATIC_ROUTES: { path: string; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"]; priority: number }[] = [
   { path: "", changeFrequency: "daily", priority: 1 },
@@ -15,12 +23,42 @@ const STATIC_ROUTES: { path: string; changeFrequency: MetadataRoute.Sitemap[numb
   { path: "/for", changeFrequency: "monthly", priority: 0.4 },
 ];
 
-export default function sitemap(): MetadataRoute.Sitemap {
+async function fetchSitemapProducts(): Promise<SitemapProduct[]> {
+  try {
+    const qs = new URLSearchParams({
+      page: "1",
+      limit: "100",
+      status: "active",
+      sortBy: "createdAt",
+      order: "DESC",
+    });
+    const res = await fetch(`${BASE}/products?${qs}`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const payload = json?.data ?? json;
+    return Array.isArray(payload?.data) ? payload.data : [];
+  } catch {
+    return [];
+  }
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  return STATIC_ROUTES.map((route) => ({
+  const staticRoutes = STATIC_ROUTES.map((route) => ({
     url: `${SITE_URL}${route.path}`,
     lastModified: now,
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }));
+
+  const productRoutes = (await fetchSitemapProducts()).map((product) => ({
+    url: `${SITE_URL}/products/${product.id}`,
+    lastModified: product.updatedAt ?? product.updated_at ?? now,
+    changeFrequency: "daily" as const,
+    priority: 0.8,
+  }));
+
+  return [...staticRoutes, ...productRoutes];
 }

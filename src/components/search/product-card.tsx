@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Heart, MapPin } from "lucide-react";
 import { FarmingBadge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
@@ -47,15 +48,15 @@ export function ProductCard({ product, provinceName }: Props) {
     <article className="group bg-white rounded-xl border border-hairline overflow-hidden card-shadow card-shadow-hover">
       <Link
         href={`/products/${product.id}`}
-        className="block aspect-4/3 bg-surface-green relative"
+        className="block aspect-4/3 bg-surface-green relative overflow-hidden"
       >
         {primary ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={primary.imageUrl}
             alt={product.name}
-            loading="lazy"
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-4xl text-muted">
@@ -86,7 +87,7 @@ export function ProductCard({ product, provinceName }: Props) {
         </button>
       </Link>
 
-      <div className="p-4">
+      <div className="p-3 sm:p-4">
         <div className="flex items-start gap-2 mb-1.5">
           <Link
             href={`/products/${product.id}`}
@@ -102,7 +103,7 @@ export function ProductCard({ product, provinceName }: Props) {
             <span>{provinceName}</span>
           </div>
         )}
-        <div className="text-base font-bold text-primary">
+        <div className="text-sm sm:text-base font-bold text-primary break-words">
           {formatPrice(product.pricePerUnit, product.unit)}
         </div>
       </div>

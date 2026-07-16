@@ -12,17 +12,79 @@ import { WishlistButton } from "./_components/WishlistButton";
 import { ShareButton } from "./_components/ShareButton";
 import { SimilarProducts } from "./_components/SimilarProducts";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://agrilink.vn";
+
 interface PageProps {
   params: Promise<{ id: string }>;
+}
+
+function productUrl(id: string) {
+  return `${SITE_URL}/products/${id}`;
+}
+
+function primaryImage(product: Awaited<ReturnType<typeof fetchProductDetail>>) {
+  if (!product) return null;
+  const sorted = [...product.images].sort((a, b) => a.sortOrder - b.sortOrder);
+  return sorted.find((image) => image.isPrimary) ?? sorted[0] ?? null;
+}
+
+function cleanDescription(value: string | null | undefined, fallback: string) {
+  const text = (value ?? fallback).replace(/\s+/g, " ").trim();
+  return text.length > 160 ? `${text.slice(0, 157)}...` : text;
+}
+
+function sellerDisplayName(product: NonNullable<Awaited<ReturnType<typeof fetchProductDetail>>>) {
+  const seller = product.seller;
+  if (!seller) return "AgriLink";
+  if (seller.sellerType === "cooperative") {
+    return seller.cooperativeName ?? seller.fullName ?? "Hợp tác xã AgriLink";
+  }
+  if (seller.sellerType === "supplier") {
+    return seller.companyName ?? seller.fullName ?? "Nhà cung cấp AgriLink";
+  }
+  return seller.farmName ?? seller.fullName ?? "Hộ sản xuất AgriLink";
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const product = await fetchProductDetail(id);
   if (!product) return { title: "Không tìm thấy sản phẩm | AgriLink" };
+
+  const title = `${product.name} | AgriLink`;
+  const description = cleanDescription(
+    product.description,
+    `${product.name} trên AgriLink Vietnam`,
+  );
+  const url = productUrl(id);
+  const image = primaryImage(product);
+
   return {
-    title: `${product.name} | AgriLink`,
-    description: product.description ?? `${product.name} — AgriLink Vietnam`,
+    title,
+    description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: "AgriLink",
+      type: "website",
+      images: image
+        ? [
+            {
+              url: image.imageUrl,
+              alt: image.altText ?? product.name,
+            },
+          ]
+        : undefined,
+    },
+    twitter: {
+      card: image ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: image ? [image.imageUrl] : undefined,
+    },
   };
 }
 
@@ -31,6 +93,34 @@ export default async function ProductDetailPage({ params }: PageProps) {
   const product = await fetchProductDetail(id);
 
   if (!product) notFound();
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: cleanDescription(product.description, product.name),
+    image: product.images.map((image) => image.imageUrl),
+    sku: product.sku ?? undefined,
+    category: product.category?.name,
+    brand: {
+      "@type": "Brand",
+      name: "AgriLink",
+    },
+    offers: {
+      "@type": "Offer",
+      url: productUrl(id),
+      priceCurrency: "VND",
+      price: Number(product.pricePerUnit),
+      availability:
+        Number(product.availableQuantity) > 0
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+      seller: {
+        "@type": "Organization",
+        name: sellerDisplayName(product),
+      },
+    },
+  };
 
   // Hide non-active products from public (owner view handled in IT3+ /dashboard)
   if (product.status !== "active") {
@@ -50,6 +140,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-canvas pb-24 md:pb-0">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
