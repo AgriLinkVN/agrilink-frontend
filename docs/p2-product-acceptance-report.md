@@ -16,14 +16,14 @@ Merged fix branches:
 
 Current phase branch:
 
-- Frontend: `feature/p2-product-seo-image-responsive`
+- Frontend: `feature/p2-wishlist-polish`
 
 ## Key Findings
 
 - Iteration 1 task 10 note "JWT chua global" is outdated. Backend `AppModule` now registers `JwtAuthGuard` and `RolesGuard` globally.
 - Product creation no longer requires clients to send `sellerType`. Backend derives seller type from the authenticated role when the JWT payload does not include `sellerType`.
 - The multi-step product form now creates the product first, then attaches uploaded images and certifications through the dedicated product media endpoints.
-- Wishlist UI now calls `/wishlist/:productId`, matching the backend API, and includes the buyer wishlist page.
+- Wishlist UI now calls `/wishlist/:productId`, hydrates initial heart state from `/wishlist/ids`, handles login prompts, and includes a polished buyer wishlist page.
 - Product status flow exists on backend: `PATCH /products/:id/status` enforces allowed transitions and creates notifications that are emitted by `NotificationsGateway`.
 - Product certification verification exists on both sides: backend exposes pending/verify endpoints and frontend has `/dashboard/state/certifications` for state-agency review.
 - Public `/seller/:id` now exists. It builds a public seller profile from active seller products, product detail seller data, and product review endpoints.
@@ -40,7 +40,7 @@ Current phase branch:
 | I2-6 Multi-step create product page | TRUE | Submit flow now matches backend API shape. |
 | I2-7 Search/filter page | TRUE/PARTIAL | Search, filters, sort, infinite scroll exist; public list intentionally shows active products only. |
 | I2-8 Product detail + contact | TRUE | Gallery, contact buttons, seller card, certifications, metadata exist. |
-| I2-9 Wishlist API + UI | TRUE | Detail heart, search-card heart, API, and wishlist page exist. |
+| I2-9 Wishlist API + UI | TRUE | Detail/search hearts hydrate from `/wishlist/ids`, use shared API helpers, support optimistic add/remove, login prompt, buyer wishlist loading/empty/remove states. |
 | I2-10 Staging deploy | FALSE | No staging URL or smoke-test evidence available locally. |
 | I3-5 Product status flow | TRUE | Transition API/service exists, enforces allowed transitions, and creates realtime notifications through the notification gateway. |
 | I3-6 Public seller profile | TRUE | `/seller/:id` shows avatar, seller type, trust score, stats, contact actions, active products, verified certifications, and a reviews tab. |
@@ -61,5 +61,8 @@ Current phase branch:
 - Phase 7 frontend targeted ESLint for product SEO/image files: passed.
 - Phase 7 frontend `npm run build`: passed; `/sitemap.xml` has 1h revalidate.
 - Phase 7 local smoke test: `/products/mock-1`, `/search`, and `/sitemap.xml` returned 200.
+- Phase 4 frontend targeted ESLint for wishlist/search files: passed.
+- Phase 4 frontend `npm run build`: passed.
+- Phase 4 local smoke test: `/dashboard/buyer/wishlist`, `/search`, and `/products/mock-1` returned 200.
 - Full backend test suite was not rerun in this pass.
 

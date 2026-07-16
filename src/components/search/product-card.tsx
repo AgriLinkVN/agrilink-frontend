@@ -3,8 +3,10 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Heart, MapPin } from "lucide-react";
 import { FarmingBadge } from "@/components/ui/badge";
+import { api } from "@/lib/api";
 import { formatPrice } from "@/lib/utils";
 import type { ApiProduct } from "@/types/search";
 import { useAuthStore } from "@/store/authStore";
@@ -12,34 +14,49 @@ import { useAuthStore } from "@/store/authStore";
 interface Props {
   product: ApiProduct;
   provinceName?: string;
+  initialWishlisted?: boolean;
+  onWishlistChange?: (productId: string, active: boolean) => void;
 }
 
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
-const BASE = `${BACKEND}/api/v1`;
-
-export function ProductCard({ product, provinceName }: Props) {
+export function ProductCard({
+  product,
+  provinceName,
+  initialWishlisted = false,
+  onWishlistChange,
+}: Props) {
+  const router = useRouter();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const [wishlisted, setWishlisted] = useState(false);
+  const [optimisticWishlisted, setOptimisticWishlisted] = useState<boolean | null>(null);
   const [pending, startTransition] = useTransition();
   const primary = product.images?.find((i) => i.isPrimary) ?? product.images?.[0];
+  const wishlisted = optimisticWishlisted ?? initialWishlisted;
+
+  const redirectToLogin = () => {
+    const current =
+      typeof window !== "undefined"
+        ? `${window.location.pathname}${window.location.search}`
+        : "/search";
+    router.push(`/auth/login?redirect=${encodeURIComponent(current)}`);
+  };
 
   const toggleWishlist = () => {
-    if (!accessToken || pending) return;
+    if (pending) return;
+    if (!accessToken) {
+      redirectToLogin();
+      return;
+    }
+
     const next = !wishlisted;
+    setOptimisticWishlisted(next);
+    onWishlistChange?.(product.id, next);
 
     startTransition(async () => {
       try {
-        const res = await fetch(`${BASE}/wishlist/${encodeURIComponent(product.id)}`, {
-          method: next ? "POST" : "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        setWishlisted(next);
+        if (next) await api.post(`/wishlist/${product.id}`, undefined, accessToken);
+        else await api.delete(`/wishlist/${product.id}`, accessToken);
       } catch {
-        setWishlisted(wishlisted);
+        setOptimisticWishlisted(!next);
+        onWishlistChange?.(product.id, !next);
       }
     });
   };
