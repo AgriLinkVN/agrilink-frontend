@@ -15,9 +15,11 @@ import { ProductSkeletonGrid } from "@/components/search/product-skeleton";
 import { EmptyState } from "@/components/search/empty-state";
 import { InfiniteSentinel } from "@/components/search/infinite-sentinel";
 
+import { api } from "@/lib/api";
 import { useSearchProducts } from "@/lib/hooks/use-search-products";
 import { useCategories } from "@/lib/hooks/use-categories";
 import { useProvinces } from "@/lib/hooks/use-provinces";
+import { useAuthStore } from "@/store/authStore";
 import type { SearchFilter, SortBy, SortOrder } from "@/types/search";
 
 interface Props {
@@ -40,6 +42,7 @@ function filterToQuery(f: SearchFilter): string {
 export function SearchClient({ initialFilter }: Props) {
   const router = useRouter();
   const pathname = usePathname();
+  const accessToken = useAuthStore((s) => s.accessToken);
 
   const [filter, setFilter] = useState<SearchFilter>({
     sortBy: "createdAt",
@@ -47,6 +50,7 @@ export function SearchClient({ initialFilter }: Props) {
     ...initialFilter,
   });
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [wishlistedIds, setWishlistedIds] = useState<Set<string>>(new Set());
 
   const { data: categories } = useCategories();
   const { data: provinces } = useProvinces();
@@ -57,6 +61,30 @@ export function SearchClient({ initialFilter }: Props) {
 
   const { items, total, loading, loadingMore, error, hasMore, loadMore } =
     useSearchProducts(filter);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadWishlistIds = async () => {
+      if (!accessToken) {
+        setWishlistedIds(new Set());
+        return;
+      }
+
+      try {
+        const ids = await api.get<string[]>("/wishlist/ids", accessToken);
+        if (!cancelled) setWishlistedIds(new Set(ids));
+      } catch {
+        if (!cancelled) setWishlistedIds(new Set());
+      }
+    };
+
+    void loadWishlistIds();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
 
   // Sync URL when filter changes (replace, not push — không spam history)
   useEffect(() => {
@@ -70,6 +98,15 @@ export function SearchClient({ initialFilter }: Props) {
 
   const reset = useCallback(() => {
     setFilter({ sortBy: "createdAt", order: "DESC" });
+  }, []);
+
+  const updateWishlistState = useCallback((productId: string, active: boolean) => {
+    setWishlistedIds((current) => {
+      const next = new Set(current);
+      if (active) next.add(productId);
+      else next.delete(productId);
+      return next;
+    });
   }, []);
 
   return (
@@ -138,6 +175,8 @@ export function SearchClient({ initialFilter }: Props) {
                       key={p.id}
                       product={p}
                       provinceName={provinceNameMap.get(p.provinceId)}
+                      initialWishlisted={wishlistedIds.has(p.id)}
+                      onWishlistChange={updateWishlistState}
                     />
                   ))}
                 </div>
