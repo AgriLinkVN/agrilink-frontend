@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Heart } from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
 
 interface Props {
   productId: string;
@@ -12,6 +13,7 @@ const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
 const BASE = `${BACKEND}/api/v1`;
 
 export function WishlistButton({ productId, initialActive = false }: Props) {
+  const accessToken = useAuthStore((s) => s.accessToken);
   const [active, setActive] = useState(initialActive);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -21,22 +23,16 @@ export function WishlistButton({ productId, initialActive = false }: Props) {
     const next = !active;
     startTransition(async () => {
       try {
-        // P1 hasn't registered JwtAuthGuard globally yet — token may not exist.
-        const token =
-          typeof window !== "undefined"
-            ? localStorage.getItem("accessToken")
-            : null;
-        if (!token) {
+        if (!accessToken) {
           setError("Vui lòng đăng nhập để lưu sản phẩm");
           return;
         }
-        const res = await fetch(`${BASE}/wishlist`, {
+        const res = await fetch(`${BASE}/wishlist/${encodeURIComponent(productId)}`, {
           method: next ? "POST" : "DELETE",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${accessToken}`,
           },
-          body: JSON.stringify({ productId }),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         setActive(next);
