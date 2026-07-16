@@ -73,7 +73,7 @@ export function ProductMeta({ product }: Props) {
               <Icon size={16} className="mt-0.5 text-muted shrink-0" />
               <div className="min-w-0">
                 <dt className="text-muted text-xs">{r.label}</dt>
-                <dd className="font-medium truncate">{r.value}</dd>
+                <dd className="font-medium break-words">{r.value}</dd>
               </div>
             </div>
           );

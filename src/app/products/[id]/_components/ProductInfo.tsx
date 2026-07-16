@@ -19,7 +19,7 @@ export function ProductInfo({ product }: Props) {
   return (
     <div className="space-y-4">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-sm text-muted flex-wrap">
+      <nav className="flex min-w-0 items-center gap-1.5 text-sm text-muted flex-wrap">
         <Link href="/" className="hover:text-primary transition-colors">
           Trang chủ
         </Link>
@@ -53,12 +53,12 @@ export function ProductInfo({ product }: Props) {
           </>
         )}
         <ChevronRight size={14} />
-        <span className="text-foreground line-clamp-1">{product.name}</span>
+        <span className="min-w-0 text-foreground line-clamp-1">{product.name}</span>
       </nav>
 
       {/* Name + Variety */}
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold leading-tight">
+        <h1 className="text-2xl md:text-3xl font-bold leading-tight break-words">
           {product.name}
         </h1>
         {product.variety && (
@@ -70,15 +70,15 @@ export function ProductInfo({ product }: Props) {
       </div>
 
       {/* Price */}
-      <div className="flex items-end gap-2">
-        <span className="text-3xl md:text-4xl font-bold text-primary">
+      <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
+        <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary break-words">
           {formatPriceVND(product.pricePerUnit)}
         </span>
         <span className="text-lg text-muted mb-1">/ {unitLabel}</span>
       </div>
 
       {/* Rating + Views + Sold */}
-      <div className="flex items-center gap-4 text-sm">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
         {product.avgRating > 0 ? (
           <span className="flex items-center gap-1">
             <Star size={16} className="fill-yellow-400 text-yellow-400" />

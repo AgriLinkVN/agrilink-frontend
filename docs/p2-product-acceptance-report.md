@@ -16,7 +16,7 @@ Merged fix branches:
 
 Current phase branch:
 
-- Frontend: `feature/p2-public-seller-profile`
+- Frontend: `feature/p2-product-seo-image-responsive`
 
 ## Key Findings
 
@@ -27,6 +27,8 @@ Current phase branch:
 - Product status flow exists on backend: `PATCH /products/:id/status` enforces allowed transitions and creates notifications that are emitted by `NotificationsGateway`.
 - Product certification verification exists on both sides: backend exposes pending/verify endpoints and frontend has `/dashboard/state/certifications` for state-agency review.
 - Public `/seller/:id` now exists. It builds a public seller profile from active seller products, product detail seller data, and product review endpoints.
+- Product detail SEO now includes canonical URL, Open Graph/Twitter image metadata, Product JSON-LD, and sitemap product URLs.
+- Search product cards now use `next/image`; product detail price/meta layout has safer mobile wrapping.
 
 ## Suggested Sprint Status
 
@@ -44,9 +46,9 @@ Current phase branch:
 | I3-6 Public seller profile | TRUE | `/seller/:id` shows avatar, seller type, trust score, stats, contact actions, active products, verified certifications, and a reviews tab. |
 | I3-7 Certification badge + verify flow | TRUE | Seller upload/display, verified badges, backend pending/verify endpoints, and state-agency verification UI exist. |
 | I3-8 Cloudinary production key | FALSE | Cannot verify production secrets from local code. |
-| I4-5 SEO product metadata | PARTIAL | Dynamic product title/description, `sitemap.ts`, and `robots.ts` exist; per-product Open Graph image/data still needs completion. |
-| I4-6 Image optimization + skeleton | TRUE/PARTIAL | Product detail uses Next/Image and loading skeleton; some search cards still use raw image tags. |
-| I4-7 Mobile responsive product pages | PARTIAL | Responsive code exists; viewport QA still needed. |
+| I4-5 SEO product metadata | TRUE | Dynamic title/description, canonical, Open Graph/Twitter image metadata, Product JSON-LD, sitemap.xml, and robots.txt exist. |
+| I4-6 Image optimization + skeleton | TRUE | Product detail/search/marketplace product surfaces use Next/Image and product detail has loading skeleton. |
+| I4-7 Mobile responsive product pages | TRUE/PARTIAL | Product detail/search card wrapping was hardened and build passed; manual viewport QA on real device/staging is still recommended. |
 | I4-8 Production deploy/test search | FALSE | No production deployment evidence available locally. |
 
 ## Verification
@@ -56,5 +58,8 @@ Current phase branch:
 - Frontend `npm run build`: passed after syncing local dependencies with `npm install`.
 - Phase 5 frontend targeted ESLint for `/seller/[id]` and `products-api`: passed.
 - Phase 5 frontend `npm run build`: passed; route list includes `/seller/[id]`.
+- Phase 7 frontend targeted ESLint for product SEO/image files: passed.
+- Phase 7 frontend `npm run build`: passed; `/sitemap.xml` has 1h revalidate.
+- Phase 7 local smoke test: `/products/mock-1`, `/search`, and `/sitemap.xml` returned 200.
 - Full backend test suite was not rerun in this pass.
 
