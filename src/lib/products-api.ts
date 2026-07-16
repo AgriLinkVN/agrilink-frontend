@@ -41,6 +41,8 @@ export interface Product {
   farmingType: "organic" | "traditional" | "vietgap" | "globalgap" | null;
   status: string;
   viewCount: number;
+  soldCount?: number;
+  avgRating?: number;
   harvestDate: string | null;
   expiryDate: string | null;
   provinceId: string | null;
@@ -297,6 +299,10 @@ export async function fetchProducts(params?: {
   categoryId?: string;
   minPrice?: number;
   maxPrice?: number;
+  sellerId?: string;
+  status?: string;
+  sortBy?: "createdAt" | "pricePerUnit" | "name" | "soldCount" | "avgRating";
+  order?: "ASC" | "DESC";
 }): Promise<ProductListResponse> {
   try {
     const qs = new URLSearchParams();
@@ -307,6 +313,10 @@ export async function fetchProducts(params?: {
     if (params?.categoryId) qs.set("categoryId", params.categoryId);
     if (params?.minPrice != null) qs.set("minPrice", String(params.minPrice));
     if (params?.maxPrice != null) qs.set("maxPrice", String(params.maxPrice));
+    if (params?.sellerId) qs.set("sellerId", params.sellerId);
+    if (params?.status) qs.set("status", params.status);
+    if (params?.sortBy) qs.set("sortBy", params.sortBy);
+    if (params?.order) qs.set("order", params.order);
 
     const res = await fetch(`${BASE}/products?${qs}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -317,6 +327,29 @@ export async function fetchProducts(params?: {
     return { data: MOCK_PRODUCTS, total: MOCK_PRODUCTS.length };
   } catch {
     return { data: MOCK_PRODUCTS, total: MOCK_PRODUCTS.length };
+  }
+}
+
+export async function fetchSellerProducts(
+  sellerId: string,
+  limit = 24,
+): Promise<ProductListResponse> {
+  try {
+    const qs = new URLSearchParams({
+      sellerId,
+      limit: String(limit),
+      page: "1",
+      status: "active",
+      sortBy: "createdAt",
+      order: "DESC",
+    });
+    const res = await fetch(`${BASE}/products?${qs}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    return (json?.data ?? json) as ProductListResponse;
+  } catch {
+    const data = MOCK_PRODUCTS.filter((product) => product.sellerId === sellerId);
+    return { data, total: data.length };
   }
 }
 
