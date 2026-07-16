@@ -1,6 +1,6 @@
 # P2 Product Acceptance Report
 
-Generated: 2026-07-16
+Generated: 2026-07-17
 
 Scope: acceptance check for P2 Product tasks after rebasing the review onto the latest `origin/develop`.
 
@@ -16,7 +16,8 @@ Merged fix branches:
 
 Current phase branch:
 
-- Frontend: `feature/p2-wishlist-polish`
+- Backend: `feature/p2-status-certification-hardening`
+- Frontend: `feature/p2-status-certification-hardening`
 
 ## Key Findings
 
@@ -26,6 +27,10 @@ Current phase branch:
 - Wishlist UI now calls `/wishlist/:productId`, hydrates initial heart state from `/wishlist/ids`, handles login prompts, and includes a polished buyer wishlist page.
 - Product status flow exists on backend: `PATCH /products/:id/status` enforces allowed transitions and creates notifications that are emitted by `NotificationsGateway`.
 - Product certification verification exists on both sides: backend exposes pending/verify endpoints and frontend has `/dashboard/state/certifications` for state-agency review.
+- Seller product management now has an authenticated owner endpoint: `GET /products/me`, so seller dashboards can see their own draft, pending, active, out-of-stock, rejected, archived, and suspended products instead of relying on the public active-only product listing.
+- `/dashboard/farmer/products` now loads real seller products, shows status counts, certification summary, and exposes only valid seller transitions: draft/rejected -> pending_approval, active -> out_of_stock, out_of_stock -> active.
+- Admin pending-product statistics now use `pending_approval`, matching the current `ProductStatus` enum. The previous `pending` lookup would undercount products waiting for review.
+- Certification review UX is hardened: admin/state users get success feedback, missing-auth errors, signed document auth checks, and the reject action is disabled until a rejection reason is entered.
 - Public `/seller/:id` now exists. It builds a public seller profile from active seller products, product detail seller data, and product review endpoints.
 - Product detail SEO now includes canonical URL, Open Graph/Twitter image metadata, Product JSON-LD, and sitemap product URLs.
 - Search product cards now use `next/image`; product detail price/meta layout has safer mobile wrapping.
@@ -42,9 +47,9 @@ Current phase branch:
 | I2-8 Product detail + contact | TRUE | Gallery, contact buttons, seller card, certifications, metadata exist. |
 | I2-9 Wishlist API + UI | TRUE | Detail/search hearts hydrate from `/wishlist/ids`, use shared API helpers, support optimistic add/remove, login prompt, buyer wishlist loading/empty/remove states. |
 | I2-10 Staging deploy | FALSE | No staging URL or smoke-test evidence available locally. |
-| I3-5 Product status flow | TRUE | Transition API/service exists, enforces allowed transitions, and creates realtime notifications through the notification gateway. |
+| I3-5 Product status flow | TRUE | Transition API/service exists, seller owner listing now supports all statuses, seller dashboard exposes valid transitions, admin pending count uses `pending_approval`, and notifications are created through the notification gateway. |
 | I3-6 Public seller profile | TRUE | `/seller/:id` shows avatar, seller type, trust score, stats, contact actions, active products, verified certifications, and a reviews tab. |
-| I3-7 Certification badge + verify flow | TRUE | Seller upload/display, verified badges, backend pending/verify endpoints, and state-agency verification UI exist. |
+| I3-7 Certification badge + verify flow | TRUE | Seller upload/display, verified badges, backend pending/verify endpoints, and state-agency verification UI exist; reject now requires a reason before submit. |
 | I3-8 Cloudinary production key | FALSE | Cannot verify production secrets from local code. |
 | I4-5 SEO product metadata | TRUE | Dynamic title/description, canonical, Open Graph/Twitter image metadata, Product JSON-LD, sitemap.xml, and robots.txt exist. |
 | I4-6 Image optimization + skeleton | TRUE | Product detail/search/marketplace product surfaces use Next/Image and product detail has loading skeleton. |
@@ -64,5 +69,10 @@ Current phase branch:
 - Phase 4 frontend targeted ESLint for wishlist/search files: passed.
 - Phase 4 frontend `npm run build`: passed.
 - Phase 4 local smoke test: `/dashboard/buyer/wishlist`, `/search`, and `/products/mock-1` returned 200.
+- Phase 6 backend `npm run build`: passed.
+- Phase 6 backend targeted `npm run lint -- ...`: blocked by missing ESLint config discovery in `AgriLink_backend`; no code lint findings were produced.
+- Phase 6 frontend targeted ESLint for seller products, certification review, and shared product status types: passed.
+- Phase 6 frontend `npm run build`: passed.
+- Phase 6 local smoke test: `/dashboard/farmer/products` and `/dashboard/state/certifications` returned 200 on `http://localhost:3001`.
 - Full backend test suite was not rerun in this pass.
 

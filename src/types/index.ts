@@ -22,11 +22,12 @@ export type OrderStatus =
 
 export type ProductStatus =
   | "draft"
-  | "pending_review"
+  | "pending_approval"
   | "active"
   | "out_of_stock"
   | "rejected"
-  | "archived";
+  | "archived"
+  | "suspended";
 
 export interface User {
   id: string;

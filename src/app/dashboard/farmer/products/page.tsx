@@ -1,24 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ElementType } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { FarmingBadge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
-  Plus, Search, Package, Eye, Pencil, MoreHorizontal,
-  Filter, ArrowUpDown,
+  AlertCircle,
+  ArrowUpDown,
+  Ban,
+  Eye,
+  ExternalLink,
+  Filter,
+  Package,
+  Pencil,
+  Plus,
+  RefreshCcw,
+  RotateCcw,
+  Search,
+  Send,
 } from "lucide-react";
 import {
-  MOCK_PRODUCTS,
+  CERT_STATUS_LABELS,
   PRODUCT_STATUS_LABELS,
   UNIT_LABELS,
   getPrimaryImage,
 } from "@/lib/products-api";
+import type { Product, ProductListResponse } from "@/lib/products-api";
 import type { FarmingType } from "@/types";
+
+type ProductStatus =
+  | "all"
+  | "draft"
+  | "pending_approval"
+  | "active"
+  | "out_of_stock"
+  | "rejected"
+  | "archived"
+  | "suspended";
+
+type ProductStatusTarget = "pending_approval" | "active" | "out_of_stock";
+
+const STATUS_FILTERS: Array<{ value: ProductStatus; label: string }> = [
+  { value: "all", label: "Tất cả" },
+  { value: "draft", label: PRODUCT_STATUS_LABELS.draft },
+  { value: "pending_approval", label: PRODUCT_STATUS_LABELS.pending_approval },
+  { value: "active", label: PRODUCT_STATUS_LABELS.active },
+  { value: "out_of_stock", label: PRODUCT_STATUS_LABELS.out_of_stock },
+  { value: "rejected", label: PRODUCT_STATUS_LABELS.rejected },
+];
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "bg-[#F3F4F6] text-[#6B7280]",
@@ -30,79 +65,262 @@ const STATUS_STYLES: Record<string, string> = {
   suspended: "bg-[#FEF3C7] text-[#92400E]",
 };
 
-export default function FarmerProductsPage() {
-  const user = useAuthStore((s) => s.user);
-  const [searchQuery, setSearchQuery] = useState("");
+const ACTION_COPY: Record<
+  ProductStatusTarget,
+  { label: string; icon: ElementType; variant: "primary" | "secondary" | "ghost" }
+> = {
+  pending_approval: { label: "Gửi duyệt", icon: Send, variant: "secondary" },
+  active: { label: "Mở bán lại", icon: RotateCcw, variant: "primary" },
+  out_of_stock: { label: "Hết hàng", icon: Ban, variant: "ghost" },
+};
 
-  const products = MOCK_PRODUCTS;
-  const filtered = products.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+function getNextStatus(product: Product): ProductStatusTarget | null {
+  if (product.status === "draft" || product.status === "rejected") {
+    return "pending_approval";
+  }
+  if (product.status === "active") return "out_of_stock";
+  if (product.status === "out_of_stock") return "active";
+  return null;
+}
+
+function buildProductsQuery() {
+  const params = new URLSearchParams({
+    page: "1",
+    limit: "100",
+    sortBy: "createdAt",
+    order: "DESC",
+  });
+
+  return params.toString();
+}
+
+function getCertificationSummary(product: Product) {
+  const certifications = product.certifications ?? [];
+  if (certifications.length === 0) return "Chưa có chứng nhận";
+
+  const counts = certifications.reduce<Record<string, number>>((acc, cert) => {
+    const status = cert.status ?? (cert.isVerified ? "verified" : "pending");
+    acc[status] = (acc[status] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return Object.entries(counts)
+    .map(([status, count]) => `${count} ${CERT_STATUS_LABELS[status] ?? status}`)
+    .join(" · ");
+}
+
+export default function FarmerProductsPage() {
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const user = useAuthStore((s) => s.user);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [total, setTotal] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ProductStatus>("all");
+  const [loading, setLoading] = useState(true);
+  const [actionId, setActionId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const statusCounts = useMemo(() => {
+    return products.reduce<Record<string, number>>(
+      (acc, product) => {
+        acc.all += 1;
+        acc[product.status] = (acc[product.status] ?? 0) + 1;
+        return acc;
+      },
+      { all: 0 },
+    );
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    const trimmedSearch = searchQuery.trim().toLowerCase();
+
+    return products.filter((product) => {
+      const matchesStatus =
+        statusFilter === "all" || product.status === statusFilter;
+      const matchesSearch =
+        !trimmedSearch ||
+        product.name.toLowerCase().includes(trimmedSearch) ||
+        product.description?.toLowerCase().includes(trimmedSearch);
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [products, searchQuery, statusFilter]);
+
+  const loadProducts = useCallback(async () => {
+    if (!accessToken) {
+      setProducts([]);
+      setTotal(0);
+      setLoading(false);
+      setError("Vui lòng đăng nhập bằng tài khoản người bán để quản lý sản phẩm.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const query = buildProductsQuery();
+      const result = await api.get<ProductListResponse>(`/products/me?${query}`, accessToken);
+      setProducts(result.data ?? []);
+      setTotal(result.total ?? result.data?.length ?? 0);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không tải được danh sách sản phẩm");
+      setProducts([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadProducts();
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [loadProducts]);
+
+  const updateStatus = async (product: Product, nextStatus: ProductStatusTarget) => {
+    if (!accessToken) {
+      setError("Vui lòng đăng nhập để đổi trạng thái sản phẩm.");
+      return;
+    }
+
+    if (nextStatus === "active" && product.availableQuantity <= 0) {
+      setError("Sản phẩm cần có tồn kho lớn hơn 0 trước khi mở bán lại.");
+      return;
+    }
+
+    setActionId(product.id);
+    setError(null);
+    try {
+      const updated = await api.patch<Product>(
+        `/products/${product.id}/status`,
+        { status: nextStatus },
+        accessToken,
+      );
+
+      setProducts((prev) =>
+        prev.map((item) =>
+          item.id === product.id
+            ? {
+                ...item,
+                ...updated,
+                images: updated.images?.length ? updated.images : item.images,
+                certifications: updated.certifications?.length
+                  ? updated.certifications
+                  : item.certifications,
+              }
+            : item,
+        ),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không cập nhật được trạng thái sản phẩm");
+    } finally {
+      setActionId(null);
+    }
+  };
 
   return (
     <DashboardLayout
       role="farmer"
       userName={user?.full_name ?? "Nông dân"}
       pageTitle="Sản phẩm của tôi"
-      pageDescription={`${products.length} sản phẩm đang quản lý`}
+      pageDescription={`${total} sản phẩm đang quản lý`}
       actions={
-        <Button asChild>
-          <Link href="/dashboard/farmer/products/new">
-            <Plus size={16} /> Đăng sản phẩm mới
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={() => void loadProducts()} loading={loading}>
+            <RefreshCcw size={14} /> Tải lại
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard/farmer/products/new">
+              <Plus size={16} /> Đăng sản phẩm mới
+            </Link>
+          </Button>
+        </div>
       }
     >
-      {/* Toolbar */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="flex-1 flex items-center gap-2 h-10 px-3 rounded-lg border border-hairline bg-white max-w-sm">
-          <Search size={15} className="text-muted shrink-0" />
-          <input
-            type="text"
-            placeholder="Tìm sản phẩm..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-soft"
-          />
+      {error && (
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-error">
+          <AlertCircle size={16} className="mt-0.5 shrink-0" />
+          <span>{error}</span>
         </div>
-        <Button variant="secondary" size="sm">
-          <Filter size={14} /> Lọc
-        </Button>
-        <Button variant="secondary" size="sm">
-          <ArrowUpDown size={14} /> Sắp xếp
-        </Button>
+      )}
+
+      <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="flex flex-wrap items-center gap-2">
+          {STATUS_FILTERS.map((status) => (
+            <button
+              key={status.value}
+              type="button"
+              onClick={() => setStatusFilter(status.value)}
+              className={cn(
+                "h-9 rounded-lg border px-3 text-sm font-semibold transition-colors",
+                statusFilter === status.value
+                  ? "border-primary bg-primary text-white"
+                  : "border-hairline bg-white text-muted hover:text-ink hover:bg-surface-soft",
+              )}
+            >
+              {status.label}
+              <span className="ml-2 text-xs opacity-80">
+                {statusCounts[status.value] ?? 0}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-hairline bg-white px-3 lg:w-72">
+            <Search size={15} className="text-muted shrink-0" />
+            <input
+              type="text"
+              placeholder="Tìm sản phẩm..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-soft"
+            />
+          </div>
+          <Button variant="secondary" size="sm" disabled>
+            <Filter size={14} /> Lọc
+          </Button>
+          <Button variant="secondary" size="sm" disabled>
+            <ArrowUpDown size={14} /> Sắp xếp
+          </Button>
+        </div>
       </div>
 
-      {/* Products table */}
       <div className="bg-white rounded-xl border border-hairline card-shadow overflow-hidden">
-        {/* Header */}
-        <div className="hidden md:grid grid-cols-[1fr_120px_120px_100px_100px_80px] gap-4 px-5 py-3 bg-surface-soft border-b border-hairline text-xs font-semibold text-muted uppercase tracking-wide">
+        <div className="hidden lg:grid grid-cols-[minmax(260px,1fr)_120px_120px_120px_120px_180px] gap-4 px-5 py-3 bg-surface-soft border-b border-hairline text-xs font-semibold text-muted uppercase tracking-wide">
           <span>Sản phẩm</span>
           <span>Giá</span>
           <span>Tồn kho</span>
           <span>Canh tác</span>
           <span>Trạng thái</span>
-          <span className="text-center">Thao tác</span>
+          <span className="text-right">Thao tác</span>
         </div>
 
-        {/* Rows */}
-        {filtered.length > 0 ? (
+        {loading ? (
+          <div className="py-16 text-center text-sm text-muted">Đang tải sản phẩm...</div>
+        ) : filteredProducts.length > 0 ? (
           <div className="divide-y divide-hairline-soft">
-            {filtered.map((product) => {
+            {filteredProducts.map((product) => {
               const statusLabel =
                 PRODUCT_STATUS_LABELS[product.status] ?? product.status;
               const statusStyle =
                 STATUS_STYLES[product.status] ?? STATUS_STYLES.draft;
-              const unitLabel =
-                UNIT_LABELS[product.unit] ?? product.unit;
+              const unitLabel = UNIT_LABELS[product.unit] ?? product.unit;
+              const nextStatus = getNextStatus(product);
+              const action = nextStatus ? ACTION_COPY[nextStatus] : null;
+              const ActionIcon = action?.icon;
+              const actionDisabled =
+                nextStatus === "active" && product.availableQuantity <= 0;
+              const isActing = actionId === product.id;
 
               return (
                 <div
                   key={product.id}
-                  className="grid grid-cols-1 md:grid-cols-[1fr_120px_120px_100px_100px_80px] gap-3 md:gap-4 px-5 py-4 hover:bg-surface-soft transition-colors items-center"
+                  className="grid grid-cols-1 gap-3 px-5 py-4 transition-colors hover:bg-surface-soft lg:grid-cols-[minmax(260px,1fr)_120px_120px_120px_120px_180px] lg:gap-4 lg:items-center"
                 >
-                  {/* Product info */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-surface-soft shrink-0">
                       <Image
                         src={getPrimaryImage(product)}
@@ -117,14 +335,17 @@ export default function FarmerProductsPage() {
                       <p className="text-sm font-semibold text-ink truncate">
                         {product.name}
                       </p>
-                      <div className="flex items-center gap-2 text-xs text-muted mt-0.5">
-                        <Eye size={12} />
-                        <span>{product.viewCount.toLocaleString("vi-VN")} lượt xem</span>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                        <span className="inline-flex items-center gap-1">
+                          <Eye size={12} />
+                          {product.viewCount.toLocaleString("vi-VN")} lượt xem
+                        </span>
+                        {product.category?.name && <span>{product.category.name}</span>}
+                        <span>{getCertificationSummary(product)}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Price */}
                   <div>
                     <p className="text-sm font-bold text-primary">
                       {product.pricePerUnit.toLocaleString("vi-VN")}đ
@@ -132,12 +353,13 @@ export default function FarmerProductsPage() {
                     <p className="text-xs text-muted">/{unitLabel}</p>
                   </div>
 
-                  {/* Stock */}
                   <div>
-                    <p className={cn(
-                      "text-sm font-medium",
-                      product.availableQuantity === 0 ? "text-error" : "text-ink"
-                    )}>
+                    <p
+                      className={cn(
+                        "text-sm font-medium",
+                        product.availableQuantity === 0 ? "text-error" : "text-ink",
+                      )}
+                    >
                       {product.availableQuantity.toLocaleString("vi-VN")} {unitLabel}
                     </p>
                     {product.minOrderQuantity && (
@@ -147,31 +369,50 @@ export default function FarmerProductsPage() {
                     )}
                   </div>
 
-                  {/* Farming type */}
                   <div>
-                    {product.farmingType && (
+                    {product.farmingType ? (
                       <FarmingBadge type={product.farmingType as FarmingType} />
+                    ) : (
+                      <span className="text-xs text-muted">Chưa chọn</span>
                     )}
                   </div>
 
-                  {/* Status */}
                   <div>
-                    <span className={cn(
-                      "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold",
-                      statusStyle
-                    )}>
+                    <span
+                      className={cn(
+                        "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold",
+                        statusStyle,
+                      )}
+                    >
                       {statusLabel}
                     </span>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center justify-center gap-1">
-                    <button className="w-8 h-8 rounded-lg hover:bg-surface-strong flex items-center justify-center transition-colors text-muted hover:text-ink">
+                  <div className="flex flex-wrap items-center justify-start gap-1 lg:justify-end">
+                    <Button variant="ghost" size="icon" asChild>
+                      <Link href={`/products/${product.id}`} target="_blank" title="Xem trang public">
+                        <ExternalLink size={14} />
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" size="icon" disabled title="Chỉnh sửa sản phẩm">
                       <Pencil size={14} />
-                    </button>
-                    <button className="w-8 h-8 rounded-lg hover:bg-surface-strong flex items-center justify-center transition-colors text-muted hover:text-ink">
-                      <MoreHorizontal size={14} />
-                    </button>
+                    </Button>
+                    {action && ActionIcon && (
+                      <Button
+                        variant={action.variant}
+                        size="sm"
+                        loading={isActing}
+                        disabled={actionDisabled}
+                        title={
+                          actionDisabled
+                            ? "Cần cập nhật tồn kho lớn hơn 0 trước khi mở bán"
+                            : undefined
+                        }
+                        onClick={() => nextStatus && updateStatus(product, nextStatus)}
+                      >
+                        <ActionIcon size={14} /> {action.label}
+                      </Button>
+                    )}
                   </div>
                 </div>
               );
@@ -183,14 +424,16 @@ export default function FarmerProductsPage() {
               <Package size={28} className="text-primary" />
             </div>
             <p className="text-sm font-semibold text-ink mb-1">
-              {searchQuery ? "Không tìm thấy sản phẩm" : "Chưa có sản phẩm nào"}
+              {searchQuery || statusFilter !== "all"
+                ? "Không tìm thấy sản phẩm"
+                : "Chưa có sản phẩm nào"}
             </p>
             <p className="text-sm text-muted mb-4">
-              {searchQuery
-                ? "Thử tìm kiếm với từ khóa khác"
+              {searchQuery || statusFilter !== "all"
+                ? "Thử đổi bộ lọc hoặc từ khóa tìm kiếm"
                 : "Đăng sản phẩm đầu tiên để bắt đầu bán hàng"}
             </p>
-            {!searchQuery && (
+            {!searchQuery && statusFilter === "all" && (
               <Button asChild>
                 <Link href="/dashboard/farmer/products/new">
                   <Plus size={16} /> Đăng sản phẩm mới
