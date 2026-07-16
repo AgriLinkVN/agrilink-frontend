@@ -19,6 +19,7 @@ import { StepPreview } from "./components/step-preview";
 import { SuccessScreen } from "./components/success-screen";
 
 import { ProductFormData, INITIAL_DATA } from "./types";
+
 const STEPS = [
   { id: 1, label: "Thông tin", icon: FileText },
   { id: 2, label: "Hình ảnh", icon: ImageIcon },
@@ -34,6 +35,10 @@ function buildCertificationPath(certType: string, file: File) {
   const extension = file.name.split(".").pop()?.toLowerCase() || "bin";
 
   return `certifications/${safeType}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+}
+
+interface CreatedProduct {
+  id: string;
 }
 
 export default function NewProductPage() {
@@ -115,11 +120,19 @@ export default function NewProductPage() {
         minOrderQuantity: formData.minOrderQuantity || null,
         provinceId: formData.provinceId || null,
         harvestDate: formData.harvestDate || null,
-        images: uploadedImages,
-        certifications,
       };
 
-      await api.post("/products", payload, accessToken);
+      const created = await api.post<CreatedProduct>("/products", payload, accessToken);
+
+      await Promise.all([
+        ...uploadedImages.map((image) =>
+          api.post(`/products/${created.id}/images`, image, accessToken)
+        ),
+        ...certifications.map((certification) =>
+          api.post(`/products/${created.id}/certifications`, certification, accessToken)
+        ),
+      ]);
+
       setIsSuccess(true);
     } catch (err) {
       setSubmitError(

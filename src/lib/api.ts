@@ -209,7 +209,7 @@ export async function getDocumentDownloadUrl(
 
 export async function uploadToCloudinary(
   file: File,
-  folder: 'ads' | 'reviews' | 'products' | 'profiles' | 'forum' | 'misc' = 'misc',
+  folder: 'ads' | 'reviews' | 'products' | 'certifications' | 'profiles' | 'forum' | 'misc' = 'misc',
 ): Promise<string> {
   const form = new FormData();
   form.append('file', file);
