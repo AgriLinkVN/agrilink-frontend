@@ -67,30 +67,30 @@ export function SellerProfileTabs({
           </p>
         </div>
 
-        <div className="inline-grid grid-cols-2 rounded-lg border border-hairline bg-white p-1">
+        <div className="grid w-full grid-cols-2 rounded-lg border border-hairline bg-white p-1 sm:w-auto">
           <button
             type="button"
             onClick={() => setActiveTab("products")}
-            className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition ${
+            className={`inline-flex h-9 min-w-0 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold transition sm:px-4 ${
               activeTab === "products"
                 ? "bg-primary text-white"
                 : "text-muted hover:bg-surface-soft hover:text-ink"
             }`}
           >
-            <Package2 size={15} />
-            Sản phẩm
+            <Package2 size={15} className="shrink-0" />
+            <span className="truncate">Sản phẩm</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("reviews")}
-            className={`inline-flex h-9 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition ${
+            className={`inline-flex h-9 min-w-0 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold transition sm:px-4 ${
               activeTab === "reviews"
                 ? "bg-primary text-white"
                 : "text-muted hover:bg-surface-soft hover:text-ink"
             }`}
           >
-            <MessageSquare size={15} />
-            Đánh giá
+            <MessageSquare size={15} className="shrink-0" />
+            <span className="truncate">Đánh giá</span>
           </button>
         </div>
       </div>
@@ -160,7 +160,7 @@ export function SellerProfileTabs({
 
           {products.length > 0 && (
             <div className="border-t border-hairline p-5 text-center">
-              <Button variant="secondary" size="sm" asChild>
+              <Button variant="secondary" size="sm" className="w-full sm:w-auto" asChild>
                 <Link href={`/marketplace?sellerId=${sellerId}`}>Xem toàn bộ sản phẩm</Link>
               </Button>
             </div>

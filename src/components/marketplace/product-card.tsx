@@ -174,10 +174,10 @@ export function ProductListCard({ product }: { product: Product }) {
   return (
     <Link
       href={`/marketplace/${product.id}`}
-      className="group bg-white rounded-2xl border border-hairline card-shadow hover:border-primary/40 hover:shadow-md transition-all duration-200 flex items-stretch gap-0 overflow-hidden"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-hairline bg-white card-shadow transition-all duration-200 hover:border-primary/40 hover:shadow-md sm:flex-row sm:items-stretch"
     >
       {/* Thumbnail */}
-      <div className="w-32 shrink-0 relative">
+      <div className="relative h-40 w-full shrink-0 sm:h-auto sm:w-32">
         <Image
           src={imageUrl}
           alt={product.name}
@@ -193,7 +193,7 @@ export function ProductListCard({ product }: { product: Product }) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 p-4 flex flex-col gap-1.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-4">
         {/* Top meta */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[10px] font-medium text-muted bg-surface-soft px-2 py-0.5 rounded-full">
@@ -217,8 +217,8 @@ export function ProductListCard({ product }: { product: Product }) {
         </h3>
 
         {/* Location + views */}
-        <div className="flex items-center gap-3 text-xs text-muted">
-          <span className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+          <span className="flex min-w-0 items-center gap-1">
             <MapPin size={10} className="text-primary" />{province}
           </span>
           <span className="flex items-center gap-1">
@@ -238,21 +238,21 @@ export function ProductListCard({ product }: { product: Product }) {
       </div>
 
       {/* Price panel */}
-      <div className="flex flex-col items-end justify-between p-4 shrink-0 border-l border-hairline min-w-[120px]">
-        <div className="text-right">
+      <div className="flex shrink-0 flex-col gap-3 border-t border-hairline p-4 sm:min-w-[120px] sm:items-end sm:justify-between sm:border-l sm:border-t-0">
+        <div className="text-left sm:text-right">
           <div className="text-base font-bold text-primary leading-none">
             {Number(product.pricePerUnit).toLocaleString("vi-VN")}đ
           </div>
           <div className="text-[10px] text-muted">/{unitLabel}</div>
         </div>
         {product.minOrderQuantity && product.minOrderQuantity > 1 && (
-          <div className="text-[10px] text-muted text-right">
+          <div className="text-[10px] text-muted sm:text-right">
             Tối thiểu {product.minOrderQuantity} {unitLabel}
           </div>
         )}
         <button
           onClick={(e) => e.preventDefault()}
-          className="flex items-center gap-1.5 text-xs px-3 h-8 rounded-full bg-primary text-white font-medium hover:bg-primary/90 transition-all"
+          className="flex h-8 w-full items-center justify-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-white transition-all hover:bg-primary/90 sm:w-auto"
         >
           <Phone size={11} /> Liên hệ
         </button>

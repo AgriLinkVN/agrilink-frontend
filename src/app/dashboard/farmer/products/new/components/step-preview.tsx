@@ -148,14 +148,14 @@ export function StepPreview({
 
         {/* Product info */}
         <div className="p-5">
-          <div className="flex items-start justify-between gap-3 mb-4">
-            <div>
-              <h3 className="text-lg font-bold text-ink">{data.name || "Chưa đặt tên"}</h3>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h3 className="break-words text-lg font-bold text-ink">{data.name || "Chưa đặt tên"}</h3>
               {category && (
                 <span className="text-xs text-muted">{category.name}</span>
               )}
             </div>
-            <div className="text-right shrink-0">
+            <div className="shrink-0 text-left sm:text-right">
               <p className="text-lg font-bold text-primary">
                 {data.price > 0
                   ? `${data.price.toLocaleString("vi-VN")}đ`
@@ -253,10 +253,10 @@ export function StepPreview({
                       ? CERT_TYPE_LABELS[cert.certType] ?? cert.certType
                       : "Chưa chọn loại"}
                   </p>
-                  <div className="flex items-center gap-2 text-xs text-muted">
-                    {cert.certNumber && <span>Số: {cert.certNumber}</span>}
-                    {cert.issuedBy && <span>• {cert.issuedBy}</span>}
-                  </div>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                  {cert.certNumber && <span>Số: {cert.certNumber}</span>}
+                  {cert.issuedBy && <span>• {cert.issuedBy}</span>}
+                </div>
                 </div>
                 {cert.documentFile && (
                   <FileText size={14} className="text-primary shrink-0" />
@@ -333,18 +333,18 @@ export function StepPreview({
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 mt-8">
+      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
         <Button
           variant="secondary"
           size="lg"
-          className="flex-1"
+          className="w-full sm:flex-1"
           onClick={onBack}
         >
           <ArrowLeft size={18} /> Quay lại
         </Button>
         <Button
           size="lg"
-          className="flex-1"
+          className="w-full sm:flex-1"
           onClick={onSubmit}
           loading={isSubmitting}
           disabled={

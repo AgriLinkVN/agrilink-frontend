@@ -91,7 +91,7 @@ export function StepCertifications({
               key={cert.id}
               className="bg-white rounded-xl border border-hairline p-5 relative"
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-primary-ultra-light flex items-center justify-center">
                     <Award size={16} className="text-primary" />
@@ -124,7 +124,7 @@ export function StepCertifications({
                           updateCert(cert.id, { certType: value })
                         }
                         className={cn(
-                          "px-3 py-2 rounded-lg border text-sm font-medium transition-all",
+                          "min-w-0 rounded-lg border px-3 py-2 text-sm font-medium transition-all",
                           cert.certType === value
                             ? "border-primary bg-surface-green text-primary"
                             : "border-hairline bg-white text-muted hover:border-primary-light"
@@ -202,9 +202,9 @@ export function StepCertifications({
                       </button>
                     </div>
                   ) : (
-                    <label className="flex items-center gap-3 p-3 bg-surface-soft rounded-lg border border-dashed border-hairline cursor-pointer hover:border-primary-light hover:bg-surface-green transition-all">
-                      <Upload size={16} className="text-muted" />
-                      <span className="text-sm text-muted">
+                    <label className="flex min-w-0 items-center gap-3 rounded-lg border border-dashed border-hairline bg-surface-soft p-3 transition-all hover:border-primary-light hover:bg-surface-green">
+                      <Upload size={16} className="shrink-0 text-muted" />
+                      <span className="min-w-0 text-sm text-muted">
                         Tải lên ảnh hoặc PDF giấy chứng nhận
                       </span>
                       <input
@@ -237,16 +237,16 @@ export function StepCertifications({
       </button>
 
       {/* Actions */}
-      <div className="flex gap-3 mt-8">
+      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
         <Button
           variant="secondary"
           size="lg"
-          className="flex-1"
+          className="w-full sm:flex-1"
           onClick={onBack}
         >
           <ArrowLeft size={18} /> Quay lại
         </Button>
-        <Button size="lg" className="flex-1" onClick={onNext}>
+        <Button size="lg" className="w-full sm:flex-1" onClick={onNext}>
           Tiếp theo: Xem trước <ArrowRight size={18} />
         </Button>
       </div>

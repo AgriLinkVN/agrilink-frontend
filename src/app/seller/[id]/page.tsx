@@ -279,12 +279,12 @@ export default async function SellerProfilePage({ params }: PageProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/10" />
 
           <div className="relative z-10 mx-auto flex min-h-[360px] max-w-7xl flex-col justify-end px-4 pb-8 pt-24 sm:px-6 lg:px-8">
-            <div className="mb-5 flex items-center gap-2 text-sm text-white/75">
+            <div className="mb-5 flex min-w-0 flex-wrap items-center gap-2 text-sm text-white/75">
               <Link href="/" className="hover:text-white">Trang chủ</Link>
               <ChevronRight size={14} />
               <Link href="/marketplace" className="hover:text-white">Sàn nông sản</Link>
               <ChevronRight size={14} />
-              <span className="font-medium text-white">{displayName}</span>
+              <span className="min-w-0 max-w-full truncate font-medium text-white">{displayName}</span>
             </div>
 
             <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
@@ -326,28 +326,28 @@ export default async function SellerProfilePage({ params }: PageProps) {
                     )}
                   </div>
 
-                  <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{displayName}</h1>
+                  <h1 className="break-words text-3xl font-bold leading-tight sm:text-4xl">{displayName}</h1>
                   {seller?.fullName && seller.fullName !== orgName && (
                     <p className="mt-1 text-sm text-white/80">{seller.fullName}</p>
                   )}
-                  <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-white/80">
-                    <span className="inline-flex items-center gap-1">
-                      <MapPin size={14} />
-                      {province}
+                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-white/80">
+                    <span className="inline-flex min-w-0 items-center gap-1">
+                      <MapPin size={14} className="shrink-0" />
+                      <span className="truncate">{province}</span>
                     </span>
                     <span className="inline-flex items-center gap-1">
-                      <Package2 size={14} />
+                      <Package2 size={14} className="shrink-0" />
                       {products.length.toLocaleString("vi-VN")} sản phẩm đang bán
                     </span>
                     {seller?.experienceYears != null && (
                       <span className="inline-flex items-center gap-1">
-                        <TrendingUp size={14} />
+                        <TrendingUp size={14} className="shrink-0" />
                         {seller.experienceYears} năm kinh nghiệm
                       </span>
                     )}
                     {seller?.memberCount != null && (
                       <span className="inline-flex items-center gap-1">
-                        <Users size={14} />
+                        <Users size={14} className="shrink-0" />
                         {seller.memberCount} thành viên
                       </span>
                     )}
@@ -394,7 +394,7 @@ export default async function SellerProfilePage({ params }: PageProps) {
               { label: "Tồn kho", value: totalQuantity.toLocaleString("vi-VN") },
             ].map((item) => (
               <div key={item.label} className="bg-white px-4 py-5 text-center">
-                <p className="text-2xl font-bold text-ink">{item.value}</p>
+                <p className="break-words text-2xl font-bold text-ink">{item.value}</p>
                 <p className="mt-1 text-xs font-medium uppercase tracking-wide text-muted">{item.label}</p>
               </div>
             ))}

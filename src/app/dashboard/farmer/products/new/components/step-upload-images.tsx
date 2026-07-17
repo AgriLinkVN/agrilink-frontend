@@ -148,7 +148,7 @@ export function StepUploadImages({
       {/* Image grid */}
       {data.images.length > 0 && (
         <div className="mt-6">
-          <div className="flex items-center justify-between mb-3">
+          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm font-medium text-ink">
               Ảnh đã tải ({data.images.length}/{MAX_IMAGES})
             </p>
@@ -253,18 +253,18 @@ export function StepUploadImages({
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 mt-8">
+      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
         <Button
           variant="secondary"
           size="lg"
-          className="flex-1"
+          className="w-full sm:flex-1"
           onClick={onBack}
         >
           <ArrowLeft size={18} /> Quay lại
         </Button>
         <Button
           size="lg"
-          className="flex-1"
+          className="w-full sm:flex-1"
           disabled={!canProceed}
           onClick={onNext}
         >
