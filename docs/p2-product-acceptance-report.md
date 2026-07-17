@@ -16,8 +16,8 @@ Merged fix branches:
 
 Current phase branch:
 
-- Backend: `feature/p2-deploy-readiness`
-- Frontend: `feature/p2-deploy-readiness`
+- Backend: no active backend branch for this frontend-only phase
+- Frontend: `feature/p2-marketplace-filter-completion`
 
 ## Key Findings
 
@@ -35,6 +35,9 @@ Current phase branch:
 - Product detail SEO now includes canonical URL, Open Graph/Twitter image metadata, Product JSON-LD, and sitemap product URLs.
 - Search product cards now use `next/image`; product detail price/meta layout has safer mobile wrapping.
 - Deploy tasks are intentionally deferred, but deploy readiness has been documented through `.env.example` templates and `docs/p2-deploy-readiness.md` checklists in both repositories.
+- Marketplace price inputs are now controlled filters: they reset pagination with the rest of the marketplace query, pass `minPrice`/`maxPrice` into `useQuery`, and are also applied client-side so fallback/mock data follows the same filter rules.
+- Marketplace multi-select farming filters now work consistently. When more than one farming type is selected, products are filtered client-side instead of silently dropping the farming filter from the API request.
+- Product list fetches now preserve a valid empty backend result instead of replacing it with mock products, so search/filter empty states are truthful.
 
 ## Suggested Sprint Status
 
@@ -44,7 +47,7 @@ Current phase branch:
 | I1-9 Cloudinary upload service | TRUE | Backend storage/upload flow and validation exist; product form uses backend storage helpers for images and certification files. |
 | I1-10 CRUD API product | TRUE | Fixed seller auth mapping, DTO surface, and owner checks. |
 | I2-6 Multi-step create product page | TRUE | Submit flow now matches backend API shape. |
-| I2-7 Search/filter page | TRUE/PARTIAL | Search, filters, sort, infinite scroll exist; public list intentionally shows active products only. |
+| I2-7 Search/filter page | TRUE/PARTIAL | Search, category/province/farming/price filters, sort, infinite scroll/search pagination exist; marketplace price + multi-farming filters were completed in this phase. Public list intentionally shows active products only, so an explicit public status filter still needs a product decision if required. |
 | I2-8 Product detail + contact | TRUE | Gallery, contact buttons, seller card, certifications, metadata exist. |
 | I2-9 Wishlist API + UI | TRUE | Detail/search hearts hydrate from `/wishlist/ids`, use shared API helpers, support optimistic add/remove, login prompt, buyer wishlist loading/empty/remove states. |
 | I2-10 Staging deploy | FALSE | Deferred by decision; deploy readiness checklist and env template are prepared. |
@@ -79,5 +82,7 @@ Current phase branch:
 - Phase 8 backend `npm run build`: passed.
 - Phase 8 frontend `npm run build`: passed.
 - Phase 8 frontend `npm run lint`: blocked by pre-existing lint errors outside the deploy-readiness docs/env scope.
+- Phase marketplace filter completion frontend `npm run lint`: passed.
+- Phase marketplace filter completion frontend `npm run build`: passed.
 - Full backend test suite was not rerun in this pass.
 
