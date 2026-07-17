@@ -1,24 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../api";
 import type { ApiProductCategory } from "@/types/search";
 
 export function useCategories() {
-  const [data, setData] = useState<ApiProductCategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery({
+    queryKey: ["categories", "tree"],
+    queryFn: ({ signal }) =>
+      apiGet<ApiProductCategory[]>("/products/categories/tree", undefined, signal),
+    staleTime: 10 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    const ac = new AbortController();
-    apiGet<ApiProductCategory[]>("/products/categories/tree", undefined, ac.signal)
-      .then((res) => setData(res))
-      .catch((e) => {
-        if (e.name !== "AbortError") setError(e.message);
-      })
-      .finally(() => setLoading(false));
-    return () => ac.abort();
-  }, []);
-
-  return { data, loading, error };
+  return {
+    data: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error instanceof Error ? query.error.message : null,
+  };
 }

@@ -1,34 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useMemo } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { apiGet } from "../api";
 import type {
-  ApiProduct,
   ProductListResponse,
   SearchFilter,
 } from "@/types/search";
 
 const PAGE_SIZE = 20;
-
-interface State {
-  items: ApiProduct[];
-  total: number;
-  page: number;
-  loading: boolean;
-  loadingMore: boolean;
-  error: string | null;
-  hasMore: boolean;
-}
-
-const initialState: State = {
-  items: [],
-  total: 0,
-  page: 0,
-  loading: true,
-  loadingMore: false,
-  error: null,
-  hasMore: true,
-};
 
 function buildParams(filter: SearchFilter, page: number) {
   return {
@@ -46,79 +26,48 @@ function buildParams(filter: SearchFilter, page: number) {
 }
 
 export function useSearchProducts(filter: SearchFilter) {
-  const [state, setState] = useState<State>(initialState);
-  const filterKey = JSON.stringify(filter);
-  const abortRef = useRef<AbortController | null>(null);
-
-  // Reset + fetch page 1 whenever filter changes
-  useEffect(() => {
-    abortRef.current?.abort();
-    const ac = new AbortController();
-    abortRef.current = ac;
-
-    const resetTimer = window.setTimeout(() => {
-      setState({ ...initialState });
-    }, 0);
-
-    apiGet<ProductListResponse>(
-      "/products",
-      buildParams(filter, 1),
-      ac.signal,
-    )
-      .then((res) => {
-        setState({
-          items: res.data,
-          total: res.total,
-          page: 1,
-          loading: false,
-          loadingMore: false,
-          error: null,
-          hasMore: res.data.length === PAGE_SIZE && res.data.length < res.total,
-        });
-      })
-      .catch((e) => {
-        if (e.name === "AbortError") return;
-        setState((s) => ({ ...s, loading: false, error: e.message }));
-      });
-
-    return () => {
-      window.clearTimeout(resetTimer);
-      ac.abort();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterKey]);
-
-  const loadMore = useCallback(() => {
-    setState((s) => {
-      if (s.loading || s.loadingMore || !s.hasMore) return s;
-      const nextPage = s.page + 1;
-
-      const ac = new AbortController();
+  const query = useInfiniteQuery({
+    queryKey: ["products", "search", filter],
+    queryFn: ({ pageParam, signal }) =>
       apiGet<ProductListResponse>(
         "/products",
-        buildParams(filter, nextPage),
-        ac.signal,
-      )
-        .then((res) => {
-          setState((prev) => {
-            const items = [...prev.items, ...res.data];
-            return {
-              ...prev,
-              items,
-              page: nextPage,
-              loadingMore: false,
-              hasMore: res.data.length === PAGE_SIZE && items.length < res.total,
-            };
-          });
-        })
-        .catch((e) => {
-          if (e.name === "AbortError") return;
-          setState((prev) => ({ ...prev, loadingMore: false, error: e.message }));
-        });
+        buildParams(filter, pageParam),
+        signal,
+      ),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, pages) => {
+      const loaded = pages.reduce((sum, page) => sum + page.data.length, 0);
+      if (lastPage.data.length < PAGE_SIZE || loaded >= lastPage.total) return undefined;
+      return pages.length + 1;
+    },
+    staleTime: 30_000,
+  });
 
-      return { ...s, loadingMore: true };
-    });
-  }, [filter]);
+  const items = useMemo(
+    () => query.data?.pages.flatMap((page) => page.data) ?? [],
+    [query.data],
+  );
+  const total = query.data?.pages[0]?.total ?? 0;
+  const {
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isPending,
+  } = query;
 
-  return { ...state, loadMore };
+  const loadMore = useCallback(() => {
+    if (isPending || isFetchingNextPage || !hasNextPage) return;
+    void fetchNextPage();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, isPending]);
+
+  return {
+    items,
+    total,
+    page: query.data?.pages.length ?? 0,
+    loading: isPending,
+    loadingMore: isFetchingNextPage,
+    error: query.error instanceof Error ? query.error.message : null,
+    hasMore: hasNextPage,
+    loadMore,
+  };
 }

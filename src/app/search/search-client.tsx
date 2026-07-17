@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { SlidersHorizontal } from "lucide-react";
 
 import { Navbar } from "@/components/layout/navbar";
@@ -50,7 +51,10 @@ export function SearchClient({ initialFilter }: Props) {
     ...initialFilter,
   });
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const [wishlistedIds, setWishlistedIds] = useState<Set<string>>(new Set());
+  const [wishlistOverrides, setWishlistOverrides] = useState<{
+    token: string | null;
+    values: Record<string, boolean>;
+  }>({ token: null, values: {} });
 
   const { data: categories } = useCategories();
   const { data: provinces } = useProvinces();
@@ -62,29 +66,24 @@ export function SearchClient({ initialFilter }: Props) {
   const { items, total, loading, loadingMore, error, hasMore, loadMore } =
     useSearchProducts(filter);
 
-  useEffect(() => {
-    let cancelled = false;
+  const { data: wishlistIds = [] } = useQuery({
+    queryKey: ["wishlist", "ids", accessToken],
+    queryFn: () => api.get<string[]>("/wishlist/ids", accessToken),
+    enabled: !!accessToken,
+    staleTime: 30_000,
+  });
+  const wishlistedIds = useMemo(() => {
+    if (!accessToken) return new Set<string>();
 
-    const loadWishlistIds = async () => {
-      if (!accessToken) {
-        setWishlistedIds(new Set());
-        return;
-      }
-
-      try {
-        const ids = await api.get<string[]>("/wishlist/ids", accessToken);
-        if (!cancelled) setWishlistedIds(new Set(ids));
-      } catch {
-        if (!cancelled) setWishlistedIds(new Set());
-      }
-    };
-
-    void loadWishlistIds();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken]);
+    const ids = new Set(wishlistIds);
+    const overrides =
+      wishlistOverrides.token === accessToken ? wishlistOverrides.values : {};
+    for (const [productId, active] of Object.entries(overrides)) {
+      if (active) ids.add(productId);
+      else ids.delete(productId);
+    }
+    return ids;
+  }, [accessToken, wishlistIds, wishlistOverrides]);
 
   // Sync URL when filter changes (replace, not push — không spam history)
   useEffect(() => {
@@ -101,13 +100,14 @@ export function SearchClient({ initialFilter }: Props) {
   }, []);
 
   const updateWishlistState = useCallback((productId: string, active: boolean) => {
-    setWishlistedIds((current) => {
-      const next = new Set(current);
-      if (active) next.add(productId);
-      else next.delete(productId);
-      return next;
-    });
-  }, []);
+    setWishlistOverrides((current) => ({
+      token: accessToken,
+      values: {
+        ...(current.token === accessToken ? current.values : {}),
+        [productId]: active,
+      },
+    }));
+  }, [accessToken]);
 
   return (
     <div className="min-h-screen bg-canvas">
