@@ -16,8 +16,8 @@ Merged fix branches:
 
 Current phase branch:
 
-- Backend: `feature/p2-status-certification-hardening`
-- Frontend: `feature/p2-status-certification-hardening`
+- Backend: `feature/p2-deploy-readiness`
+- Frontend: `feature/p2-deploy-readiness`
 
 ## Key Findings
 
@@ -34,6 +34,7 @@ Current phase branch:
 - Public `/seller/:id` now exists. It builds a public seller profile from active seller products, product detail seller data, and product review endpoints.
 - Product detail SEO now includes canonical URL, Open Graph/Twitter image metadata, Product JSON-LD, and sitemap product URLs.
 - Search product cards now use `next/image`; product detail price/meta layout has safer mobile wrapping.
+- Deploy tasks are intentionally deferred, but deploy readiness has been documented through `.env.example` templates and `docs/p2-deploy-readiness.md` checklists in both repositories.
 
 ## Suggested Sprint Status
 
@@ -46,15 +47,15 @@ Current phase branch:
 | I2-7 Search/filter page | TRUE/PARTIAL | Search, filters, sort, infinite scroll exist; public list intentionally shows active products only. |
 | I2-8 Product detail + contact | TRUE | Gallery, contact buttons, seller card, certifications, metadata exist. |
 | I2-9 Wishlist API + UI | TRUE | Detail/search hearts hydrate from `/wishlist/ids`, use shared API helpers, support optimistic add/remove, login prompt, buyer wishlist loading/empty/remove states. |
-| I2-10 Staging deploy | FALSE | No staging URL or smoke-test evidence available locally. |
+| I2-10 Staging deploy | FALSE | Deferred by decision; deploy readiness checklist and env template are prepared. |
 | I3-5 Product status flow | TRUE | Transition API/service exists, seller owner listing now supports all statuses, seller dashboard exposes valid transitions, admin pending count uses `pending_approval`, and notifications are created through the notification gateway. |
 | I3-6 Public seller profile | TRUE | `/seller/:id` shows avatar, seller type, trust score, stats, contact actions, active products, verified certifications, and a reviews tab. |
 | I3-7 Certification badge + verify flow | TRUE | Seller upload/display, verified badges, backend pending/verify endpoints, and state-agency verification UI exist; reject now requires a reason before submit. |
-| I3-8 Cloudinary production key | FALSE | Cannot verify production secrets from local code. |
+| I3-8 Cloudinary production key | FALSE | Deferred until production Cloudinary account/preset is provided; required env keys are documented. |
 | I4-5 SEO product metadata | TRUE | Dynamic title/description, canonical, Open Graph/Twitter image metadata, Product JSON-LD, sitemap.xml, and robots.txt exist. |
 | I4-6 Image optimization + skeleton | TRUE | Product detail/search/marketplace product surfaces use Next/Image and product detail has loading skeleton. |
 | I4-7 Mobile responsive product pages | TRUE/PARTIAL | Product detail/search card wrapping was hardened and build passed; manual viewport QA on real device/staging is still recommended. |
-| I4-8 Production deploy/test search | FALSE | No production deployment evidence available locally. |
+| I4-8 Production deploy/test search | FALSE | Deferred by decision; production smoke checklist is documented for later execution. |
 
 ## Verification
 
@@ -74,5 +75,9 @@ Current phase branch:
 - Phase 6 frontend targeted ESLint for seller products, certification review, and shared product status types: passed.
 - Phase 6 frontend `npm run build`: passed.
 - Phase 6 local smoke test: `/dashboard/farmer/products` and `/dashboard/state/certifications` returned 200 on `http://localhost:3001`.
+- Phase 8 deploy-readiness docs/env templates added while keeping deploy tasks FALSE.
+- Phase 8 backend `npm run build`: passed.
+- Phase 8 frontend `npm run build`: passed.
+- Phase 8 frontend `npm run lint`: blocked by pre-existing lint errors outside the deploy-readiness docs/env scope.
 - Full backend test suite was not rerun in this pass.
 
