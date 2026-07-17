@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { fetchProducts, getPrimaryImage, type Product } from "@/lib/products-api";
+import { useQuery } from "@tanstack/react-query";
+import { fetchProducts, getPrimaryImage } from "@/lib/products-api";
 
 interface Props {
   categoryId: string | null;
@@ -15,7 +16,6 @@ function formatPriceVND(n: number): string {
 }
 
 export function SimilarProducts({ categoryId, excludeId }: Props) {
-  const [items, setItems] = useState<Product[] | null>(null);
   const ref = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
 
@@ -36,30 +36,26 @@ export function SimilarProducts({ categoryId, excludeId }: Props) {
     return () => io.disconnect();
   }, [visible]);
 
-  useEffect(() => {
-    if (!visible) return;
-    let cancel = false;
-    (async () => {
+  const { data: items, isPending } = useQuery({
+    queryKey: ["products", "similar", categoryId, excludeId],
+    queryFn: async ({ signal }) => {
       const res = await fetchProducts({
         limit: 8,
         categoryId: categoryId ?? undefined,
-      });
-      if (cancel) return;
-      const filtered = res.data
+      }, signal);
+      return res.data
         .filter((p) => p.id !== excludeId)
         .slice(0, 4);
-      setItems(filtered);
-    })();
-    return () => {
-      cancel = true;
-    };
-  }, [visible, categoryId, excludeId]);
+    },
+    enabled: visible,
+    staleTime: 30_000,
+  });
 
   return (
     <section ref={ref} className="mt-10">
       <h2 className="text-lg font-semibold mb-4">Sản phẩm tương tự</h2>
 
-      {!items && (
+      {isPending && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <div

@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ElementType } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { FarmingBadge } from "@/components/ui/badge";
@@ -112,13 +113,31 @@ function getCertificationSummary(product: Product) {
 export default function FarmerProductsPage() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProductStatus>("all");
-  const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const productsQueryKey = ["farmer", "products", accessToken] as const;
+  const {
+    data: productResult,
+    isPending,
+    isFetching,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: productsQueryKey,
+    queryFn: () => api.get<ProductListResponse>(`/products/me?${buildProductsQuery()}`, accessToken),
+    enabled: !!accessToken,
+    staleTime: 30_000,
+  });
+  const products = useMemo(() => productResult?.data ?? [], [productResult?.data]);
+  const total = productResult?.total ?? products.length;
+  const loading = !!accessToken && isPending;
+  const error =
+    actionError ??
+    (!accessToken ? "Vui lòng đăng nhập bằng tài khoản người bán để quản lý sản phẩm." : null) ??
+    (queryError instanceof Error ? queryError.message : null);
 
   const statusCounts = useMemo(() => {
     return products.reduce<Record<string, number>>(
@@ -146,78 +165,57 @@ export default function FarmerProductsPage() {
     });
   }, [products, searchQuery, statusFilter]);
 
-  const loadProducts = useCallback(async () => {
-    if (!accessToken) {
-      setProducts([]);
-      setTotal(0);
-      setLoading(false);
-      setError("Vui lòng đăng nhập bằng tài khoản người bán để quản lý sản phẩm.");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      const query = buildProductsQuery();
-      const result = await api.get<ProductListResponse>(`/products/me?${query}`, accessToken);
-      setProducts(result.data ?? []);
-      setTotal(result.total ?? result.data?.length ?? 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Không tải được danh sách sản phẩm");
-      setProducts([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  }, [accessToken]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void loadProducts();
-    }, 250);
-
-    return () => window.clearTimeout(timer);
-  }, [loadProducts]);
-
-  const updateStatus = async (product: Product, nextStatus: ProductStatusTarget) => {
-    if (!accessToken) {
-      setError("Vui lòng đăng nhập để đổi trạng thái sản phẩm.");
-      return;
-    }
-
-    if (nextStatus === "active" && product.availableQuantity <= 0) {
-      setError("Sản phẩm cần có tồn kho lớn hơn 0 trước khi mở bán lại.");
-      return;
-    }
-
-    setActionId(product.id);
-    setError(null);
-    try {
+  const statusMutation = useMutation({
+    mutationFn: async ({
+      product,
+      nextStatus,
+    }: {
+      product: Product;
+      nextStatus: ProductStatusTarget;
+    }) => {
+      if (!accessToken) throw new Error("Vui lòng đăng nhập để đổi trạng thái sản phẩm.");
+      if (nextStatus === "active" && product.availableQuantity <= 0) {
+        throw new Error("Sản phẩm cần có tồn kho lớn hơn 0 trước khi mở bán lại.");
+      }
       const updated = await api.patch<Product>(
         `/products/${product.id}/status`,
         { status: nextStatus },
         accessToken,
       );
+      return { product, updated };
+    },
+    onMutate: ({ product }) => {
+      setActionId(product.id);
+      setActionError(null);
+    },
+    onSuccess: ({ product, updated }) => {
+      queryClient.setQueryData<ProductListResponse>(productsQueryKey, (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          data: current.data.map((item) =>
+            item.id === product.id
+              ? {
+                  ...item,
+                  ...updated,
+                  images: updated.images?.length ? updated.images : item.images,
+                  certifications: updated.certifications?.length
+                    ? updated.certifications
+                    : item.certifications,
+                }
+              : item,
+          ),
+        };
+      });
+    },
+    onError: (err) => {
+      setActionError(err instanceof Error ? err.message : "Không cập nhật được trạng thái sản phẩm");
+    },
+    onSettled: () => setActionId(null),
+  });
 
-      setProducts((prev) =>
-        prev.map((item) =>
-          item.id === product.id
-            ? {
-                ...item,
-                ...updated,
-                images: updated.images?.length ? updated.images : item.images,
-                certifications: updated.certifications?.length
-                  ? updated.certifications
-                  : item.certifications,
-              }
-            : item,
-        ),
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Không cập nhật được trạng thái sản phẩm");
-    } finally {
-      setActionId(null);
-    }
+  const updateStatus = async (product: Product, nextStatus: ProductStatusTarget) => {
+    statusMutation.mutate({ product, nextStatus });
   };
 
   return (
@@ -228,7 +226,15 @@ export default function FarmerProductsPage() {
       pageDescription={`${total} sản phẩm đang quản lý`}
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={() => void loadProducts()} loading={loading}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setActionError(null);
+              void refetch();
+            }}
+            loading={isFetching}
+          >
             <RefreshCcw size={14} /> Tải lại
           </Button>
           <Button asChild>

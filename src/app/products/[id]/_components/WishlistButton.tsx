@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
@@ -13,38 +14,50 @@ interface Props {
 
 export function WishlistButton({ productId, initialActive = false }: Props) {
   const accessToken = useAuthStore((s) => s.accessToken);
-  const [active, setActive] = useState(initialActive);
-  const [loadingState, setLoadingState] = useState(false);
-  const [pending, startTransition] = useTransition();
+  const queryClient = useQueryClient();
+  const [optimisticActive, setOptimisticActive] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const wishlistIdsQueryKey = useMemo(
+    () => ["wishlist", "ids", accessToken] as const,
+    [accessToken],
+  );
+  const { data: wishlistIds, isLoading } = useQuery({
+    queryKey: wishlistIdsQueryKey,
+    queryFn: () => api.get<string[]>("/wishlist/ids", accessToken),
+    enabled: !!accessToken,
+    staleTime: 30_000,
+  });
+  const serverActive = accessToken
+    ? wishlistIds?.includes(productId) ?? initialActive
+    : false;
+  const active = optimisticActive ?? serverActive;
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadState = async () => {
-      if (!accessToken) {
-        setActive(false);
-        return;
-      }
-
-      setLoadingState(true);
-      try {
-        const ids = await api.get<string[]>("/wishlist/ids", accessToken);
-        if (!cancelled) setActive(ids.includes(productId));
-      } catch {
-        if (!cancelled) setActive(initialActive);
-      } finally {
-        if (!cancelled) setLoadingState(false);
-      }
-    };
-
-    void loadState();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken, initialActive, productId]);
+  const toggleMutation = useMutation({
+    mutationFn: async (next: boolean) => {
+      if (!accessToken) throw new Error("Bạn cần đăng nhập để lưu sản phẩm.");
+      if (next) await api.post(`/wishlist/${productId}`, undefined, accessToken);
+      else await api.delete(`/wishlist/${productId}`, accessToken);
+      return next;
+    },
+    onMutate: (next) => {
+      setError(null);
+      setOptimisticActive(next);
+    },
+    onSuccess: (next) => {
+      queryClient.setQueryData<string[]>(wishlistIdsQueryKey, (current) => {
+        const ids = new Set(current ?? []);
+        if (next) ids.add(productId);
+        else ids.delete(productId);
+        return Array.from(ids);
+      });
+      setOptimisticActive(null);
+    },
+    onError: () => {
+      setOptimisticActive(null);
+      setError("Không thể cập nhật, vui lòng thử lại");
+    },
+  });
 
   const toggle = () => {
     setError(null);
@@ -55,32 +68,21 @@ export function WishlistButton({ productId, initialActive = false }: Props) {
       return;
     }
 
-    const next = !active;
-    setActive(next);
-
-    startTransition(async () => {
-      try {
-        if (next) await api.post(`/wishlist/${productId}`, undefined, accessToken);
-        else await api.delete(`/wishlist/${productId}`, accessToken);
-      } catch {
-        setActive(!next);
-        setError("Không thể cập nhật, vui lòng thử lại");
-      }
-    });
+    toggleMutation.mutate(!active);
   };
 
   return (
     <div className="flex flex-col items-end gap-1">
       <button
         onClick={toggle}
-        disabled={pending || loadingState}
+        disabled={toggleMutation.isPending || (!!accessToken && isLoading)}
         aria-label={active ? "Bỏ khỏi yêu thích" : "Lưu vào yêu thích"}
         aria-pressed={active}
         className={`p-2.5 rounded-full border transition ${
           active
             ? "border-rose-300 bg-rose-50 text-rose-500"
             : "border-hairline bg-white hover:bg-surface-soft text-muted"
-        } ${pending ? "opacity-60 cursor-not-allowed" : ""}`}
+        } ${toggleMutation.isPending ? "opacity-60 cursor-not-allowed" : ""}`}
       >
         <Heart
           size={18}
