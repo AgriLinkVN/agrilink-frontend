@@ -17,7 +17,7 @@ Merged fix branches:
 Current phase branch:
 
 - Backend: no active backend branch for this frontend-only phase
-- Frontend: `feature/p2-marketplace-filter-completion`
+- Frontend: `feature/p2-product-responsive-polish`
 
 ## Key Findings
 
@@ -38,6 +38,7 @@ Current phase branch:
 - Marketplace price inputs are now controlled filters: they reset pagination with the rest of the marketplace query, pass `minPrice`/`maxPrice` into `useQuery`, and are also applied client-side so fallback/mock data follows the same filter rules.
 - Marketplace multi-select farming filters now work consistently. When more than one farming type is selected, products are filtered client-side instead of silently dropping the farming filter from the API request.
 - Product list fetches now preserve a valid empty backend result instead of replacing it with mock products, so search/filter empty states are truthful.
+- Public product surfaces are responsive across the 375px-768px target range: marketplace toolbar/list cards, seller profile tabs, seller product management, and the multi-step product creation flow now stack, wrap, or scroll instead of forcing horizontal overflow.
 
 ## Suggested Sprint Status
 
@@ -47,7 +48,7 @@ Current phase branch:
 | I1-9 Cloudinary upload service | TRUE | Backend storage/upload flow and validation exist; product form uses backend storage helpers for images and certification files. |
 | I1-10 CRUD API product | TRUE | Fixed seller auth mapping, DTO surface, and owner checks. |
 | I2-6 Multi-step create product page | TRUE | Submit flow now matches backend API shape. |
-| I2-7 Search/filter page | TRUE/PARTIAL | Search, category/province/farming/price filters, sort, infinite scroll/search pagination exist; marketplace price + multi-farming filters were completed in this phase. Public list intentionally shows active products only, so an explicit public status filter still needs a product decision if required. |
+| I2-7 Search/filter page | TRUE | Search, category/province/farming/price filters, sort, infinite scroll/search pagination exist. Public list intentionally shows active products only; seller/admin status filtering lives in authenticated product-management surfaces. |
 | I2-8 Product detail + contact | TRUE | Gallery, contact buttons, seller card, certifications, metadata exist. |
 | I2-9 Wishlist API + UI | TRUE | Detail/search hearts hydrate from `/wishlist/ids`, use shared API helpers, support optimistic add/remove, login prompt, buyer wishlist loading/empty/remove states. |
 | I2-10 Staging deploy | FALSE | Deferred by decision; deploy readiness checklist and env template are prepared. |
@@ -57,7 +58,7 @@ Current phase branch:
 | I3-8 Cloudinary production key | FALSE | Deferred until production Cloudinary account/preset is provided; required env keys are documented. |
 | I4-5 SEO product metadata | TRUE | Dynamic title/description, canonical, Open Graph/Twitter image metadata, Product JSON-LD, sitemap.xml, and robots.txt exist. |
 | I4-6 Image optimization + skeleton | TRUE | Product detail/search/marketplace product surfaces use Next/Image and product detail has loading skeleton. |
-| I4-7 Mobile responsive product pages | TRUE/PARTIAL | Product detail/search card wrapping was hardened and build passed; manual viewport QA on real device/staging is still recommended. |
+| I4-7 Mobile responsive product pages | TRUE | Marketplace, search/product cards, product detail, seller profile, seller product management, and new-product form were hardened for 375px-768px responsive behavior; local route smoke tests passed. |
 | I4-8 Production deploy/test search | FALSE | Deferred by decision; production smoke checklist is documented for later execution. |
 
 ## Verification
@@ -84,5 +85,8 @@ Current phase branch:
 - Phase 8 frontend `npm run lint`: blocked by pre-existing lint errors outside the deploy-readiness docs/env scope.
 - Phase marketplace filter completion frontend `npm run lint`: passed.
 - Phase marketplace filter completion frontend `npm run build`: passed.
+- Phase responsive polish frontend `npm run lint`: passed.
+- Phase responsive polish frontend `npm run build`: passed.
+- Phase responsive polish local smoke test on `http://localhost:3002`: `/marketplace`, `/search`, `/products/mock-1`, `/marketplace/mock-1`, `/seller/mock-seller-1`, `/dashboard/farmer/products`, and `/dashboard/farmer/products/new` returned 200.
 - Full backend test suite was not rerun in this pass.
 
