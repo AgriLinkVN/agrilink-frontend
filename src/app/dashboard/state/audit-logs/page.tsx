@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Loader2, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,43 +34,35 @@ interface PaginatedAuditLogs {
 const hasChanges = (changes: unknown): changes is object =>
   changes !== null && changes !== undefined;
 
-function apiFetch<T>(path: string): Promise<ApiEnvelope<T> | T> {
+function apiFetch<T>(path: string, signal?: AbortSignal): Promise<ApiEnvelope<T> | T> {
   const token = getToken();
   return fetch(`${API}/api/v1${path}`, {
+    signal,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   }).then((r) => r.json());
 }
 
 export default function StateAuditLogsPage() {
   const user = useAuthStore((s) => s.user);
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
   const limit = 20;
 
-  const loadLogs = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: payload, isPending: loading } = useQuery({
+    queryKey: ["state", "audit-logs", page, limit],
+    queryFn: async ({ signal }) => {
       const res = await apiFetch<PaginatedAuditLogs>(
         `/admin/audit-logs?page=${page}&limit=${limit}`,
+        signal,
       );
       const data = "data" in Object(res) ? (res as ApiEnvelope<PaginatedAuditLogs>).data ?? res : res;
-      const payload = data as PaginatedAuditLogs;
-      setLogs(payload.data ?? []);
-      setTotal(payload.total ?? 0);
-    } finally {
-      setLoading(false);
-    }
-  }, [page]);
+      return data as PaginatedAuditLogs;
+    },
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void loadLogs();
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [loadLogs]);
-
+  const logs = payload?.data ?? [];
+  const total = payload?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (

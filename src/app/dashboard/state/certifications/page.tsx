@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Award, Check, ExternalLink, FileText, RefreshCcw, X } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -49,71 +50,55 @@ function formatDate(date: string | null) {
 export default function StateCertificationsPage() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
-  const [items, setItems] = useState<PendingCertification[]>([]);
   const [reasons, setReasons] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
   const [documentActionId, setDocumentActionId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const loadCertifications = async () => {
-    if (!accessToken) {
-      setLoading(false);
-      setError("Vui lòng đăng nhập bằng tài khoản admin hoặc cơ quan quản lý.");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setNotice(null);
-    try {
-      const data = await api.get<PendingCertification[]>(
+  const certificationsQuery = useQuery({
+    queryKey: ["state", "certifications", "pending"],
+    queryFn: () =>
+      api.get<PendingCertification[]>(
         "/products/certifications/pending",
         accessToken,
-      );
-      setItems(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Không tải được danh sách chứng nhận");
-    } finally {
-      setLoading(false);
-    }
-  };
+      ),
+    enabled: !!accessToken,
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void loadCertifications();
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken]);
-
-  const verify = async (certId: string, status: "verified" | "rejected") => {
-    if (!accessToken) {
-      setError("Vui lòng đăng nhập để duyệt chứng nhận.");
-      return;
-    }
-
-    const rejectionReason = reasons[certId]?.trim();
-    if (status === "rejected" && !rejectionReason) {
-      setError("Vui lòng nhập lý do từ chối chứng nhận");
-      return;
-    }
-
-    setActionId(certId);
-    setError(null);
-    setNotice(null);
-    try {
+  const verifyMutation = useMutation({
+    mutationFn: async ({
+      certId,
+      status,
+      rejectionReason,
+    }: {
+      certId: string;
+      status: "verified" | "rejected";
+      rejectionReason?: string;
+    }) => {
+      if (!accessToken) throw new Error("Vui lòng đăng nhập để duyệt chứng nhận.");
       await api.patch(
         `/products/certifications/${certId}/verify`,
         {
           status,
-          rejectionReason: status === "rejected" ? rejectionReason : undefined,
+          rejectionReason,
         },
         accessToken,
       );
-      setItems((prev) => prev.filter((item) => item.id !== certId));
+      return { certId, status };
+    },
+    onMutate: ({ certId }) => {
+      setActionId(certId);
+      setActionError(null);
+      setNotice(null);
+    },
+    onSuccess: ({ certId, status }) => {
+      queryClient.setQueryData<PendingCertification[]>(
+        ["state", "certifications", "pending"],
+        (current) => (current ?? []).filter((item) => item.id !== certId),
+      );
       setReasons((prev) => {
         const next = { ...prev };
         delete next[certId];
@@ -124,22 +109,50 @@ export default function StateCertificationsPage() {
           ? "Đã xác thực chứng nhận sản phẩm."
           : "Đã từ chối chứng nhận và lưu lý do xử lý.",
       );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Không cập nhật được chứng nhận");
-    } finally {
-      setActionId(null);
+    },
+    onError: (err) => {
+      setActionError(err instanceof Error ? err.message : "Không cập nhật được chứng nhận");
+    },
+    onSettled: () => setActionId(null),
+  });
+
+  const items = certificationsQuery.data ?? [];
+  const loading = certificationsQuery.isPending && !!accessToken;
+  const error =
+    actionError ??
+    (!accessToken ? "Vui lòng đăng nhập bằng tài khoản admin hoặc cơ quan quản lý." : null) ??
+    (certificationsQuery.error instanceof Error
+      ? certificationsQuery.error.message
+      : null);
+
+  const verify = async (certId: string, status: "verified" | "rejected") => {
+    if (!accessToken) {
+      setActionError("Vui lòng đăng nhập để duyệt chứng nhận.");
+      return;
     }
+
+    const rejectionReason = reasons[certId]?.trim();
+    if (status === "rejected" && !rejectionReason) {
+      setActionError("Vui lòng nhập lý do từ chối chứng nhận");
+      return;
+    }
+
+    verifyMutation.mutate({
+      certId,
+      status,
+      rejectionReason: status === "rejected" ? rejectionReason : undefined,
+    });
   };
 
   const openCertificationDocument = async (cert: PendingCertification) => {
     if (!cert.documentUrl) return;
     if (!accessToken) {
-      setError("Vui lòng đăng nhập để mở giấy chứng nhận.");
+      setActionError("Vui lòng đăng nhập để mở giấy chứng nhận.");
       return;
     }
 
     setDocumentActionId(cert.id);
-    setError(null);
+    setActionError(null);
     setNotice(null);
     try {
       if (/^https?:\/\//i.test(cert.documentUrl)) {
@@ -150,7 +163,7 @@ export default function StateCertificationsPage() {
       const data = await getDocumentDownloadUrl(cert.documentUrl, accessToken);
       window.open(data.signedUrl, "_blank", "noopener,noreferrer");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không mở được giấy chứng nhận");
+      setActionError(err instanceof Error ? err.message : "Không mở được giấy chứng nhận");
     } finally {
       setDocumentActionId(null);
     }
@@ -163,7 +176,16 @@ export default function StateCertificationsPage() {
       pageTitle="Duyệt chứng nhận"
       pageDescription="Kiểm tra và xác thực chứng nhận VietGAP, hữu cơ, OCOP cho sản phẩm"
       actions={
-        <Button variant="secondary" size="sm" onClick={loadCertifications} loading={loading}>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            setActionError(null);
+            setNotice(null);
+            void certificationsQuery.refetch();
+          }}
+          loading={certificationsQuery.isFetching}
+        >
           <RefreshCcw size={14} /> Tải lại
         </Button>
       }

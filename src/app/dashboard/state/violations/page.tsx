@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertTriangle } from "lucide-react";
@@ -29,9 +29,10 @@ interface ViolatingProductsResponse {
   total?: number;
 }
 
-function apiFetch<T>(path: string): Promise<ApiEnvelope<T> | T> {
+function apiFetch<T>(path: string, signal?: AbortSignal): Promise<ApiEnvelope<T> | T> {
   const token = getToken();
   return fetch(`${API}/api/v1${path}`, {
+    signal,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   }).then((r) => r.json());
 }
@@ -43,23 +44,24 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function StateViolationsPage() {
   const user = useAuthStore((s) => s.user);
-  const [products, setProducts] = useState<ViolatingProduct[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const { data, isPending: loading } = useQuery({
+    queryKey: ["state", "violating-products"],
+    queryFn: async ({ signal }) => {
+      const res = await apiFetch<ViolatingProductsResponse>(
+        "/admin/products/violating?limit=50",
+        signal,
+      );
+      return (
+        "data" in Object(res)
+          ? (res as ApiEnvelope<ViolatingProductsResponse>).data
+          : res
+      ) as ViolatingProductsResponse | undefined;
+    },
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    apiFetch<ViolatingProductsResponse>("/admin/products/violating?limit=50")
-      .then((res) => {
-        const data = (
-          "data" in Object(res)
-            ? (res as ApiEnvelope<ViolatingProductsResponse>).data
-            : res
-        ) as ViolatingProductsResponse | undefined;
-        setProducts(data?.data ?? []);
-        setTotal(data?.total ?? 0);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  const products = data?.data ?? [];
+  const total = data?.total ?? 0;
 
   return (
     <DashboardLayout
