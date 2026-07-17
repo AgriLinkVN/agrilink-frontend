@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Heart, MapPin } from "lucide-react";
 import { FarmingBadge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
@@ -26,10 +27,14 @@ export function ProductCard({
 }: Props) {
   const router = useRouter();
   const accessToken = useAuthStore((s) => s.accessToken);
+  const queryClient = useQueryClient();
   const [optimisticWishlisted, setOptimisticWishlisted] = useState<boolean | null>(null);
-  const [pending, startTransition] = useTransition();
   const primary = product.images?.find((i) => i.isPrimary) ?? product.images?.[0];
   const wishlisted = optimisticWishlisted ?? initialWishlisted;
+  const wishlistIdsQueryKey = useMemo(
+    () => ["wishlist", "ids", accessToken] as const,
+    [accessToken],
+  );
 
   const redirectToLogin = () => {
     const current =
@@ -39,26 +44,47 @@ export function ProductCard({
     router.push(`/auth/login?redirect=${encodeURIComponent(current)}`);
   };
 
+  const wishlistMutation = useMutation({
+    mutationFn: async (next: boolean) => {
+      if (!accessToken) throw new Error("Login required");
+      if (next) await api.post(`/wishlist/${product.id}`, undefined, accessToken);
+      else await api.delete(`/wishlist/${product.id}`, accessToken);
+      return next;
+    },
+    onMutate: (next) => {
+      setOptimisticWishlisted(next);
+      onWishlistChange?.(product.id, next);
+      queryClient.setQueryData<string[]>(wishlistIdsQueryKey, (current) => {
+        const ids = new Set(current ?? []);
+        if (next) ids.add(product.id);
+        else ids.delete(product.id);
+        return Array.from(ids);
+      });
+    },
+    onSuccess: () => {
+      setOptimisticWishlisted(null);
+    },
+    onError: (_err, next) => {
+      const previous = !next;
+      setOptimisticWishlisted(previous);
+      onWishlistChange?.(product.id, previous);
+      queryClient.setQueryData<string[]>(wishlistIdsQueryKey, (current) => {
+        const ids = new Set(current ?? []);
+        if (previous) ids.add(product.id);
+        else ids.delete(product.id);
+        return Array.from(ids);
+      });
+    },
+  });
+
   const toggleWishlist = () => {
-    if (pending) return;
+    if (wishlistMutation.isPending) return;
     if (!accessToken) {
       redirectToLogin();
       return;
     }
 
-    const next = !wishlisted;
-    setOptimisticWishlisted(next);
-    onWishlistChange?.(product.id, next);
-
-    startTransition(async () => {
-      try {
-        if (next) await api.post(`/wishlist/${product.id}`, undefined, accessToken);
-        else await api.delete(`/wishlist/${product.id}`, accessToken);
-      } catch {
-        setOptimisticWishlisted(!next);
-        onWishlistChange?.(product.id, !next);
-      }
-    });
+    wishlistMutation.mutate(!wishlisted);
   };
 
   return (
@@ -87,7 +113,7 @@ export function ProductCard({
             e.stopPropagation();
             toggleWishlist();
           }}
-          disabled={pending}
+          disabled={wishlistMutation.isPending}
           className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/85 backdrop-blur flex items-center justify-center hover:bg-white disabled:opacity-60"
           aria-label={wishlisted ? "Bỏ khỏi yêu thích" : "Thêm vào yêu thích"}
           aria-pressed={wishlisted}
