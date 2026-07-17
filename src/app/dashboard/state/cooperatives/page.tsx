@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -29,34 +30,33 @@ interface OrganizationsResponse {
   enterprises?: OrganizationProfile[];
 }
 
-function apiFetch<T>(path: string): Promise<ApiEnvelope<T> | T> {
+function apiFetch<T>(path: string, signal?: AbortSignal): Promise<ApiEnvelope<T> | T> {
   const token = getToken();
   return fetch(`${API}/api/v1${path}`, {
+    signal,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   }).then((r) => r.json());
 }
 
 export default function StateCooperativesPage() {
   const user = useAuthStore((s) => s.user);
-  const [cooperatives, setCooperatives] = useState<OrganizationProfile[]>([]);
-  const [enterprises, setEnterprises] = useState<OrganizationProfile[]>([]);
   const [tab, setTab] = useState<"cooperative" | "enterprise">("cooperative");
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
+  const { data, isPending: loading } = useQuery({
+    queryKey: ["state", "organizations"],
+    queryFn: async ({ signal }) => {
+      const res = await apiFetch<OrganizationsResponse>("/admin/cooperatives-enterprises", signal);
+      return (
+        "data" in Object(res)
+          ? (res as ApiEnvelope<OrganizationsResponse>).data
+          : res
+      ) as OrganizationsResponse | undefined;
+    },
+    staleTime: 60_000,
+  });
 
-  useEffect(() => {
-    apiFetch<OrganizationsResponse>("/admin/cooperatives-enterprises")
-      .then((res) => {
-        const data = (
-          "data" in Object(res)
-            ? (res as ApiEnvelope<OrganizationsResponse>).data
-            : res
-        ) as OrganizationsResponse | undefined;
-        setCooperatives(data?.cooperatives ?? []);
-        setEnterprises(data?.enterprises ?? []);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  const cooperatives = data?.cooperatives ?? [];
+  const enterprises = data?.enterprises ?? [];
 
   const list = tab === "cooperative" ? cooperatives : enterprises;
   const filtered = list.filter((item) => {

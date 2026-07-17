@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, Loader2, Trash2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -24,71 +25,54 @@ interface WishlistResponse {
 export default function BuyerWishlistPage() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [removingId, setRemovingId] = useState<string | null>(null);
+  const wishlistQueryKey = ["wishlist", "products", accessToken] as const;
+  const { data, isPending, error: queryError } = useQuery({
+    queryKey: wishlistQueryKey,
+    queryFn: () => api.get<WishlistResponse>("/wishlist?page=1&limit=50", accessToken),
+    enabled: !!accessToken,
+    staleTime: 30_000,
+  });
+  const removeMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      if (!accessToken) throw new Error("Vui lòng đăng nhập để cập nhật wishlist.");
+      await api.delete(`/wishlist/${productId}`, accessToken);
+      return productId;
+    },
+    onMutate: () => {
+      setActionError(null);
+      setNotice(null);
+    },
+    onSuccess: (productId) => {
+      queryClient.setQueryData<WishlistResponse>(wishlistQueryKey, (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          data: current.data.filter((item) => item.id !== productId),
+          total: Math.max(0, current.total - 1),
+        };
+      });
+      queryClient.setQueryData<string[]>(["wishlist", "ids", accessToken], (current) =>
+        (current ?? []).filter((id) => id !== productId),
+      );
+      setNotice("Đã bỏ sản phẩm khỏi danh sách yêu thích.");
+    },
+    onError: (err) => {
+      setActionError(err instanceof Error ? err.message : "Không thể bỏ yêu thích");
+    },
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadWishlist = async () => {
-      await Promise.resolve();
-
-      if (!accessToken) {
-        if (!cancelled) {
-          setProducts([]);
-          setTotal(0);
-          setLoading(false);
-        }
-        return;
-      }
-
-      if (!cancelled) {
-        setLoading(true);
-        setError(null);
-      }
-
-      try {
-        const result = await api.get<WishlistResponse>("/wishlist?page=1&limit=50", accessToken);
-        if (!cancelled) {
-          setProducts(result.data);
-          setTotal(result.total);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Không thể tải danh sách yêu thích");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    void loadWishlist();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken]);
+  const products = data?.data ?? [];
+  const total = data?.total ?? 0;
+  const loading = !!accessToken && isPending;
+  const error =
+    actionError ??
+    (queryError instanceof Error ? queryError.message : null);
 
   const removeProduct = async (productId: string) => {
-    if (!accessToken) return;
-
-    setRemovingId(productId);
-    setError(null);
-    setNotice(null);
-    try {
-      await api.delete(`/wishlist/${productId}`, accessToken);
-      setProducts((items) => items.filter((item) => item.id !== productId));
-      setTotal((value) => Math.max(0, value - 1));
-      setNotice("Đã bỏ sản phẩm khỏi danh sách yêu thích.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thể bỏ yêu thích");
-    } finally {
-      setRemovingId(null);
-    }
+    removeMutation.mutate(productId);
   };
 
   return (
@@ -205,10 +189,10 @@ export default function BuyerWishlistPage() {
                   variant="secondary"
                   size="sm"
                   onClick={() => removeProduct(product.id)}
-                  disabled={removingId === product.id}
+                  disabled={removeMutation.variables === product.id && removeMutation.isPending}
                   className="justify-center text-error hover:text-error"
                 >
-                  {removingId === product.id ? (
+                  {removeMutation.variables === product.id && removeMutation.isPending ? (
                     <Loader2 size={14} className="animate-spin" />
                   ) : (
                     <Trash2 size={14} />

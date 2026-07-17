@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { StatCard } from "@/components/ui/stat-card";
 import { Button } from "@/components/ui/button";
@@ -64,9 +65,10 @@ function unwrapApi<T>(value: ApiEnvelope<T> | T): T | undefined {
     : (value as T);
 }
 
-function apiFetch<T>(path: string): Promise<ApiEnvelope<T> | T> {
+function apiFetch<T>(path: string, signal?: AbortSignal): Promise<ApiEnvelope<T> | T> {
   const token = getToken();
   return fetch(`${API}/api/v1${path}`, {
+    signal,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   }).then((r) => r.json());
 }
@@ -80,10 +82,6 @@ const TYPE_ICON: Record<string, string> = {
 
 export default function StateAgencyDashboardPage() {
   const user = useAuthStore((s) => s.user);
-  const [stats, setStats] = useState<StateStats | null>(null);
-  const [pendingProfiles, setPendingProfiles] = useState<PendingProfile[]>([]);
-  const [disputes, setDisputes] = useState<Dispute[]>([]);
-  const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
 
   async function handleExportPdf() {
@@ -106,13 +104,15 @@ export default function StateAgencyDashboardPage() {
     }
   }
 
-  useEffect(() => {
-    Promise.all([
-      apiFetch<StateStats>("/admin/stats"),
-      apiFetch<PendingProfilesResponse>("/admin/pending-profiles"),
-      apiFetch<PaginatedDisputes | Dispute[]>("/admin/disputes?status=open&limit=5"),
-    ]).then(([statsRes, profilesRes, disputesRes]) => {
-      setStats(unwrapApi(statsRes) ?? null);
+  const { data, isPending: loading } = useQuery({
+    queryKey: ["state", "dashboard"],
+    queryFn: async ({ signal }) => {
+      const [statsRes, profilesRes, disputesRes] = await Promise.all([
+        apiFetch<StateStats>("/admin/stats", signal),
+        apiFetch<PendingProfilesResponse>("/admin/pending-profiles", signal),
+        apiFetch<PaginatedDisputes | Dispute[]>("/admin/disputes?status=open&limit=5", signal),
+      ]);
+
       const raw = unwrapApi(profilesRes) ?? {};
       const flat: PendingProfile[] = [
         ...(raw.cooperative ?? []).map((p) => ({ ...p, _type: "cooperative" as const })),
@@ -120,11 +120,19 @@ export default function StateAgencyDashboardPage() {
         ...(raw.farmer ?? []).map((p) => ({ ...p, _type: "farmer" as const })),
         ...(raw.supplier ?? []).map((p) => ({ ...p, _type: "supplier" as const })),
       ];
-      setPendingProfiles(flat.slice(0, 5));
       const dr = unwrapApi(disputesRes);
-      setDisputes(Array.isArray(dr) ? dr.slice(0, 5) : (dr?.data ?? []).slice(0, 5));
-    }).finally(() => setLoading(false));
-  }, []);
+      return {
+        stats: unwrapApi(statsRes) ?? null,
+        pendingProfiles: flat.slice(0, 5),
+        disputes: Array.isArray(dr) ? dr.slice(0, 5) : (dr?.data ?? []).slice(0, 5),
+      };
+    },
+    staleTime: 30_000,
+  });
+
+  const stats = data?.stats ?? null;
+  const pendingProfiles = data?.pendingProfiles ?? [];
+  const disputes = data?.disputes ?? [];
 
   const statCards = stats ? [
     {

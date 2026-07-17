@@ -117,3 +117,19 @@ Acceptance criteria:
 2. PR Phase 2: dashboard state/admin data fetching.
 3. PR Phase 3-4: cleanup derived state va query convention.
 
+## Tien do tren nhanh `feature/frontend-query-refactor`
+
+- Phase 1: da refactor marketplace/search hooks sang `useQuery`/`useInfiniteQuery`.
+- Phase 2: da refactor state dashboard/admin data pages sang `useQuery`.
+- Phase 3: da refactor buyer wishlist, farmer products, similar products va wishlist button sang `useQuery`/`useMutation`.
+- Phase 4: query key/staleTime da duoc ap dung truc tiep theo convention, chua tao abstraction rieng vi duplicate chua du lon.
+
+## Khong dua vao useQuery
+
+Nhung luong sau khong nen ep sang `useQuery`:
+
+- Form submit, OTP, login/register va upload file: day la user action, nen giu event handler hoac `useMutation`.
+- Export/download file: day la imperative browser action, khong phai server state can cache.
+- Server Components dang `fetch` de prerender/SSR: khong nam trong React Query client cache.
+- Timer, animation, IntersectionObserver, socket, map setup: effect dung de dong bo voi external system.
+- URL sync trong search page: effect dong bo state voi router, khong fetch data.
