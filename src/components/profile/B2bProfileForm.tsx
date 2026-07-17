@@ -60,8 +60,8 @@ export function B2bProfileForm({ role }: B2bProfileFormProps) {
       }
       await api.put('/profiles/b2b', formData, token);
       alert(`Đã lưu thông tin hồ sơ ${role} thành công!`);
-    } catch (err: any) {
-      alert(err.message || 'Lưu hồ sơ thất bại');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Lưu hồ sơ thất bại');
     }
   };
 

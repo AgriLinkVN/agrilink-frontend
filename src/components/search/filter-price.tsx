@@ -13,8 +13,11 @@ export function FilterPrice({ min, max, onChange }: Props) {
   const [maxStr, setMaxStr] = useState(max?.toString() ?? "");
 
   useEffect(() => {
-    setMinStr(min?.toString() ?? "");
-    setMaxStr(max?.toString() ?? "");
+    const timer = window.setTimeout(() => {
+      setMinStr(min?.toString() ?? "");
+      setMaxStr(max?.toString() ?? "");
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [min, max]);
 
   const commit = () => {

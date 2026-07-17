@@ -104,7 +104,9 @@ export function MapboxCanvas({
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const mapError = mapboxToken ? null : "Missing NEXT_PUBLIC_MAPBOX_TOKEN in .env.local";
 
-  geojsonRef.current = geojsonData;
+  useEffect(() => {
+    geojsonRef.current = geojsonData;
+  }, [geojsonData]);
 
   const setupChoroplethLayers = useCallback(
     (map: mapboxgl.Map) => {

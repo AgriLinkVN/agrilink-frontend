@@ -11,7 +11,6 @@ export function useProvinces() {
 
   useEffect(() => {
     const ac = new AbortController();
-    setLoading(true);
     apiGet<ApiProvince[]>("/geography/provinces", undefined, ac.signal)
       .then((res) => setData(res))
       .catch((e) => {

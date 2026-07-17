@@ -73,8 +73,8 @@ export default function LoginPage() {
       setCountdown(60);
       setOtpDigits(["", "", "", "", "", ""]);
       setTimeout(() => otpRefs.current[0]?.focus(), 300);
-    } catch (err: any) {
-      setError(err.message || 'Lỗi kết nối máy chủ');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Lỗi kết nối máy chủ');
     } finally {
       setLoading(false);
     }

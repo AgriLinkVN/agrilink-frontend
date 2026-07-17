@@ -14,6 +14,7 @@ import {
 import { useAuth, ROLE_LABELS } from "@/lib/auth-context";
 import { ImageCropperModal } from "@/components/shared/ImageCropperModal";
 import { useAuthStore } from "@/store/authStore";
+import type { User as AuthUser } from "@/types";
 
 const TABS = [
   { id: "profile", label: "Hồ sơ cá nhân", icon: User },
@@ -27,12 +28,15 @@ export default function ProfilePage() {
   const [selectedImageForCrop, setSelectedImageForCrop] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const { user } = useAuth();
-  const userName = (user as any)?.fullName || (user as any)?.full_name || user?.phone || "Người dùng";
+  const legacyFullName =
+    user && "fullName" in user && typeof user.fullName === "string"
+      ? user.fullName
+      : undefined;
+  const userName = legacyFullName || user?.full_name || user?.phone || "Người dùng";
   const avatarUrl = user?.avatar_url;
   const userRoleLabel = user ? ROLE_LABELS[user.role] : "Khách";
   const isCooperative = user?.role === 'cooperative';
   const isEnterprise = user?.role === 'enterprise';
-  const isFarmer = user?.role === 'farmer';
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -79,8 +83,10 @@ export default function ProfilePage() {
         });
 
         if (updateRes.ok) {
-          const updateJson = await updateRes.json();
-          useAuthStore.getState().setAuth(token as string, updateJson.data);
+          const updateJson = (await updateRes.json()) as { data?: AuthUser };
+          if (token && updateJson.data) {
+            useAuthStore.getState().setAuth(token, updateJson.data);
+          }
           alert('Cập nhật avatar thành công!');
           setSelectedImageForCrop(null); // Đóng modal
         } else {
@@ -90,9 +96,9 @@ export default function ProfilePage() {
         console.error('API Error Response:', json);
         alert(`Lỗi upload: ${json.message || 'Không có phản hồi secure_url'}`);
       }
-    } catch (e: any) {
+    } catch (e) {
       console.error('Lỗi upload avatar (network/catch):', e);
-      alert(`Lỗi upload avatar: ${e.message || 'Không thể kết nối tới server'}`);
+      alert(`Lỗi upload avatar: ${e instanceof Error ? e.message : 'Không thể kết nối tới server'}`);
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -216,7 +222,12 @@ export default function ProfilePage() {
                     ...(isEnterprise ? [
                       { label: "Giấy chứng nhận đăng ký doanh nghiệp", status: "verified", date: "15/08/2023" }
                     ] : []),
-                  ].map(({ label, status, date, expires }: any) => (
+                  ].map(({ label, status, date, expires }: {
+                    label: string;
+                    status: string;
+                    date?: string;
+                    expires?: string;
+                  }) => (
                     <div key={label} className="flex items-center justify-between p-4 rounded-xl border border-hairline hover:bg-surface-soft transition-colors">
                       <div className="flex items-center gap-3">
                         <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center",
