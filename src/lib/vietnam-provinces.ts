@@ -1,4 +1,4 @@
-import { REGION_LABELS_VI, type Region } from "@/data/province-mapping";
+import { type Region } from "@/data/province-mapping";
 
 export type VietnamProvince = {
   code: string;

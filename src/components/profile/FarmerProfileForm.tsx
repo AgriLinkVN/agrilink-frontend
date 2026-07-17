@@ -42,8 +42,8 @@ export function FarmerProfileForm() {
       }
       await api.put('/profiles/farmer', formData, token);
       alert('Đã lưu thông tin Hồ sơ Nông dân thành công!');
-    } catch (error: any) {
-      alert(`Lỗi: ${error.message || 'Lưu hồ sơ thất bại'}`);
+    } catch (error) {
+      alert(`Lỗi: ${error instanceof Error ? error.message : 'Lưu hồ sơ thất bại'}`);
     }
   };
 

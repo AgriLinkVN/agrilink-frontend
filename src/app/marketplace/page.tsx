@@ -53,7 +53,6 @@ export default function MarketplacePage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
@@ -69,12 +68,22 @@ export default function MarketplacePage() {
     const catId = selectedCategory !== "all" ? selectedCategory : undefined;
     const result = await fetchProducts({ page: 1, limit: 100, search: search || undefined, farmingType: farming, categoryId: catId });
     setAllProducts(result.data);
-    setTotal(result.total);
     setLoading(false);
   }, [search, selectedFarming, selectedCategory]);
 
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => { setPage(1); }, [search, selectedFarming, selectedProvince, selectedSort, selectedCategory]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setPage(1);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [search, selectedFarming, selectedProvince, selectedSort, selectedCategory]);
 
   // Client-side filter by province (extract from name/description)
   const provinceFiltered = selectedProvince === "Tất cả"

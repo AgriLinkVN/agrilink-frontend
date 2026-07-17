@@ -28,6 +28,15 @@ const AuthContext = createContext<AuthContextValue>({
   logout: () => {},
 });
 
+interface PersistHydrationApi {
+  hasHydrated?: () => boolean;
+  onFinishHydration?: (callback: () => void) => () => void;
+}
+
+function getPersistHydrationApi(): PersistHydrationApi | undefined {
+  return (useAuthStore as typeof useAuthStore & { persist?: PersistHydrationApi }).persist;
+}
+
 /**
  * AuthProvider wraps the app. Its job is now thin: it exposes a `useAuth()`
  * React-Context API to legacy callers (login page, navbar) while delegating
@@ -46,7 +55,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Local flag to suppress UI flicker during Zustand persist rehydration
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    setHydrated(true);
+    const markHydratedOnNextTick = () => {
+      const timer = window.setTimeout(() => setHydrated(true), 0);
+      return () => window.clearTimeout(timer);
+    };
+
+    const persistApi = getPersistHydrationApi();
+    if (!persistApi) {
+      return markHydratedOnNextTick();
+    }
+
+    if (persistApi.hasHydrated?.()) {
+      return markHydratedOnNextTick();
+    }
+
+    return persistApi.onFinishHydration?.(() => {
+      setHydrated(true);
+    });
   }, []);
 
   const login = useCallback(

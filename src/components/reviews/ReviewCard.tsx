@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Star, X, ShieldCheck, MessageSquare, EyeOff, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -45,9 +46,12 @@ function ImageLightbox({
         >
           <X size={24} />
         </button>
-        <img
+        <Image
           src={images[idx]}
           alt={`Ảnh ${idx + 1}`}
+          width={1200}
+          height={900}
+          sizes="(max-width: 768px) 100vw, 672px"
           className="w-full rounded-xl max-h-[80vh] object-contain"
         />
         {images.length > 1 && (
@@ -136,12 +140,14 @@ export function ReviewCard({ review, canReply, canHide, accessToken, queryKey }:
       )}>
         {/* Reviewer info */}
         <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-full bg-primary-light flex items-center justify-center text-white text-sm font-bold shrink-0">
+          <div className="relative w-9 h-9 rounded-full bg-primary-light flex items-center justify-center text-white text-sm font-bold shrink-0 overflow-hidden">
             {review.reviewer?.avatarUrl ? (
-              <img
+              <Image
                 src={review.reviewer.avatarUrl}
                 alt={review.reviewer.fullName}
-                className="w-full h-full rounded-full object-cover"
+                fill
+                sizes="36px"
+                className="rounded-full object-cover"
               />
             ) : (
               (review.reviewer?.fullName ?? 'U').charAt(0).toUpperCase()
@@ -209,9 +215,9 @@ export function ReviewCard({ review, canReply, canHide, accessToken, queryKey }:
               <button
                 key={i}
                 onClick={() => setLightbox(i)}
-                className="aspect-square rounded-lg overflow-hidden border border-hairline hover:border-primary transition-colors"
+                className="relative aspect-square rounded-lg overflow-hidden border border-hairline hover:border-primary transition-colors"
               >
-                <img src={src} alt={`Ảnh ${i + 1}`} className="w-full h-full object-cover" />
+                <Image src={src} alt={`Ảnh ${i + 1}`} fill sizes="120px" className="object-cover" />
               </button>
             ))}
           </div>

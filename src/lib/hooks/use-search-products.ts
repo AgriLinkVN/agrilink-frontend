@@ -56,7 +56,9 @@ export function useSearchProducts(filter: SearchFilter) {
     const ac = new AbortController();
     abortRef.current = ac;
 
-    setState({ ...initialState });
+    const resetTimer = window.setTimeout(() => {
+      setState({ ...initialState });
+    }, 0);
 
     apiGet<ProductListResponse>(
       "/products",
@@ -79,7 +81,10 @@ export function useSearchProducts(filter: SearchFilter) {
         setState((s) => ({ ...s, loading: false, error: e.message }));
       });
 
-    return () => ac.abort();
+    return () => {
+      window.clearTimeout(resetTimer);
+      ac.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterKey]);
 

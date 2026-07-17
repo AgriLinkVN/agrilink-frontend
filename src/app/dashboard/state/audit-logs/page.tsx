@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Loader2, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,31 @@ import { useAuthStore } from "@/store/authStore";
 const API = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
 const getToken = () => useAuthStore.getState().accessToken;
 
-function apiFetch(path: string) {
+interface ApiEnvelope<T> {
+  data?: T;
+}
+
+interface AuditLog {
+  id: string;
+  method?: string | null;
+  action?: string | null;
+  path?: string | null;
+  entityType?: string | null;
+  userId?: string | null;
+  ipAddress?: string | null;
+  changes?: unknown;
+  createdAt: string;
+}
+
+interface PaginatedAuditLogs {
+  data?: AuditLog[];
+  total?: number;
+}
+
+const hasChanges = (changes: unknown): changes is object =>
+  changes !== null && changes !== undefined;
+
+function apiFetch<T>(path: string): Promise<ApiEnvelope<T> | T> {
   const token = getToken();
   return fetch(`${API}/api/v1${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -18,29 +42,40 @@ function apiFetch(path: string) {
 
 export default function StateAuditLogsPage() {
   const user = useAuthStore((s) => s.user);
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<AuditLog[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const limit = 20;
 
-  useEffect(() => {
+  const loadLogs = useCallback(async () => {
     setLoading(true);
-    apiFetch(`/admin/audit-logs?page=${page}&limit=${limit}`)
-      .then((res) => {
-        const data = res.data ?? res;
-        setLogs(data.data ?? []);
-        setTotal(data.total ?? 0);
-      })
-      .finally(() => setLoading(false));
+    try {
+      const res = await apiFetch<PaginatedAuditLogs>(
+        `/admin/audit-logs?page=${page}&limit=${limit}`,
+      );
+      const data = "data" in Object(res) ? (res as ApiEnvelope<PaginatedAuditLogs>).data ?? res : res;
+      const payload = data as PaginatedAuditLogs;
+      setLogs(payload.data ?? []);
+      setTotal(payload.total ?? 0);
+    } finally {
+      setLoading(false);
+    }
   }, [page]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadLogs();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadLogs]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (
     <DashboardLayout
       role="state_agency"
-      userName={(user as any)?.fullName ?? "Cơ quan nhà nước"}
+      userName={user?.full_name ?? user?.phone ?? "Cơ quan nhà nước"}
       pageTitle="Audit log"
       pageDescription={`Lịch sử thao tác quản trị — ${total} bản ghi`}
     >
@@ -68,7 +103,7 @@ export default function StateAuditLogsPage() {
                         {log.userId ?? "system"} · {new Date(log.createdAt).toLocaleString("vi-VN")}
                         {log.ipAddress ? ` · ${log.ipAddress}` : ""}
                       </p>
-                      {log.changes && (
+                      {hasChanges(log.changes) && (
                         <pre className="text-[11px] text-muted bg-surface-soft rounded-lg p-2 mt-2 overflow-x-auto">
                           {JSON.stringify(log.changes, null, 2)}
                         </pre>

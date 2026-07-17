@@ -29,7 +29,11 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  const userName = (user as any)?.fullName || user?.full_name || user?.phone || "User";
+  const legacyFullName =
+    user && "fullName" in user && typeof user.fullName === "string"
+      ? user.fullName
+      : undefined;
+  const userName = legacyFullName || user?.full_name || user?.phone || "User";
 
   function handleLogout() {
     logout();

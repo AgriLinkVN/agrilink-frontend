@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { api } from '@/lib/api';
 import { type AdCampaign } from '@/types/ads';
 
@@ -52,9 +53,12 @@ export function BannerAd({ campaign }: { campaign: AdCampaign }) {
         rel="noopener noreferrer"
         onClick={handleClick}
       >
-        <img
+        <Image
           src={campaign.imageUrl}
           alt={campaign.title}
+          width={1600}
+          height={500}
+          sizes="100vw"
           className="w-full object-cover aspect-[16/5]"
         />
       </a>

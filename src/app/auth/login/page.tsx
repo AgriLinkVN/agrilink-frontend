@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -73,8 +74,8 @@ export default function LoginPage() {
       setCountdown(60);
       setOtpDigits(["", "", "", "", "", ""]);
       setTimeout(() => otpRefs.current[0]?.focus(), 300);
-    } catch (err: any) {
-      setError(err.message || 'Lỗi kết nối máy chủ');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Lỗi kết nối máy chủ');
     } finally {
       setLoading(false);
     }
@@ -135,10 +136,13 @@ export default function LoginPage() {
           ══════════════════════════════════════ */}
       <div className="hidden lg:flex w-[480px] xl:w-[540px] shrink-0 relative flex-col overflow-hidden">
         {/* Background image */}
-        <img
+        <Image
           src="https://images.pexels.com/photos/2382665/pexels-photo-2382665.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
           alt="Ruộng bậc thang Việt Nam"
-          className="absolute inset-0 w-full h-full object-cover"
+          fill
+          priority
+          sizes="540px"
+          className="object-cover"
           style={{ animation: "heroKenBurns 30s ease-in-out infinite alternate" }}
         />
         {/* Gradient overlay */}

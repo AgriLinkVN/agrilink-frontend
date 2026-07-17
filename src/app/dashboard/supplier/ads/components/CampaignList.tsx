@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   BarChart2, Clock, ChevronLeft, ChevronRight, ImageOff, Loader2, Megaphone, Pause, Play,
 } from 'lucide-react';
@@ -56,10 +57,12 @@ function CampaignCard({ campaign }: { campaign: AdCampaign }) {
       {/* Banner preview */}
       <div className="relative aspect-video bg-surface-soft overflow-hidden">
         {campaign.imageUrl ? (
-          <img
+          <Image
             src={campaign.imageUrl}
             alt={campaign.title}
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, 33vw"
+            className="object-cover"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted">

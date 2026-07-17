@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import Image from 'next/image';
 import {
   ArrowLeft, Check, X, ImageOff, MapPin, Globe, Eye, MousePointer,
   AlertTriangle, Clock, Loader2, BarChart2,
@@ -153,7 +154,15 @@ export default function AdminCampaignDetailPage() {
         {/* Banner */}
         <div className="rounded-2xl overflow-hidden border border-hairline bg-surface-soft">
           {campaign.imageUrl ? (
-            <img src={campaign.imageUrl} alt={campaign.title} className="w-full object-cover" />
+            <div className="relative aspect-video">
+              <Image
+                src={campaign.imageUrl}
+                alt={campaign.title}
+                fill
+                sizes="(max-width: 768px) 100vw, 768px"
+                className="object-cover"
+              />
+            </div>
           ) : (
             <div className="w-full aspect-video flex items-center justify-center text-muted">
               <ImageOff size={36} />

@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import Image from 'next/image';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Star, ImagePlus, X, Loader2, LogIn } from 'lucide-react';
 import Link from 'next/link';
@@ -146,7 +147,7 @@ export function ReviewForm({ productId, sellerId }: Props) {
         <div className="flex flex-wrap gap-2">
           {images.map((url, i) => (
             <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-hairline">
-              <img src={url} alt={`img-${i}`} className="w-full h-full object-cover" />
+              <Image src={url} alt={`img-${i}`} fill sizes="64px" className="object-cover" />
               <button
                 type="button"
                 onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}

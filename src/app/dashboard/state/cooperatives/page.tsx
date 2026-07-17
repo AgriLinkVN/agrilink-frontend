@@ -10,7 +10,26 @@ import { useAuthStore } from "@/store/authStore";
 const API = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
 const getToken = () => useAuthStore.getState().accessToken;
 
-function apiFetch(path: string) {
+interface ApiEnvelope<T> {
+  data?: T;
+}
+
+interface OrganizationProfile {
+  id: string;
+  cooperativeName?: string | null;
+  companyName?: string | null;
+  taxCode?: string | null;
+  representativeName?: string | null;
+  address?: string | null;
+  isVerified?: boolean;
+}
+
+interface OrganizationsResponse {
+  cooperatives?: OrganizationProfile[];
+  enterprises?: OrganizationProfile[];
+}
+
+function apiFetch<T>(path: string): Promise<ApiEnvelope<T> | T> {
   const token = getToken();
   return fetch(`${API}/api/v1${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -19,18 +38,22 @@ function apiFetch(path: string) {
 
 export default function StateCooperativesPage() {
   const user = useAuthStore((s) => s.user);
-  const [cooperatives, setCooperatives] = useState<any[]>([]);
-  const [enterprises, setEnterprises] = useState<any[]>([]);
+  const [cooperatives, setCooperatives] = useState<OrganizationProfile[]>([]);
+  const [enterprises, setEnterprises] = useState<OrganizationProfile[]>([]);
   const [tab, setTab] = useState<"cooperative" | "enterprise">("cooperative");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch("/admin/cooperatives-enterprises")
+    apiFetch<OrganizationsResponse>("/admin/cooperatives-enterprises")
       .then((res) => {
-        const data = res.data ?? res;
-        setCooperatives(data.cooperatives ?? []);
-        setEnterprises(data.enterprises ?? []);
+        const data = (
+          "data" in Object(res)
+            ? (res as ApiEnvelope<OrganizationsResponse>).data
+            : res
+        ) as OrganizationsResponse | undefined;
+        setCooperatives(data?.cooperatives ?? []);
+        setEnterprises(data?.enterprises ?? []);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -44,7 +67,7 @@ export default function StateCooperativesPage() {
   return (
     <DashboardLayout
       role="state_agency"
-      userName={(user as any)?.fullName ?? "Cơ quan nhà nước"}
+      userName={user?.full_name ?? user?.phone ?? "Cơ quan nhà nước"}
       pageTitle="Danh sách HTX & Doanh nghiệp"
       pageDescription="Toàn bộ hợp tác xã và doanh nghiệp đã đăng ký trên hệ thống"
     >

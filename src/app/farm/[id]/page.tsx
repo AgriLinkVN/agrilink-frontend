@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import { notFound } from "next/navigation";
 import {
   MapPin, Sprout, Award, Package2, Calendar, ChevronRight,
   Phone, MessageCircle, Star, Leaf, ShieldCheck, Clock,
@@ -9,8 +8,8 @@ import {
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
-import { Badge, FarmingBadge } from "@/components/ui/badge";
-import { fetchProducts, getPrimaryImage, type Product } from "@/lib/products-api";
+import { FarmingBadge } from "@/components/ui/badge";
+import { getPrimaryImage, type Product } from "@/lib/products-api";
 import { MapboxCanvas } from "@/components/map/mapbox-canvas";
 
 // ── Types ──────────────────────────────────────────────────────

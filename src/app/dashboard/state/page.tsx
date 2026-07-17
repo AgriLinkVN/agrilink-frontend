@@ -7,15 +7,64 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import {
-  ShieldCheck, Users, AlertTriangle, Award, Check, X, Eye,
-  Loader2, Clock, FileText, Building2, Tractor, ChevronRight, Download,
+  ShieldCheck, Users, AlertTriangle, Award, Eye,
+  Loader2, FileText, Building2, ChevronRight, Download,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
 const API = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
 const getToken = () => useAuthStore.getState().accessToken;
 
-function apiFetch(path: string) {
+interface ApiEnvelope<T> {
+  data?: T;
+}
+
+interface StateStats {
+  activeUsers?: number;
+  totalUsers?: number;
+  openDisputes?: number;
+  certificationsThisMonth?: number;
+  pendingProfiles?: {
+    total?: number;
+  };
+}
+
+interface ProfileUser {
+  fullName?: string | null;
+  phone?: string | null;
+}
+
+type PendingProfileType = "farmer" | "cooperative" | "enterprise" | "supplier";
+
+interface PendingProfile {
+  id: string;
+  cooperativeName?: string | null;
+  companyName?: string | null;
+  createdAt: string;
+  user?: ProfileUser | null;
+  _type: PendingProfileType;
+}
+
+type PendingProfilesResponse = Partial<Record<PendingProfileType, Array<Omit<PendingProfile, "_type">>>>;
+
+interface Dispute {
+  id: string;
+  description?: string | null;
+  incidentType?: string | null;
+  createdAt: string;
+}
+
+interface PaginatedDisputes {
+  data?: Dispute[];
+}
+
+function unwrapApi<T>(value: ApiEnvelope<T> | T): T | undefined {
+  return value && typeof value === "object" && "data" in value
+    ? (value as ApiEnvelope<T>).data
+    : (value as T);
+}
+
+function apiFetch<T>(path: string): Promise<ApiEnvelope<T> | T> {
   const token = getToken();
   return fetch(`${API}/api/v1${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -31,9 +80,9 @@ const TYPE_ICON: Record<string, string> = {
 
 export default function StateAgencyDashboardPage() {
   const user = useAuthStore((s) => s.user);
-  const [stats, setStats] = useState<any>(null);
-  const [pendingProfiles, setPendingProfiles] = useState<any[]>([]);
-  const [disputes, setDisputes] = useState<any[]>([]);
+  const [stats, setStats] = useState<StateStats | null>(null);
+  const [pendingProfiles, setPendingProfiles] = useState<PendingProfile[]>([]);
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
 
@@ -59,21 +108,21 @@ export default function StateAgencyDashboardPage() {
 
   useEffect(() => {
     Promise.all([
-      apiFetch("/admin/stats"),
-      apiFetch("/admin/pending-profiles"),
-      apiFetch("/admin/disputes?status=open&limit=5"),
+      apiFetch<StateStats>("/admin/stats"),
+      apiFetch<PendingProfilesResponse>("/admin/pending-profiles"),
+      apiFetch<PaginatedDisputes | Dispute[]>("/admin/disputes?status=open&limit=5"),
     ]).then(([statsRes, profilesRes, disputesRes]) => {
-      setStats(statsRes.data ?? statsRes);
-      const raw = profilesRes.data ?? profilesRes;
-      const flat: any[] = [
-        ...(raw.cooperative ?? []).map((p: any) => ({ ...p, _type: "cooperative" })),
-        ...(raw.enterprise ?? []).map((p: any) => ({ ...p, _type: "enterprise" })),
-        ...(raw.farmer ?? []).map((p: any) => ({ ...p, _type: "farmer" })),
-        ...(raw.supplier ?? []).map((p: any) => ({ ...p, _type: "supplier" })),
+      setStats(unwrapApi(statsRes) ?? null);
+      const raw = unwrapApi(profilesRes) ?? {};
+      const flat: PendingProfile[] = [
+        ...(raw.cooperative ?? []).map((p) => ({ ...p, _type: "cooperative" as const })),
+        ...(raw.enterprise ?? []).map((p) => ({ ...p, _type: "enterprise" as const })),
+        ...(raw.farmer ?? []).map((p) => ({ ...p, _type: "farmer" as const })),
+        ...(raw.supplier ?? []).map((p) => ({ ...p, _type: "supplier" as const })),
       ];
       setPendingProfiles(flat.slice(0, 5));
-      const dr = disputesRes.data ?? disputesRes;
-      setDisputes(Array.isArray(dr) ? dr.slice(0, 5) : (dr.data ?? []).slice(0, 5));
+      const dr = unwrapApi(disputesRes);
+      setDisputes(Array.isArray(dr) ? dr.slice(0, 5) : (dr?.data ?? []).slice(0, 5));
     }).finally(() => setLoading(false));
   }, []);
 
@@ -111,7 +160,7 @@ export default function StateAgencyDashboardPage() {
   return (
     <DashboardLayout
       role="state_agency"
-      userName={(user as any)?.fullName ?? "Cơ quan nhà nước"}
+      userName={user?.full_name ?? user?.phone ?? "Cơ quan nhà nước"}
       pageTitle="Quản lý & Giám sát"
       pageDescription="Dashboard cơ quan nhà nước — duyệt hồ sơ, xử lý tranh chấp, giám sát hệ thống"
       actions={

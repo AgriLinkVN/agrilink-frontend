@@ -32,11 +32,6 @@ export function BannerSlider({ provinceId }: Props) {
     return () => clearInterval(timer);
   }, [campaigns]);
 
-  // Reset index when banners change
-  useEffect(() => {
-    setCurrentIndex(0);
-  }, [campaigns]);
-
   // Skeleton
   if (isLoading) {
     return (
@@ -52,10 +47,12 @@ export function BannerSlider({ provinceId }: Props) {
     return <BannerAd campaign={campaigns[0]} />;
   }
 
+  const safeIndex = Math.min(currentIndex, campaigns.length - 1);
+
   // Multiple banners — auto-slide with dot navigation
   return (
     <div className="relative">
-      <BannerAd campaign={campaigns[currentIndex]} />
+      <BannerAd campaign={campaigns[safeIndex]} />
 
       {/* Dot navigation */}
       <div className="flex justify-center gap-1.5 mt-2">
@@ -64,7 +61,7 @@ export function BannerSlider({ provinceId }: Props) {
             key={i}
             onClick={() => setCurrentIndex(i)}
             className={`h-1.5 rounded-full transition-all ${
-              i === currentIndex ? 'w-5 bg-primary' : 'w-1.5 bg-gray-300'
+              i === safeIndex ? 'w-5 bg-primary' : 'w-1.5 bg-gray-300'
             }`}
             aria-label={`Banner ${i + 1}`}
           />

@@ -11,7 +11,6 @@ export function useCategories() {
 
   useEffect(() => {
     const ac = new AbortController();
-    setLoading(true);
     apiGet<ApiProductCategory[]>("/products/categories/tree", undefined, ac.signal)
       .then((res) => setData(res))
       .catch((e) => {

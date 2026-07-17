@@ -1,9 +1,8 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { StatCard } from "@/components/ui/stat-card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Users, Package, AlertTriangle, Megaphone, TrendingUp, ShieldCheck, Lock, Check, X, Eye } from "lucide-react";
+import { Users, Package, AlertTriangle, Megaphone, ShieldCheck, Lock, Check, X, Eye } from "lucide-react";
 
 const STATS = [
   { title: "Tổng người dùng", value: "2,847", subtitle: "+124 tuần này", icon: Users, variant: "green" as const },

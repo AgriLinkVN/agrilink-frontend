@@ -61,13 +61,6 @@ const ROADMAP = [
   },
 ];
 
-/* ─── Team ──────────────────────────────────────────────────────── */
-
-const TEAM = [
-  { name: "Trung Lê", role: "Founder & Full-stack Dev", avatar: "T" },
-  { name: "AgriLink Team", role: "Product · Design · Data", avatar: "A" },
-];
-
 /* ─── Page ──────────────────────────────────────────────────────── */
 
 export default function AboutPage() {

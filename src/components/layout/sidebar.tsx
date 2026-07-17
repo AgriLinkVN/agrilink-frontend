@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Package, ShoppingBag, Users, BarChart3,
   Settings, FileText, MapPin, Truck, Megaphone, ShieldCheck,
-  Leaf, ChevronRight, LogOut, Bell, QrCode, TrendingUp,
+  Leaf, ChevronRight, LogOut, QrCode, TrendingUp,
   ClipboardList, Building2, Calendar, Award, AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -128,9 +129,9 @@ export function Sidebar({ role, userName = "Người dùng", userAvatar }: Sideb
       {/* User info */}
       <div className="p-4 border-b border-hairline">
         <Link href="/profile" className="flex items-center gap-3 p-3 rounded-xl bg-surface-green hover:bg-surface-soft transition-colors cursor-pointer group">
-          <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-white font-bold text-sm shrink-0 group-hover:ring-2 group-hover:ring-primary/20 transition-all">
+          <div className="relative w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden group-hover:ring-2 group-hover:ring-primary/20 transition-all">
             {userAvatar ? (
-              <img src={userAvatar} alt={userName} className="w-full h-full rounded-full object-cover" />
+              <Image src={userAvatar} alt={userName} fill sizes="40px" className="rounded-full object-cover" />
             ) : (
               userName.charAt(0).toUpperCase()
             )}

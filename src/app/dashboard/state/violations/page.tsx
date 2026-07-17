@@ -9,7 +9,27 @@ import { useAuthStore } from "@/store/authStore";
 const API = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
 const getToken = () => useAuthStore.getState().accessToken;
 
-function apiFetch(path: string) {
+interface ApiEnvelope<T> {
+  data?: T;
+}
+
+interface ViolatingProduct {
+  id: string;
+  name: string;
+  status: string;
+  updatedAt: string;
+  rejectionReason?: string | null;
+  seller?: {
+    fullName?: string | null;
+  } | null;
+}
+
+interface ViolatingProductsResponse {
+  data?: ViolatingProduct[];
+  total?: number;
+}
+
+function apiFetch<T>(path: string): Promise<ApiEnvelope<T> | T> {
   const token = getToken();
   return fetch(`${API}/api/v1${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -23,16 +43,20 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function StateViolationsPage() {
   const user = useAuthStore((s) => s.user);
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<ViolatingProduct[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch("/admin/products/violating?limit=50")
+    apiFetch<ViolatingProductsResponse>("/admin/products/violating?limit=50")
       .then((res) => {
-        const data = res.data ?? res;
-        setProducts(data.data ?? []);
-        setTotal(data.total ?? 0);
+        const data = (
+          "data" in Object(res)
+            ? (res as ApiEnvelope<ViolatingProductsResponse>).data
+            : res
+        ) as ViolatingProductsResponse | undefined;
+        setProducts(data?.data ?? []);
+        setTotal(data?.total ?? 0);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -40,7 +64,7 @@ export default function StateViolationsPage() {
   return (
     <DashboardLayout
       role="state_agency"
-      userName={(user as any)?.fullName ?? "Cơ quan nhà nước"}
+      userName={user?.full_name ?? user?.phone ?? "Cơ quan nhà nước"}
       pageTitle="Sản phẩm vi phạm"
       pageDescription={`${total} sản phẩm bị khóa hoặc từ chối do vi phạm chính sách`}
     >
