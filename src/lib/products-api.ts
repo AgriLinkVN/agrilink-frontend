@@ -276,9 +276,13 @@ export const FALLBACK_CATEGORIES: Category[] = [
   { id: "hoa-cay-canh", name: "Hoa & Cây cảnh", slug: "hoa-cay-canh", sortOrder: 10 },
 ];
 
-export async function fetchCategories(): Promise<Category[]> {
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
+}
+
+export async function fetchCategories(signal?: AbortSignal): Promise<Category[]> {
   try {
-    const res = await fetch(`${BASE}/products/categories`, { cache: "no-store" });
+    const res = await fetch(`${BASE}/products/categories`, { cache: "no-store", signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     const list: Category[] = json?.data ?? json;
@@ -286,7 +290,8 @@ export async function fetchCategories(): Promise<Category[]> {
       return [{ id: "all", name: "Tất cả", slug: "all", sortOrder: 0 }, ...list];
     }
     return FALLBACK_CATEGORIES;
-  } catch {
+  } catch (error) {
+    if (isAbortError(error)) throw error;
     return FALLBACK_CATEGORIES;
   }
 }
@@ -303,7 +308,7 @@ export async function fetchProducts(params?: {
   status?: string;
   sortBy?: "createdAt" | "pricePerUnit" | "name" | "soldCount" | "avgRating";
   order?: "ASC" | "DESC";
-}): Promise<ProductListResponse> {
+}, signal?: AbortSignal): Promise<ProductListResponse> {
   try {
     const qs = new URLSearchParams();
     qs.set("limit", String(params?.limit ?? 20));
@@ -318,14 +323,15 @@ export async function fetchProducts(params?: {
     if (params?.sortBy) qs.set("sortBy", params.sortBy);
     if (params?.order) qs.set("order", params.order);
 
-    const res = await fetch(`${BASE}/products?${qs}`, { cache: "no-store" });
+    const res = await fetch(`${BASE}/products?${qs}`, { cache: "no-store", signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     // ResponseInterceptor wraps: { statusCode, message, data: { data: [...], total: N } }
     const payload: ProductListResponse = json?.data ?? json;
     if (payload.data && payload.data.length > 0) return payload;
     return { data: MOCK_PRODUCTS, total: MOCK_PRODUCTS.length };
-  } catch {
+  } catch (error) {
+    if (isAbortError(error)) throw error;
     return { data: MOCK_PRODUCTS, total: MOCK_PRODUCTS.length };
   }
 }

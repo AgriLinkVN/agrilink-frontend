@@ -1,24 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../api";
 import type { ApiProvince } from "@/types/search";
 
 export function useProvinces() {
-  const [data, setData] = useState<ApiProvince[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery({
+    queryKey: ["provinces"],
+    queryFn: ({ signal }) =>
+      apiGet<ApiProvince[]>("/geography/provinces", undefined, signal),
+    staleTime: 30 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    const ac = new AbortController();
-    apiGet<ApiProvince[]>("/geography/provinces", undefined, ac.signal)
-      .then((res) => setData(res))
-      .catch((e) => {
-        if (e.name !== "AbortError") setError(e.message);
-      })
-      .finally(() => setLoading(false));
-    return () => ac.abort();
-  }, []);
-
-  return { data, loading, error };
+  return {
+    data: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error instanceof Error ? query.error.message : null,
+  };
 }

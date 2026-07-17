@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useMemo, useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Search, Star, Grid3X3, List,
   ChevronDown, ChevronLeft, ChevronRight, X,
@@ -15,9 +16,9 @@ import { cn } from "@/lib/utils";
 import {
   fetchProducts,
   fetchCategories,
+  FALLBACK_CATEGORIES,
   FARMING_TYPE_OPTIONS,
   type Product,
-  type Category,
 } from "@/lib/products-api";
 
 // Top provinces for sidebar (most agricultural)
@@ -36,6 +37,24 @@ const SORT_OPTIONS = [
 
 const LIMIT = 9;
 
+interface MarketplaceQuery {
+  search: string;
+  categoryId: string;
+  province: string;
+  farmingTypes: string[];
+  sort: string;
+  page: number;
+}
+
+const INITIAL_QUERY: MarketplaceQuery = {
+  search: "",
+  categoryId: "all",
+  province: "Tất cả",
+  farmingTypes: [],
+  sort: "createdAt_DESC",
+  page: 1,
+};
+
 function sortProducts(products: Product[], sortValue: string): Product[] {
   const arr = [...products];
   if (sortValue === "price_ASC") return arr.sort((a, b) => Number(a.pricePerUnit) - Number(b.pricePerUnit));
@@ -46,67 +65,74 @@ function sortProducts(products: Product[], sortValue: string): Product[] {
 
 export default function MarketplacePage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [selectedProvince, setSelectedProvince] = useState("Tất cả");
-  const [selectedSort, setSelectedSort] = useState("createdAt_DESC");
-  const [selectedFarming, setSelectedFarming] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState<MarketplaceQuery>(INITIAL_QUERY);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
 
-  useEffect(() => {
-    fetchCategories().then(setCategories);
-  }, []);
+  const updateQuery = (patch: Partial<MarketplaceQuery>, resetPage = true) => {
+    setQuery((current) => ({
+      ...current,
+      ...patch,
+      page: resetPage ? 1 : patch.page ?? current.page,
+    }));
+  };
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const farming = selectedFarming.length === 1 ? selectedFarming[0] : undefined;
-    const catId = selectedCategory !== "all" ? selectedCategory : undefined;
-    const result = await fetchProducts({ page: 1, limit: 100, search: search || undefined, farmingType: farming, categoryId: catId });
-    setAllProducts(result.data);
-    setLoading(false);
-  }, [search, selectedFarming, selectedCategory]);
+  const productParams = useMemo(() => {
+    const farming =
+      query.farmingTypes.length === 1 ? query.farmingTypes[0] : undefined;
+    return {
+      page: 1,
+      limit: 100,
+      search: query.search || undefined,
+      farmingType: farming,
+      categoryId: query.categoryId !== "all" ? query.categoryId : undefined,
+    };
+  }, [query.categoryId, query.farmingTypes, query.search]);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void load();
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [load]);
+  const { data: categories = FALLBACK_CATEGORIES } = useQuery({
+    queryKey: ["marketplace", "categories"],
+    queryFn: ({ signal }) => fetchCategories(signal),
+    placeholderData: FALLBACK_CATEGORIES,
+    staleTime: 10 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setPage(1);
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [search, selectedFarming, selectedProvince, selectedSort, selectedCategory]);
+  const {
+    data: productResult,
+    isPending: loading,
+    isFetching: productsFetching,
+  } = useQuery({
+    queryKey: ["marketplace", "products", productParams],
+    queryFn: ({ signal }) => fetchProducts(productParams, signal),
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+  });
+
+  const allProducts = productResult?.data ?? [];
 
   // Client-side filter by province (extract from name/description)
-  const provinceFiltered = selectedProvince === "Tất cả"
+  const provinceFiltered = query.province === "Tất cả"
     ? allProducts
     : allProducts.filter((p) => {
         const text = `${p.name} ${p.description ?? ""}`;
-        return text.includes(selectedProvince);
+        return text.includes(query.province);
       });
 
   // Client-side sort + paginate
-  const sorted = sortProducts(provinceFiltered, selectedSort);
+  const sorted = sortProducts(provinceFiltered, query.sort);
   const totalPages = Math.max(1, Math.ceil(sorted.length / LIMIT));
-  const products = sorted.slice((page - 1) * LIMIT, page * LIMIT);
+  const currentPage = Math.min(query.page, totalPages);
+  const products = sorted.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
 
-  const sortLabel = SORT_OPTIONS.find((o) => o.value === selectedSort)?.label ?? "Sắp xếp";
-  const hasActiveFilters = selectedFarming.length > 0 || selectedProvince !== "Tất cả" || search;
+  const sortLabel = SORT_OPTIONS.find((o) => o.value === query.sort)?.label ?? "Sắp xếp";
+  const hasActiveFilters =
+    query.farmingTypes.length > 0 ||
+    query.province !== "Tất cả" ||
+    query.categoryId !== "all" ||
+    Boolean(query.search);
 
   const clearFilters = () => {
-    setSelectedFarming([]);
-    setSelectedProvince("Tất cả");
-    setSearch("");
     setSearchInput("");
-    setPage(1);
+    setQuery(INITIAL_QUERY);
   };
 
   return (
@@ -183,18 +209,28 @@ export default function MarketplacePage() {
                       type="text"
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") { setSearch(searchInput); setPage(1); } }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          updateQuery({ search: searchInput.trim() });
+                        }
+                      }}
                       placeholder="Xoài, gạo ST25, cà phê..."
                       className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-soft text-ink"
                     />
                     {searchInput && (
-                      <button onClick={() => { setSearchInput(""); setSearch(""); }} className="text-muted hover:text-ink">
+                      <button
+                        onClick={() => {
+                          setSearchInput("");
+                          updateQuery({ search: "" });
+                        }}
+                        className="text-muted hover:text-ink"
+                      >
                         <X size={13} />
                       </button>
                     )}
                   </div>
                   <button
-                    onClick={() => { setSearch(searchInput); setPage(1); }}
+                    onClick={() => updateQuery({ search: searchInput.trim() })}
                     className="h-11 px-5 rounded-2xl bg-emerald-400 hover:bg-emerald-300 text-white font-semibold text-sm transition-all shadow-sm whitespace-nowrap"
                   >
                     Tìm
@@ -206,7 +242,10 @@ export default function MarketplacePage() {
                   {["Gạo ST25", "Sầu riêng", "Cà phê", "Tôm sú", "Mật ong"].map((tag) => (
                     <button
                       key={tag}
-                      onClick={() => { setSearchInput(tag); setSearch(tag); setPage(1); }}
+                      onClick={() => {
+                        setSearchInput(tag);
+                        updateQuery({ search: tag });
+                      }}
                       className="text-[11px] px-2.5 py-1 rounded-full bg-white/15 text-white/80 hover:bg-white/25 transition-all border border-white/20"
                     >
                       {tag}
@@ -233,10 +272,10 @@ export default function MarketplacePage() {
             {categories.map((cat) => (
               <button
                 key={cat.id}
-                onClick={() => { setSelectedCategory(cat.id); setPage(1); }}
+                onClick={() => updateQuery({ categoryId: cat.id })}
                 className={cn(
                   "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all",
-                  selectedCategory === cat.id
+                  query.categoryId === cat.id
                     ? "bg-primary text-white shadow-sm"
                     : "text-muted hover:text-ink hover:bg-surface-soft"
                 )}
@@ -267,10 +306,10 @@ export default function MarketplacePage() {
                   {SIDEBAR_PROVINCES.map((p) => (
                     <button
                       key={p}
-                      onClick={() => { setSelectedProvince(p); setPage(1); }}
+                      onClick={() => updateQuery({ province: p })}
                       className={cn(
                         "text-left px-3 py-1.5 rounded-lg text-sm transition-all",
-                        selectedProvince === p
+                        query.province === p
                           ? "bg-primary-ultra-light text-primary font-semibold"
                           : "text-muted hover:text-ink hover:bg-surface-soft"
                       )}
@@ -290,12 +329,15 @@ export default function MarketplacePage() {
                       <input
                         type="checkbox"
                         className="accent-primary w-4 h-4 rounded shrink-0"
-                        checked={selectedFarming.includes(value)}
+                        checked={query.farmingTypes.includes(value)}
                         onChange={(e) => {
-                          setSelectedFarming((prev) =>
-                            e.target.checked ? [...prev, value] : prev.filter((v) => v !== value)
-                          );
-                          setPage(1);
+                          setQuery((current) => ({
+                            ...current,
+                            farmingTypes: e.target.checked
+                              ? [...current.farmingTypes, value]
+                              : current.farmingTypes.filter((v) => v !== value),
+                            page: 1,
+                          }));
                         }}
                       />
                       <span className="text-sm text-muted group-hover:text-ink transition-colors">{label}</span>
@@ -346,6 +388,7 @@ export default function MarketplacePage() {
                   <>
                     <span className="font-semibold text-ink">{sorted.length}</span> sản phẩm
                     {hasActiveFilters && <span className="text-primary"> (đã lọc)</span>}
+                    {productsFetching && <span className="text-muted"> · đang cập nhật</span>}
                   </>
                 )}
               </p>
@@ -381,10 +424,13 @@ export default function MarketplacePage() {
                         {SORT_OPTIONS.map((opt) => (
                           <button
                             key={opt.value}
-                            onClick={() => { setSelectedSort(opt.value); setShowSortDropdown(false); }}
+                            onClick={() => {
+                              updateQuery({ sort: opt.value });
+                              setShowSortDropdown(false);
+                            }}
                             className={cn(
                               "w-full text-left px-4 py-2 text-sm transition-colors",
-                              selectedSort === opt.value
+                              query.sort === opt.value
                                 ? "text-primary font-semibold bg-primary-ultra-light"
                                 : "text-ink hover:bg-surface-soft"
                             )}
@@ -402,22 +448,39 @@ export default function MarketplacePage() {
             {/* Active filter chips */}
             {hasActiveFilters && (
               <div className="flex flex-wrap gap-2 mb-4">
-                {search && (
+                {query.search && (
                   <span className="flex items-center gap-1.5 text-xs bg-primary-ultra-light text-primary px-3 py-1 rounded-full font-medium">
-                    &ldquo;{search}&rdquo;
-                    <button onClick={() => { setSearch(""); setSearchInput(""); }}><X size={11} /></button>
+                    &ldquo;{query.search}&rdquo;
+                    <button
+                      onClick={() => {
+                        setSearchInput("");
+                        updateQuery({ search: "" });
+                      }}
+                    >
+                      <X size={11} />
+                    </button>
                   </span>
                 )}
-                {selectedProvince !== "Tất cả" && (
+                {query.province !== "Tất cả" && (
                   <span className="flex items-center gap-1.5 text-xs bg-primary-ultra-light text-primary px-3 py-1 rounded-full font-medium">
-                    {selectedProvince}
-                    <button onClick={() => setSelectedProvince("Tất cả")}><X size={11} /></button>
+                    {query.province}
+                    <button onClick={() => updateQuery({ province: "Tất cả" })}><X size={11} /></button>
                   </span>
                 )}
-                {selectedFarming.map((v) => (
+                {query.farmingTypes.map((v) => (
                   <span key={v} className="flex items-center gap-1.5 text-xs bg-primary-ultra-light text-primary px-3 py-1 rounded-full font-medium">
                     {FARMING_TYPE_OPTIONS.find((f) => f.value === v)?.label}
-                    <button onClick={() => setSelectedFarming((prev) => prev.filter((x) => x !== v))}><X size={11} /></button>
+                    <button
+                      onClick={() => {
+                        setQuery((current) => ({
+                          ...current,
+                          farmingTypes: current.farmingTypes.filter((x) => x !== v),
+                          page: 1,
+                        }));
+                      }}
+                    >
+                      <X size={11} />
+                    </button>
                   </span>
                 ))}
               </div>
@@ -488,8 +551,8 @@ export default function MarketplacePage() {
             {!loading && totalPages > 0 && (
               <div className="flex items-center justify-center gap-1.5 mt-auto pt-8">
                 <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
+                  onClick={() => updateQuery({ page: Math.max(1, currentPage - 1) }, false)}
+                  disabled={currentPage === 1}
                   className="w-9 h-9 rounded-lg border border-hairline flex items-center justify-center text-muted hover:border-primary hover:text-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft size={16} />
@@ -498,18 +561,18 @@ export default function MarketplacePage() {
                 {Array.from({ length: totalPages }).map((_, i) => {
                   const p = i + 1;
                   // Show first, last, current ±1, and ellipsis
-                  const show = p === 1 || p === totalPages || Math.abs(p - page) <= 1;
-                  const ellipsisAfter = p === 1 && page > 3;
-                  const ellipsisBefore = p === totalPages && page < totalPages - 2;
+                  const show = p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1;
+                  const ellipsisAfter = p === 1 && currentPage > 3;
+                  const ellipsisBefore = p === totalPages && currentPage < totalPages - 2;
                   if (!show) return null;
                   return (
                     <span key={p} className="flex items-center gap-1.5">
                       {ellipsisAfter && <span className="text-muted text-sm px-1">…</span>}
                       <button
-                        onClick={() => setPage(p)}
+                        onClick={() => updateQuery({ page: p }, false)}
                         className={cn(
                           "w-9 h-9 rounded-lg text-sm font-medium transition-all",
-                          p === page
+                          p === currentPage
                             ? "bg-primary text-white shadow-sm"
                             : "border border-hairline text-muted hover:border-primary hover:text-primary"
                         )}
@@ -520,8 +583,8 @@ export default function MarketplacePage() {
                 })}
 
                 <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
+                  onClick={() => updateQuery({ page: Math.min(totalPages, currentPage + 1) }, false)}
+                  disabled={currentPage === totalPages}
                   className="w-9 h-9 rounded-lg border border-hairline flex items-center justify-center text-muted hover:border-primary hover:text-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <ChevronRight size={16} />
@@ -532,7 +595,7 @@ export default function MarketplacePage() {
             {/* Page info */}
             {!loading && totalPages > 1 && (
               <p className="text-center text-xs text-muted mt-3">
-                Trang {page} / {totalPages}
+                Trang {currentPage} / {totalPages}
               </p>
             )}
 
