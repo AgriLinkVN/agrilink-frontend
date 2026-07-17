@@ -327,8 +327,16 @@ export async function fetchProducts(params?: {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     // ResponseInterceptor wraps: { statusCode, message, data: { data: [...], total: N } }
-    const payload: ProductListResponse = json?.data ?? json;
-    if (payload.data && payload.data.length > 0) return payload;
+    const payload = json?.data ?? json;
+    if (Array.isArray(payload)) {
+      return { data: payload, total: payload.length };
+    }
+    if (Array.isArray(payload.data)) {
+      return {
+        data: payload.data,
+        total: payload.total ?? payload.data.length,
+      };
+    }
     return { data: MOCK_PRODUCTS, total: MOCK_PRODUCTS.length };
   } catch (error) {
     if (isAbortError(error)) throw error;
