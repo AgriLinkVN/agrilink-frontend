@@ -42,6 +42,8 @@ interface MarketplaceQuery {
   categoryId: string;
   province: string;
   farmingTypes: string[];
+  minPrice: string;
+  maxPrice: string;
   sort: string;
   page: number;
 }
@@ -51,9 +53,18 @@ const INITIAL_QUERY: MarketplaceQuery = {
   categoryId: "all",
   province: "Tất cả",
   farmingTypes: [],
+  minPrice: "",
+  maxPrice: "",
   sort: "createdAt_DESC",
   page: 1,
 };
+
+function parsePriceFilter(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const price = Number(trimmed);
+  return Number.isFinite(price) && price >= 0 ? price : undefined;
+}
 
 function sortProducts(products: Product[], sortValue: string): Product[] {
   const arr = [...products];
@@ -68,6 +79,8 @@ export default function MarketplacePage() {
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState<MarketplaceQuery>(INITIAL_QUERY);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const minPrice = parsePriceFilter(query.minPrice);
+  const maxPrice = parsePriceFilter(query.maxPrice);
 
   const updateQuery = (patch: Partial<MarketplaceQuery>, resetPage = true) => {
     setQuery((current) => ({
@@ -86,8 +99,10 @@ export default function MarketplacePage() {
       search: query.search || undefined,
       farmingType: farming,
       categoryId: query.categoryId !== "all" ? query.categoryId : undefined,
+      minPrice,
+      maxPrice,
     };
-  }, [query.categoryId, query.farmingTypes, query.search]);
+  }, [maxPrice, minPrice, query.categoryId, query.farmingTypes, query.search]);
 
   const { data: categories = FALLBACK_CATEGORIES } = useQuery({
     queryKey: ["marketplace", "categories"],
@@ -109,16 +124,28 @@ export default function MarketplacePage() {
 
   const allProducts = productResult?.data ?? [];
 
-  // Client-side filter by province (extract from name/description)
-  const provinceFiltered = query.province === "Tất cả"
-    ? allProducts
-    : allProducts.filter((p) => {
-        const text = `${p.name} ${p.description ?? ""}`;
-        return text.includes(query.province);
-      });
+  const filteredProducts = allProducts.filter((product) => {
+    if (query.province !== "Tất cả") {
+      const text = `${product.name} ${product.description ?? ""}`;
+      if (!text.includes(query.province)) return false;
+    }
+
+    if (
+      query.farmingTypes.length > 0 &&
+      (!product.farmingType || !query.farmingTypes.includes(product.farmingType))
+    ) {
+      return false;
+    }
+
+    const price = Number(product.pricePerUnit);
+    if (minPrice !== undefined && price < minPrice) return false;
+    if (maxPrice !== undefined && price > maxPrice) return false;
+
+    return true;
+  });
 
   // Client-side sort + paginate
-  const sorted = sortProducts(provinceFiltered, query.sort);
+  const sorted = sortProducts(filteredProducts, query.sort);
   const totalPages = Math.max(1, Math.ceil(sorted.length / LIMIT));
   const currentPage = Math.min(query.page, totalPages);
   const products = sorted.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
@@ -128,6 +155,7 @@ export default function MarketplacePage() {
     query.farmingTypes.length > 0 ||
     query.province !== "Tất cả" ||
     query.categoryId !== "all" ||
+    Boolean(query.minPrice || query.maxPrice) ||
     Boolean(query.search);
 
   const clearFilters = () => {
@@ -350,9 +378,25 @@ export default function MarketplacePage() {
               <div className="bg-white rounded-xl border border-hairline p-4">
                 <h3 className="text-xs font-bold text-ink uppercase tracking-wide mb-3">Khoảng giá (đ/kg)</h3>
                 <div className="flex gap-2 items-center">
-                  <input type="number" placeholder="Từ" className="w-full h-8 px-2 text-sm border border-hairline rounded-lg outline-none focus:border-primary" />
+                  <input
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    value={query.minPrice}
+                    onChange={(e) => updateQuery({ minPrice: e.target.value })}
+                    placeholder="Từ"
+                    className="w-full h-8 px-2 text-sm border border-hairline rounded-lg outline-none focus:border-primary"
+                  />
                   <span className="text-muted text-xs shrink-0">—</span>
-                  <input type="number" placeholder="Đến" className="w-full h-8 px-2 text-sm border border-hairline rounded-lg outline-none focus:border-primary" />
+                  <input
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    value={query.maxPrice}
+                    onChange={(e) => updateQuery({ maxPrice: e.target.value })}
+                    placeholder="Đến"
+                    className="w-full h-8 px-2 text-sm border border-hairline rounded-lg outline-none focus:border-primary"
+                  />
                 </div>
               </div>
 
@@ -465,6 +509,12 @@ export default function MarketplacePage() {
                   <span className="flex items-center gap-1.5 text-xs bg-primary-ultra-light text-primary px-3 py-1 rounded-full font-medium">
                     {query.province}
                     <button onClick={() => updateQuery({ province: "Tất cả" })}><X size={11} /></button>
+                  </span>
+                )}
+                {(query.minPrice || query.maxPrice) && (
+                  <span className="flex items-center gap-1.5 text-xs bg-primary-ultra-light text-primary px-3 py-1 rounded-full font-medium">
+                    {query.minPrice || "0"}đ - {query.maxPrice || "∞"}đ
+                    <button onClick={() => updateQuery({ minPrice: "", maxPrice: "" })}><X size={11} /></button>
                   </span>
                 )}
                 {query.farmingTypes.map((v) => (
