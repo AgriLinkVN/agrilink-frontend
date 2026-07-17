@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Eye, Loader2, ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
@@ -88,12 +89,14 @@ export function CampaignTable({ status }: Props) {
                 <tr key={campaign.id} className="hover:bg-surface-soft transition-colors">
                   {/* Banner thumbnail */}
                   <td className="px-4 py-3">
-                    <div className="w-20 h-[45px] rounded overflow-hidden bg-surface-soft border border-hairline shrink-0 flex items-center justify-center">
+                    <div className="relative w-20 h-[45px] rounded overflow-hidden bg-surface-soft border border-hairline shrink-0 flex items-center justify-center">
                       {campaign.imageUrl ? (
-                        <img
+                        <Image
                           src={campaign.imageUrl}
                           alt={campaign.title}
-                          className="w-full h-full object-cover"
+                          fill
+                          sizes="80px"
+                          className="object-cover"
                         />
                       ) : (
                         <ImageOff size={16} className="text-muted" />

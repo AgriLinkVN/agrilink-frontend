@@ -97,8 +97,6 @@ export function AdCarouselHome() {
     return () => clearInterval(t);
   }, [paused, next]);
 
-  const ad = HOME_ADS[active];
-
   return (
     <div
       className="relative w-full rounded-2xl overflow-hidden select-none"

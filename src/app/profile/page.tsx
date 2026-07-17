@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
@@ -115,9 +116,9 @@ export default function ProfilePage() {
           <div className="px-6 pb-6">
             <div className="flex items-end gap-4 -mt-[38px] mb-4">
               <div className="relative group">
-                <div className="w-24 h-24 rounded-2xl border-4 border-white bg-primary-light flex items-center justify-center text-white text-3xl font-bold card-shadow overflow-hidden">
+                <div className="relative w-24 h-24 rounded-2xl border-4 border-white bg-primary-light flex items-center justify-center text-white text-3xl font-bold card-shadow overflow-hidden">
                   {avatarUrl ? (
-                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    <Image src={avatarUrl} alt="Avatar" fill sizes="96px" className="object-cover" />
                   ) : (
                     userName.charAt(0).toUpperCase()
                   )}

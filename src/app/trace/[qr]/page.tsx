@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, Calendar, Leaf, Package, Truck, CheckCircle, QrCode, Shield, ChevronRight } from "lucide-react";
+import { Calendar, Package, Truck, CheckCircle, QrCode, Shield, ChevronRight } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Badge } from "@/components/ui/badge";
@@ -140,7 +140,7 @@ export default function TracePage() {
           <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-primary-light" />
 
           <div className="flex flex-col gap-6">
-            {TRACE_DATA.steps.map((step, idx) => {
+            {TRACE_DATA.steps.map((step) => {
               const status = statusConfig[step.status as keyof typeof statusConfig];
               const StatusIcon = status.icon;
               return (

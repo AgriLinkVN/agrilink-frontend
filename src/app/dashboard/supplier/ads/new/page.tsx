@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import NextImage from 'next/image';
 import {
   Check, ChevronRight, ImagePlus, Loader2, AlertTriangle,
   X, Globe, MapPin,
@@ -351,8 +352,14 @@ function Step2({
         </label>
 
         {imageUrl ? (
-          <div className="relative rounded-xl overflow-hidden border border-hairline">
-            <img src={imageUrl} alt="Banner preview" className="w-full aspect-video object-cover" />
+          <div className="relative rounded-xl overflow-hidden border border-hairline aspect-video">
+            <NextImage
+              src={imageUrl}
+              alt="Banner preview"
+              fill
+              sizes="(max-width: 768px) 100vw, 720px"
+              className="object-cover"
+            />
             <button
               onClick={() => setImageUrl('')}
               className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-black/80 transition-colors"
@@ -461,8 +468,14 @@ function Step3({
       </div>
 
       {/* Banner preview */}
-      <div className="rounded-xl overflow-hidden border border-hairline max-h-64">
-        <img src={imageUrl} alt={title} className="w-full h-full object-cover max-h-64" />
+      <div className="relative rounded-xl overflow-hidden border border-hairline h-64">
+        <NextImage
+          src={imageUrl}
+          alt={title}
+          fill
+          sizes="(max-width: 768px) 100vw, 720px"
+          className="object-cover"
+        />
       </div>
 
       {/* Summary card */}

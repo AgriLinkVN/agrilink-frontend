@@ -96,8 +96,6 @@ export function FeaturedCarousel() {
   const trackRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
-  const [canPrev, setCanPrev] = useState(false);
-  const [canNext, setCanNext] = useState(true);
   const scrollTo = useCallback((idx: number) => {
     const el = trackRef.current;
     if (!el) return;
@@ -112,8 +110,6 @@ export function FeaturedCarousel() {
     if (!el) return;
     const idx = Math.round(el.scrollLeft / (CARD_WIDTH + GAP));
     setActiveIdx(idx);
-    setCanPrev(el.scrollLeft > 8);
-    setCanNext(el.scrollLeft < el.scrollWidth - el.clientWidth - 8);
   }, []);
 
   // auto-play

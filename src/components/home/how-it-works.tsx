@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   Sprout, ShoppingBag, Factory, Building2,
   UserPlus, Camera, PhoneCall,
-  Search, QrCode, Truck,
+  Search, QrCode,
   ClipboardList, BarChart3, Handshake,
   Users, Package, Globe,
 } from "lucide-react";

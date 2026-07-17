@@ -3,7 +3,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Package, Megaphone, TrendingUp, BarChart3, Plus, Eye, MousePointer } from "lucide-react";
+import { Package, BarChart3, Plus, Eye, MousePointer } from "lucide-react";
 
 const STATS = [
   { title: "Sản phẩm đang bán", value: "34", subtitle: "5 chờ duyệt", icon: Package, variant: "green" as const },

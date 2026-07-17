@@ -4,12 +4,11 @@ import { useState } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Bell, Download, RefreshCw, BarChart3, AlertCircle } from "lucide-react";
 import { AdBanner } from "@/components/ads/ad-banner";
 import { AdCarouselHome } from "@/components/ads/ad-carousel-home";
 import { AdSidebarHome } from "@/components/ads/ad-sidebar-home";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { cn } from "@/lib/utils";
 
 const PRICE_DATA_XOAI = [

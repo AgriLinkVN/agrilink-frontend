@@ -71,7 +71,7 @@ export default function RegisterPage() {
       } else {
         setError(data.message || "Không thể gửi OTP. Vui lòng thử lại.");
       }
-    } catch (err) {
+    } catch {
       setError("Lỗi kết nối đến máy chủ");
     } finally {
       setIsLoading(false);
@@ -135,7 +135,7 @@ export default function RegisterPage() {
       } else {
         setError(regData.message || "Đăng ký thất bại. Số điện thoại có thể đã tồn tại.");
       }
-    } catch (err) {
+    } catch {
       setError("Lỗi kết nối đến máy chủ");
     } finally {
       setIsLoading(false);

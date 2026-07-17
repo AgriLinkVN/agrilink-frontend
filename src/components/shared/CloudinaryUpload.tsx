@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { UploadCloud, X, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { uploadImageToStorage, type StorageImageType } from '@/lib/api';
@@ -38,8 +39,8 @@ export function CloudinaryUpload({ label, value, onChange, type = 'product' }: C
       <label className="text-sm font-medium text-slate-700">{label}</label>
       
       {value ? (
-        <div className="relative w-full max-w-sm rounded-lg overflow-hidden border border-slate-200 group">
-          <img src={value} alt="Uploaded" className="w-full h-48 object-cover" />
+        <div className="relative w-full max-w-sm h-48 rounded-lg overflow-hidden border border-slate-200 group">
+          <Image src={value} alt="Uploaded" fill sizes="384px" className="object-cover" />
           <button
             type="button"
             onClick={() => onChange('')}
