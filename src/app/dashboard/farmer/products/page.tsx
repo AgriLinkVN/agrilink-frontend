@@ -225,10 +225,11 @@ export default function FarmerProductsPage() {
       pageTitle="Sản phẩm của tôi"
       pageDescription={`${total} sản phẩm đang quản lý`}
       actions={
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <Button
             variant="secondary"
             size="sm"
+            className="flex-1 sm:flex-none"
             onClick={() => {
               setActionError(null);
               void refetch();
@@ -237,7 +238,7 @@ export default function FarmerProductsPage() {
           >
             <RefreshCcw size={14} /> Tải lại
           </Button>
-          <Button asChild>
+          <Button className="flex-1 sm:flex-none" asChild>
             <Link href="/dashboard/farmer/products/new">
               <Plus size={16} /> Đăng sản phẩm mới
             </Link>
@@ -274,8 +275,8 @@ export default function FarmerProductsPage() {
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-hairline bg-white px-3 lg:w-72">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-hairline bg-white px-3 sm:min-w-[220px] lg:w-72">
             <Search size={15} className="text-muted shrink-0" />
             <input
               type="text"
@@ -285,12 +286,14 @@ export default function FarmerProductsPage() {
               className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-soft"
             />
           </div>
-          <Button variant="secondary" size="sm" disabled>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+          <Button variant="secondary" size="sm" disabled className="w-full sm:w-auto">
             <Filter size={14} /> Lọc
           </Button>
-          <Button variant="secondary" size="sm" disabled>
+          <Button variant="secondary" size="sm" disabled className="w-full sm:w-auto">
             <ArrowUpDown size={14} /> Sắp xếp
           </Button>
+          </div>
         </div>
       </div>
 
@@ -324,7 +327,7 @@ export default function FarmerProductsPage() {
               return (
                 <div
                   key={product.id}
-                  className="grid grid-cols-1 gap-3 px-5 py-4 transition-colors hover:bg-surface-soft lg:grid-cols-[minmax(260px,1fr)_120px_120px_120px_120px_180px] lg:gap-4 lg:items-center"
+                  className="grid grid-cols-1 gap-3 px-4 py-4 transition-colors hover:bg-surface-soft sm:px-5 lg:grid-cols-[minmax(260px,1fr)_120px_120px_120px_120px_180px] lg:gap-4 lg:items-center"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-surface-soft shrink-0">
@@ -407,6 +410,7 @@ export default function FarmerProductsPage() {
                       <Button
                         variant={action.variant}
                         size="sm"
+                        className="min-w-[132px] flex-1 sm:flex-none"
                         loading={isActing}
                         disabled={actionDisabled}
                         title={

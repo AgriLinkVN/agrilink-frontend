@@ -157,68 +157,70 @@ export default function NewProductPage() {
         </Button>
       }
     >
-      <div className="max-w-2xl mx-auto">
+      <div className="mx-auto max-w-2xl">
         {isSuccess ? (
           <SuccessScreen data={formData} onAddAnother={handleAddAnother} />
         ) : (
           <>
             {/* Stepper */}
-            <div className="flex items-center gap-1 mb-8">
-              {STEPS.map((s, index) => {
-                const Icon = s.icon;
-                const isCompleted = s.id < step;
-                const isCurrent = s.id === step;
+            <div className="-mx-2 mb-8 overflow-x-auto px-2 pb-2">
+              <div className="flex min-w-[460px] items-center gap-1 sm:min-w-0">
+                {STEPS.map((s, index) => {
+                  const Icon = s.icon;
+                  const isCompleted = s.id < step;
+                  const isCurrent = s.id === step;
 
-                return (
-                  <div key={s.id} className="flex items-center gap-1 flex-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (isCompleted) goToStep(s.id);
-                      }}
-                      className={cn(
-                        "flex items-center gap-2 px-3 py-2 rounded-lg transition-all w-full",
-                        isCompleted && "cursor-pointer hover:bg-surface-green",
-                        isCurrent && "bg-primary-ultra-light",
-                        !isCompleted && !isCurrent && "opacity-50"
+                  return (
+                    <div key={s.id} className="flex flex-1 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isCompleted) goToStep(s.id);
+                        }}
+                        className={cn(
+                          "flex w-full items-center gap-2 rounded-lg px-3 py-2 transition-all",
+                          isCompleted && "cursor-pointer hover:bg-surface-green",
+                          isCurrent && "bg-primary-ultra-light",
+                          !isCompleted && !isCurrent && "opacity-50"
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all",
+                            isCompleted
+                              ? "bg-primary text-white"
+                              : isCurrent
+                                ? "bg-primary text-white ring-4 ring-primary-ultra-light"
+                                : "bg-surface-strong text-muted"
+                          )}
+                        >
+                          {isCompleted ? <Check size={14} /> : <Icon size={14} />}
+                        </div>
+                        <span
+                          className={cn(
+                            "text-xs font-medium",
+                            isCurrent
+                              ? "text-primary"
+                              : isCompleted
+                                ? "text-ink"
+                                : "text-muted"
+                          )}
+                        >
+                          {s.label}
+                        </span>
+                      </button>
+                      {index < STEPS.length - 1 && (
+                        <div
+                          className={cn(
+                            "h-0.5 w-4 shrink-0",
+                            isCompleted ? "bg-primary" : "bg-hairline"
+                          )}
+                        />
                       )}
-                    >
-                      <div
-                        className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all",
-                          isCompleted
-                            ? "bg-primary text-white"
-                            : isCurrent
-                              ? "bg-primary text-white ring-4 ring-primary-ultra-light"
-                              : "bg-surface-strong text-muted"
-                        )}
-                      >
-                        {isCompleted ? <Check size={14} /> : <Icon size={14} />}
-                      </div>
-                      <span
-                        className={cn(
-                          "text-xs font-medium hidden sm:block",
-                          isCurrent
-                            ? "text-primary"
-                            : isCompleted
-                              ? "text-ink"
-                              : "text-muted"
-                        )}
-                      >
-                        {s.label}
-                      </span>
-                    </button>
-                    {index < STEPS.length - 1 && (
-                      <div
-                        className={cn(
-                          "h-0.5 w-4 shrink-0",
-                          isCompleted ? "bg-primary" : "bg-hairline"
-                        )}
-                      />
-                    )}
-                  </div>
-                );
-              })}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Submit error */}

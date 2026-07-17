@@ -83,21 +83,21 @@ export function StepBasicInfo({ data, onChange, onNext }: StepBasicInfoProps) {
           <label className="text-sm font-medium text-ink">
             Phương thức canh tác *
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:grid-cols-4">
             {FARMING_TYPE_OPTIONS.map(({ value, label }) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => onChange({ farmingType: value })}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all",
+                  "flex min-w-0 items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all",
                   data.farmingType === value
                     ? "border-primary bg-surface-green text-primary"
                     : "border-hairline bg-white text-muted hover:border-primary-light hover:text-ink"
                 )}
               >
-                <Wheat size={14} />
-                {label}
+                <Wheat size={14} className="shrink-0" />
+                <span className="truncate">{label}</span>
               </button>
             ))}
           </div>

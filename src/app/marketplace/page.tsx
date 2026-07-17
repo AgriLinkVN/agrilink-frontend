@@ -423,10 +423,10 @@ export default function MarketplacePage() {
           </aside>
 
           {/* Main */}
-          <div className="flex-1 min-w-0 flex flex-col min-w-0">
+          <div className="flex min-w-0 flex-1 flex-col">
 
             {/* Toolbar */}
-            <div className="flex items-center justify-between mb-5">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted">
                 {loading ? "Đang tải..." : (
                   <>
@@ -436,7 +436,7 @@ export default function MarketplacePage() {
                   </>
                 )}
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end">
                 {/* View toggle */}
                 <div className="flex items-center gap-0.5 border border-hairline rounded-lg p-1">
                   <button
@@ -457,9 +457,10 @@ export default function MarketplacePage() {
                 <div className="relative">
                   <button
                     onClick={() => setShowSortDropdown((v) => !v)}
-                    className="flex items-center gap-2 border border-hairline rounded-lg px-3 h-9 text-sm text-ink hover:border-primary transition-colors bg-white"
+                    className="flex h-9 min-w-0 items-center gap-2 rounded-lg border border-hairline bg-white px-3 text-sm text-ink transition-colors hover:border-primary"
                   >
-                    {sortLabel} <ChevronDown size={14} className="text-muted" />
+                    <span className="truncate">{sortLabel}</span>
+                    <ChevronDown size={14} className="shrink-0 text-muted" />
                   </button>
                   {showSortDropdown && (
                     <>
