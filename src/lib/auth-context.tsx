@@ -14,7 +14,7 @@ interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
   login: (
-    phone: string,
+    email: string,
     credential: string,
     method?: "password" | "otp",
   ) => Promise<{ dashboard: string } | { error: string }>;
@@ -76,18 +76,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     async (
-      phone: string,
+      email: string,
       credential: string,
       method: "password" | "otp" = "password",
     ): Promise<{ dashboard: string } | { error: string }> => {
       try {
-        const normalizedPhone = phone.replace(/\s/g, "");
+        const normalizedEmail = email.trim();
 
         const endpoint = method === "password" ? "/auth/login" : "/auth/login-otp";
         const payload =
           method === "password"
-            ? { phone: normalizedPhone, password: credential }
-            : { target: normalizedPhone, code: credential, purpose: "login" };
+            ? { email: normalizedEmail, password: credential }
+            : { target: normalizedEmail, code: credential, purpose: "login" };
 
         const backend =
           process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";

@@ -5,9 +5,9 @@ import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Leaf, Phone, Lock, Eye, EyeOff, ArrowRight,
+  Leaf, Lock, Eye, EyeOff, ArrowRight,
   ChevronRight, ShieldCheck, Loader2, CheckCircle2,
-  Sprout, Users, ShoppingCart, Building2, Package, Truck, Shield
+  Sprout, Users, User, ShoppingCart, Building2, Package, Truck, Shield
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,13 +19,13 @@ type OtpStep = "idle" | "sent" | "verified";
 
 /* ─── Demo accounts quick-fill ─── */
 const DEMO_ACCOUNTS = [
-  { role: "Nông dân", phone: "0901111001", icon: Sprout },
-  { role: "HTX", phone: "0901111002", icon: Users },
-  { role: "Người mua", phone: "0901111003", icon: ShoppingCart },
-  { role: "Doanh nghiệp", phone: "0901111004", icon: Building2 },
-  { role: "Nhà cung cấp", phone: "0901111005", icon: Package },
-  { role: "Logistics", phone: "0901111007", icon: Truck },
-  { role: "Admin", phone: "0901111099", icon: Shield },
+  { role: "Nông dân", email: "farmer@agrilink.vn", icon: Sprout },
+  { role: "HTX", email: "cooperative@agrilink.vn", icon: Users },
+  { role: "Người mua", email: "buyer@agrilink.vn", icon: ShoppingCart },
+  { role: "Doanh nghiệp", email: "enterprise@agrilink.vn", icon: Building2 },
+  { role: "Nhà cung cấp", email: "supplier@agrilink.vn", icon: Package },
+  { role: "Logistics", email: "logistics@agrilink.vn", icon: Truck },
+  { role: "Admin", email: "admin@agrilink.vn", icon: Shield },
 ];
 
 export default function LoginPage() {
@@ -34,7 +34,7 @@ export default function LoginPage() {
 
   /* form state */
   const [method, setMethod] = useState<Method>("password");
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
@@ -57,14 +57,14 @@ export default function LoginPage() {
 
   /* ── Handlers ── */
   const handleSendOtp = async () => {
-    if (phone.replace(/\s/g, "").length < 9) { setError("Vui lòng nhập số điện thoại hợp lệ."); return; }
+    if (email.trim().length < 5) { setError("Vui lòng nhập email hợp lệ."); return; }
     setError("");
     try {
       setLoading(true);
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target: phone.replace(/\s/g, ""), purpose: 'login', type: 'sms' })
+        body: JSON.stringify({ target: email.trim(), purpose: 'login', type: 'email' })
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
@@ -106,7 +106,7 @@ export default function LoginPage() {
     setLoading(true);
 
     const credential = method === "password" ? password : otpDigits.join("");
-    const result = await login(phone, credential, method);
+    const result = await login(email.trim(), credential, method);
 
     if ("error" in result) {
       setError(result.error);
@@ -118,7 +118,7 @@ export default function LoginPage() {
   }
 
   const fillDemo = (p: string) => {
-    setPhone(p);
+    setEmail(p);
     setPassword("demo123");
     setOtpDigits(["1", "2", "3", "4", "5", "6"]);
     setError("");
@@ -251,21 +251,21 @@ export default function LoginPage() {
                       : "text-muted hover:text-ink"
                       }`}
                   >
-                    {m === "password" ? "  Mật khẩu" : "  OTP điện thoại"}
+                    {m === "password" ? "  Mật khẩu" : "  OTP Email"}
                   </button>
                 ))}
               </div>
 
               {/* Form */}
               <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-                {/* Phone */}
+                {/* Email */}
                 <Input
-                  label="Số điện thoại"
-                  type="tel"
-                  placeholder="0901 234 567"
-                  leftIcon={<Phone size={16} />}
-                  value={phone}
-                  onChange={(e) => { setPhone(e.target.value); setError(""); }}
+                  label="Email"
+                  type="email"
+                  placeholder="user@example.com"
+                  leftIcon={<User size={16} />}
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setError(""); }}
                   required
                 />
 
@@ -404,7 +404,7 @@ export default function LoginPage() {
                       <button
                         key={acc.role}
                         type="button"
-                        onClick={() => fillDemo(acc.phone)}
+                        onClick={() => fillDemo(acc.email)}
                         className="flex items-center gap-2 p-2 rounded-lg bg-white border border-amber-200 hover:border-amber-400 hover:bg-amber-50 text-left transition-colors group"
                       >
                         <div className="w-8 h-8 rounded-md bg-amber-100 flex items-center justify-center text-amber-700 group-hover:scale-110 transition-transform">
@@ -412,7 +412,7 @@ export default function LoginPage() {
                         </div>
                         <div>
                           <div className="text-xs font-bold text-ink">{acc.role}</div>
-                          <div className="text-[10px] text-muted-soft">{acc.phone}</div>
+                          <div className="text-[10px] text-muted-soft">{acc.email}</div>
                         </div>
                       </button>
                     );
