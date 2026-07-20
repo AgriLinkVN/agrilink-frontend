@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Search, Star, Grid3X3, List,
@@ -571,28 +571,28 @@ export default function MarketplacePage() {
               viewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {products.map((product, idx) => (
-                    <>
-                      <ProductGridCard key={product.id} product={product} />
+                    <Fragment key={product.id}>
+                      <ProductGridCard product={product} />
                       {/* Native ad after row 3 (index 8 = end of 3rd row in 3-col grid) */}
                       {idx === 8 && (
                         <div key="native-ad-row3" className="col-span-full">
                           <AdBanner slotId="below-hero" index={0} />
                         </div>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
                   {products.map((product, idx) => (
-                    <>
-                      <ProductListCard key={product.id} product={product} />
+                    <Fragment key={product.id}>
+                      <ProductListCard product={product} />
                       {idx === 4 && (
                         <div key="native-ad-list">
                           <AdBanner slotId="inline" index={0} />
                         </div>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </div>
               )
