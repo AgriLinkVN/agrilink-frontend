@@ -55,6 +55,8 @@ export type VietnamMapboxProps = {
     selectedProvinceCode?: string | null;
     visibleProvinceCodes?: string[];
     onProvinceClick?: (code: string) => void;
+    onReady?: () => void;
+    onError?: (error: Error) => void;
 };
 
 const BASE_MAP_STYLE = mapboxOutdoorsClean as unknown as StyleSpecification;
@@ -203,9 +205,12 @@ export function VietnamMapbox({
     selectedProvinceCode,
     visibleProvinceCodes,
     onProvinceClick,
+    onReady,
+    onError,
 }: VietnamMapboxProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<MapRef>(null);
+    const readyNotifiedRef = useRef(false);
     const activeHoverCodeRef = useRef<string | null>(null);
     const hoverFrameRef = useRef<number | null>(null);
     const resizeFrameRef = useRef<number | null>(null);
@@ -284,8 +289,12 @@ export function VietnamMapbox({
             map.isSourceLoaded(PROVINCE_SOURCE_ID)
         ) {
             setProvinceLayerReady(true);
+            if (!readyNotifiedRef.current) {
+                readyNotifiedRef.current = true;
+                onReady?.();
+            }
         }
-    }, [provinceLayerReady]);
+    }, [onReady, provinceLayerReady]);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -360,6 +369,13 @@ export function VietnamMapbox({
                     interactiveLayerIds={[PROVINCE_FILL_LAYER_ID]}
                     onLoad={onMapLoad}
                     onRender={onMapRender}
+                    onError={(event) => {
+                        onError?.(
+                            event.error instanceof Error
+                                ? event.error
+                                : new Error("Mapbox không thể tải bản đồ.")
+                        );
+                    }}
                     onMouseMove={onHover}
                     onMouseLeave={() => commitHover(null)}
                     onClick={onClick}
