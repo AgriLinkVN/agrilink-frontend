@@ -85,6 +85,7 @@ const ROLE_NAV: Record<UserRole, NavItem[]> = {
   ],
   admin: [
     { label: "Tổng quan", href: "/dashboard/admin", icon: LayoutDashboard },
+    { label: "Duyệt hồ sơ", href: "/dashboard/admin/profiles", icon: ShieldCheck, badge: "new" },
     { label: "Người dùng", href: "/dashboard/admin/users", icon: Users },
     { label: "Sản phẩm", href: "/dashboard/admin/products", icon: Package },
     { label: "Tranh chấp", href: "/dashboard/admin/disputes", icon: AlertTriangle, badge: "5" },
