@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Package, ShoppingBag, Users, BarChart3,
   Settings, FileText, MapPin, Truck, Megaphone, ShieldCheck,
@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type UserRole } from "@/types";
+import { useAuthStore } from "@/store/authStore";
+import { useAdminPendingCounts } from "@/hooks/useAdminPendingCounts";
 
 interface NavItem {
   label: string;
@@ -84,6 +86,7 @@ const ROLE_NAV: Record<UserRole, NavItem[]> = {
   ],
   admin: [
     { label: "Tổng quan", href: "/dashboard/admin", icon: LayoutDashboard },
+    { label: "Duyệt hồ sơ", href: "/dashboard/admin/profiles", icon: ShieldCheck, badge: "new" },
     { label: "Người dùng", href: "/dashboard/admin/users", icon: Users },
     { label: "Sản phẩm", href: "/dashboard/admin/products", icon: Package },
     { label: "Tranh chấp", href: "/dashboard/admin/disputes", icon: AlertTriangle, badge: "5" },
@@ -112,7 +115,24 @@ interface SidebarProps {
 
 export function Sidebar({ role, userName = "Người dùng", userAvatar }: SidebarProps) {
   const pathname = usePathname();
-  const navItems = ROLE_NAV[role] ?? [];
+  const router = useRouter();
+  const logout = useAuthStore((s) => s.logout);
+  const { counts } = useAdminPendingCounts();
+
+  const baseItems = ROLE_NAV[role] ?? [];
+  const navItems = role === "admin"
+    ? baseItems.map((item) => {
+        if (item.href === "/dashboard/admin/profiles" && counts.profiles > 0) return { ...item, badge: String(counts.profiles) };
+        if (item.href === "/dashboard/admin/products" && counts.products > 0) return { ...item, badge: String(counts.products) };
+        if (item.href === "/dashboard/admin/disputes" && counts.disputes > 0) return { ...item, badge: String(counts.disputes) };
+        return item;
+      })
+    : baseItems;
+
+  const handleLogout = () => {
+    logout();
+    router.push("/auth/login");
+  };
 
   return (
     <aside className="w-[260px] shrink-0 h-screen sticky top-0 bg-surface-soft border-r border-hairline flex flex-col">
@@ -185,7 +205,10 @@ export function Sidebar({ role, userName = "Người dùng", userAvatar }: Sideb
           <QrCode size={18} />
           Quét QR truy xuất
         </Link>
-        <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-error hover:bg-red-50 transition-colors w-full">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-error hover:bg-red-50 transition-colors w-full"
+        >
           <LogOut size={18} />
           Đăng xuất
         </button>

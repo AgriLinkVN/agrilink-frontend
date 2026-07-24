@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Leaf, Phone, User, ArrowRight, Check, Key, Eye, EyeOff } from "lucide-react";
+import { Leaf, Mail, User, ArrowRight, Check, Key, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -26,42 +26,31 @@ export default function RegisterPage() {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   
   const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
-  
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Format phone from 090... to +8490... for backend
-  const formatPhone = (p: string) => {
-    let clean = p.replace(/\D/g, "");
-    if (clean.startsWith("0")) {
-      clean = "84" + clean.slice(1);
-    } else if (!clean.startsWith("84")) {
-      clean = "84" + clean;
-    }
-    return "+" + clean;
-  };
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) return setError("Vui lòng nhập Họ và tên");
-    if (!phone) return setError("Vui lòng nhập số điện thoại");
-    
+    if (!email || !email.includes("@")) return setError("Vui lòng nhập email hợp lệ");
+
     setError("");
     setIsLoading(true);
-    
+
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target: formatPhone(phone), type: "sms", purpose: "register" }),
+        body: JSON.stringify({ target: email.trim().toLowerCase(), type: "email", purpose: "register" }),
       });
       
       const data = await res.json();
@@ -71,7 +60,7 @@ export default function RegisterPage() {
       } else {
         setError(data.message || "Không thể gửi OTP. Vui lòng thử lại.");
       }
-    } catch {
+    } catch (err) {
       setError("Lỗi kết nối đến máy chủ");
     } finally {
       setIsLoading(false);
@@ -92,25 +81,25 @@ export default function RegisterPage() {
       const otpRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target: formatPhone(phone), code: otpCode, purpose: "register" }),
+        body: JSON.stringify({ target: email.trim().toLowerCase(), code: otpCode, purpose: "register" }),
       });
-      
+
       if (!otpRes.ok) {
         const otpData = await otpRes.json();
         setError(otpData.message || "OTP không hợp lệ hoặc đã hết hạn.");
         setIsLoading(false);
         return;
       }
-      
+
       // 2. Register
       const regRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          phone: formatPhone(phone), 
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
           password: password,
           fullName: fullName,
-          role: selectedRole 
+          role: selectedRole
         }),
       });
       
@@ -120,7 +109,7 @@ export default function RegisterPage() {
         setSuccessMsg("Đăng ký thành công! Đang chuyển hướng...");
         
         // Auto login with the created credentials
-        const loginResult = await login(formatPhone(phone), password, "password");
+        const loginResult = await login(email, password, "password");
         if ("error" in loginResult) {
           // If auto-login fails, redirect to login page
           setTimeout(() => {
@@ -135,7 +124,7 @@ export default function RegisterPage() {
       } else {
         setError(regData.message || "Đăng ký thất bại. Số điện thoại có thể đã tồn tại.");
       }
-    } catch {
+    } catch (err) {
       setError("Lỗi kết nối đến máy chủ");
     } finally {
       setIsLoading(false);
@@ -289,13 +278,13 @@ export default function RegisterPage() {
                   disabled={isLoading}
                   autoFocus
                 />
-                <Input 
-                  label="Số điện thoại *" 
-                  type="tel" 
-                  placeholder="0901 234 567" 
-                  leftIcon={<Phone size={16} />} 
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                <Input
+                  label="Email *"
+                  type="email"
+                  placeholder="you@example.com"
+                  leftIcon={<Mail size={16} />}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
                 />
 
@@ -310,7 +299,7 @@ export default function RegisterPage() {
                   <Button type="button" variant="secondary" size="lg" className="flex-1" onClick={() => setStep(1)}>
                     Quay lại
                   </Button>
-                  <Button type="submit" size="lg" className="flex-1" disabled={isLoading || !phone || !fullName}>
+                  <Button type="submit" size="lg" className="flex-1" disabled={isLoading || !email || !fullName}>
                     {isLoading ? "Đang gửi..." : "Gửi mã OTP"} <ArrowRight size={18} />
                   </Button>
                 </div>
@@ -323,7 +312,7 @@ export default function RegisterPage() {
             <div>
               <h1 className="text-2xl font-bold text-ink mb-2">Bảo mật & Xác thực</h1>
               <p className="text-muted mb-8">
-                Mã OTP đã gửi tới <span className="font-semibold text-ink">{phone}</span>.
+                Mã OTP đã gửi tới <span className="font-semibold text-ink">{email}</span>.
               </p>
 
               <form onSubmit={handleVerifyAndRegister} className="flex flex-col gap-6">

@@ -1,6 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import { Sidebar } from "./sidebar";
 import { type UserRole } from "@/types";
-import { Search } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface DashboardLayoutProps {
@@ -20,14 +23,36 @@ export function DashboardLayout({
   pageDescription,
   actions,
 }: DashboardLayoutProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="flex h-screen bg-surface-soft overflow-hidden">
-      <Sidebar role={role} userName={userName} />
+      {/* Desktop sidebar */}
+      <div className="hidden lg:block shrink-0">
+        <Sidebar role={role} userName={userName} />
+      </div>
+
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setSidebarOpen(false)} />
+          <div className="absolute left-0 top-0 bottom-0">
+            <Sidebar role={role} userName={userName} />
+          </div>
+        </div>
+      )}
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Dashboard topbar */}
         <header className="h-16 bg-white border-b border-hairline flex items-center gap-4 px-4 sm:px-6 shrink-0">
+          <button
+            className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-surface-strong"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+
           <div className="hidden flex-1 items-center gap-2 h-9 max-w-sm rounded-lg border border-hairline bg-surface-soft px-3 sm:flex">
             <Search size={15} className="text-muted" />
             <input

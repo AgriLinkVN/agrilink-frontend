@@ -14,7 +14,7 @@ interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
   login: (
-    phone: string,
+    email: string,
     credential: string,
     method?: "password" | "otp",
   ) => Promise<{ dashboard: string } | { error: string }>;
@@ -27,15 +27,6 @@ const AuthContext = createContext<AuthContextValue>({
   login: async () => ({ error: "Not initialized" }),
   logout: () => {},
 });
-
-interface PersistHydrationApi {
-  hasHydrated?: () => boolean;
-  onFinishHydration?: (callback: () => void) => () => void;
-}
-
-function getPersistHydrationApi(): PersistHydrationApi | undefined {
-  return (useAuthStore as typeof useAuthStore & { persist?: PersistHydrationApi }).persist;
-}
 
 /**
  * AuthProvider wraps the app. Its job is now thin: it exposes a `useAuth()`
@@ -55,39 +46,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Local flag to suppress UI flicker during Zustand persist rehydration
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    const markHydratedOnNextTick = () => {
-      const timer = window.setTimeout(() => setHydrated(true), 0);
-      return () => window.clearTimeout(timer);
-    };
-
-    const persistApi = getPersistHydrationApi();
-    if (!persistApi) {
-      return markHydratedOnNextTick();
-    }
-
-    if (persistApi.hasHydrated?.()) {
-      return markHydratedOnNextTick();
-    }
-
-    return persistApi.onFinishHydration?.(() => {
-      setHydrated(true);
-    });
+    setHydrated(true);
   }, []);
 
   const login = useCallback(
     async (
-      phone: string,
+      email: string,
       credential: string,
       method: "password" | "otp" = "password",
     ): Promise<{ dashboard: string } | { error: string }> => {
       try {
-        const normalizedPhone = phone.replace(/\s/g, "");
+        const trimmedEmail = email.trim().toLowerCase();
 
         const endpoint = method === "password" ? "/auth/login" : "/auth/login-otp";
         const payload =
           method === "password"
-            ? { phone: normalizedPhone, password: credential }
-            : { target: normalizedPhone, code: credential, purpose: "login" };
+            ? { email: trimmedEmail, password: credential }
+            : { target: trimmedEmail, code: credential, purpose: "login" };
 
         const backend =
           process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
