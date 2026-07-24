@@ -23,6 +23,46 @@ export class ApiError extends Error {
   }
 }
 
+// ── Auto-refresh token ────────────────────────────────────────────────────────
+
+let refreshPromise: Promise<string | null> | null = null;
+
+async function tryRefreshToken(): Promise<string | null> {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${BASE}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) return null;
+      const json = await res.json();
+      const token = json?.data?.accessToken ?? json?.accessToken;
+      if (token) {
+        // Update zustand store dynamically
+        const { useAuthStore } = await import('@/store/authStore');
+        const user = useAuthStore.getState().user;
+        if (user) useAuthStore.getState().setAuth(token, user);
+        try { localStorage.setItem('agrilink_access_token', token); } catch {}
+      }
+      return token ?? null;
+    } catch {
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+  return refreshPromise;
+}
+
+async function redirectToLogin() {
+  if (typeof window === 'undefined') return;
+  const { useAuthStore } = await import('@/store/authStore');
+  useAuthStore.getState().logout();
+  try { localStorage.removeItem('agrilink_access_token'); localStorage.removeItem('agrilink_user'); } catch {}
+  window.location.href = '/auth/login';
+}
+
 // ── Core fetch helpers ────────────────────────────────────────────────────────
 
 async function request<T>(
@@ -36,10 +76,24 @@ async function request<T>(
     ...((options.headers as Record<string, string>) ?? {}),
   };
 
-  const res = await fetch(`${BASE}${path}`, { ...options, headers });
+  const res = await fetch(`${BASE}${path}`, { ...options, headers, credentials: 'include' });
 
-  // 204 No Content → no body to parse
   if (res.status === 204) return undefined as T;
+
+  if (res.status === 401 && token && path !== '/auth/refresh') {
+    const newToken = await tryRefreshToken();
+    if (newToken) {
+      // Retry with new token
+      headers.Authorization = `Bearer ${newToken}`;
+      const retryRes = await fetch(`${BASE}${path}`, { ...options, headers, credentials: 'include' });
+      if (retryRes.ok) {
+        const json = await retryRes.json();
+        return json.data as T;
+      }
+    }
+    redirectToLogin();
+    throw new ApiError(401, { message: 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.' });
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
