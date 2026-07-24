@@ -299,7 +299,7 @@ export default function RegisterPage() {
                   <Button type="button" variant="secondary" size="lg" className="flex-1" onClick={() => setStep(1)}>
                     Quay lại
                   </Button>
-                  <Button type="submit" size="lg" className="flex-1" disabled={isLoading || !phone || !fullName}>
+                  <Button type="submit" size="lg" className="flex-1" disabled={isLoading || !email || !fullName}>
                     {isLoading ? "Đang gửi..." : "Gửi mã OTP"} <ArrowRight size={18} />
                   </Button>
                 </div>
