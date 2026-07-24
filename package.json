@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "generate:map-style": "node scripts/generate-mapbox-style.mjs",
+    "validate:p4-demo": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/validate-p4-demo-fixtures.mjs",
     "start": "next start",
     "lint": "eslint"
   },
