@@ -33,7 +33,7 @@
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.17.0",
     "mapbox-gl": "^3.24.0",
-    "next": "16.2.6",
+    "next": "^16.2.11",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-easy-crop": "^5.5.7",
@@ -49,7 +49,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "^16.2.11",
     "playwright": "^1.61.1",
     "tailwindcss": "^4",
     "typescript": "^5"
@@ -57,5 +57,9 @@
   "optionalDependencies": {
     "@tailwindcss/oxide-linux-x64-gnu": "4.3.0",
     "lightningcss-linux-x64-gnu": "1.32.0"
+  },
+  "overrides": {
+    "postcss": "^8.5.18",
+    "sharp": "^0.35.0"
   }
 }
