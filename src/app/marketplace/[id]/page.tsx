@@ -34,6 +34,19 @@ const SELLER_TYPE_LABEL: Record<string, { label: string; icon: React.ElementType
   supplier: { label: "Nhà cung cấp", icon: Building2 },
 };
 
+async function fetchTrustScore(sellerId: string): Promise<number | null> {
+  try {
+    const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
+    const BASE = `${BACKEND}/api/v1`;
+    const res = await fetch(`${BASE}/reviews/seller/${sellerId}/trust`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    return json?.data?.trust_score ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   // If already formatted (dd/mm/yyyy) return as-is
@@ -63,6 +76,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
   const imageUrl = getPrimaryImage(product);
   const province = getProductProvince(product);
   const sellerInfo = MOCK_SELLER[product.sellerType] ?? MOCK_SELLER.farmer;
+  const apiTrustScore = product.sellerId ? await fetchTrustScore(product.sellerId) : null;
+  if (apiTrustScore != null) sellerInfo.trustScore = apiTrustScore;
   const SellerIcon = SELLER_TYPE_LABEL[product.sellerType]?.icon ?? User;
   const sellerLabel = SELLER_TYPE_LABEL[product.sellerType]?.label ?? "Người bán";
   const qrCode = `QR-${product.id.slice(0, 8).toUpperCase()}`;

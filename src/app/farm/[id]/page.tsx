@@ -82,6 +82,17 @@ async function fetchFarmProducts(sellerId: string): Promise<Product[]> {
   }
 }
 
+async function fetchTrustScore(sellerId: string): Promise<number | null> {
+  try {
+    const res = await fetch(`${BASE}/reviews/seller/${sellerId}/trust`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    return json?.data?.trust_score ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Helpers ────────────────────────────────────────────────────
 
 const FARMING_LABEL: Record<string, string> = {
@@ -132,7 +143,8 @@ export default async function FarmProfilePage({ params }: PageProps) {
   const avatarUrl = (profile as typeof mock).avatarUrl ?? mock.avatarUrl;
   const coverUrl = (profile as typeof mock).coverUrl ?? mock.coverUrl;
   const phone = (profile as typeof mock).phone ?? mock.phone;
-  const trustScore = (profile as typeof mock).trustScore ?? mock.trustScore;
+  const apiTrustScore = await fetchTrustScore(userId);
+  const trustScore = apiTrustScore ?? (profile as typeof mock).trustScore ?? mock.trustScore;
   const totalSales = (profile as typeof mock).totalSales ?? mock.totalSales;
   const responseRate = (profile as typeof mock).responseRate ?? mock.responseRate;
   const provinceLabel = (profile as typeof mock).provinceLabel ?? mock.provinceLabel;

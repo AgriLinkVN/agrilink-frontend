@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
@@ -29,6 +29,18 @@ export default function ProfilePage() {
   const [selectedImageForCrop, setSelectedImageForCrop] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const { user } = useAuth();
+  const [trustScore, setTrustScore] = useState<string | null>(null);
+
+  useEffect(() => {
+    const userId = user?.id ?? user?.sub;
+    if (!userId) return;
+    const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
+    fetch(`${BACKEND}/api/v1/reviews/seller/${userId}/trust`)
+      .then((res) => res.json())
+      .then((json) => { if (json?.data?.trust_score != null) setTrustScore(json.data.trust_score.toFixed(1)); })
+      .catch(() => {});
+  }, [user?.id, user?.sub]);
+
   const legacyFullName =
     user && "fullName" in user && typeof user.fullName === "string"
       ? user.fullName
@@ -140,7 +152,7 @@ export default function ProfilePage() {
               </div>
               <div className="hidden sm:flex items-center gap-6 text-center pb-1">
                 {[
-                  { value: "4.8", label: "Điểm tin cậy", icon: Star },
+                  { value: trustScore ?? "...", label: "Điểm tin cậy", icon: Star },
                   { value: "12", label: "Sản phẩm", icon: Package },
                   { value: "38", label: "Đơn hàng", icon: ShoppingBag },
                 ].map(({ value, label, icon: Icon }) => (

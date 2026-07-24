@@ -192,6 +192,17 @@ async function fetchSellerReviews(products: Product[]): Promise<{
   return { reviews, total, average: reviewAverage };
 }
 
+async function fetchTrustScore(sellerId: string): Promise<number | null> {
+  try {
+    const res = await fetch(`${BASE}/reviews/seller/${sellerId}/trust`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    return json?.data?.trust_score ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function getSellerPageData(sellerId: string) {
   const productResult = await fetchSellerProducts(sellerId, 24);
   const products = productResult.data ?? [];
@@ -256,7 +267,8 @@ export default async function SellerProfilePage({ params }: PageProps) {
   const detailAverage =
     primaryDetail && Number(primaryDetail.avgRating) > 0 ? Number(primaryDetail.avgRating) : null;
   const reviewAverage = reviewSummary.average ?? productAverage ?? detailAverage;
-  const trustScore = reviewAverage;
+  const apiTrustScore = await fetchTrustScore(sellerId);
+  const trustScore = apiTrustScore ?? reviewAverage;
   const bio =
     seller?.bio ??
     primaryDetail?.description ??
