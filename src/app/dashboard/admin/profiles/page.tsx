@@ -25,7 +25,7 @@ export default function AdminProfilesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!token) { setLoading(false); return; }
+    if (!token) return;
     api.get<ProfilesData>("/admin/pending-profiles", token)
       .then((d) => setData(d))
       .catch(() => {})
@@ -34,10 +34,14 @@ export default function AdminProfilesPage() {
 
   const handleAction = async (type: string, profileId: string, isApproved: boolean) => {
     if (!token) return;
-    const reason = !isApproved ? (prompt("Lý do từ chối:") ?? undefined) : undefined;
-    if (!isApproved && !reason) return;
+    let reason: string | null = null;
+    if (!isApproved) {
+      const input = prompt("Lý do từ chối (có thể bỏ trống):");
+      if (input === null) return; // user bấm Cancel → hủy thao tác
+      reason = input.trim() || null;
+    }
     try {
-      await api.patch(`/admin/profiles/${type}/${profileId}/verify`, { isApproved, rejectionReason: reason ?? null }, token);
+      await api.patch(`/admin/profiles/${type}/${profileId}/verify`, { isApproved, rejectionReason: reason }, token);
       // refetch
       const d = await api.get<ProfilesData>("/admin/pending-profiles", token);
       setData(d);

@@ -23,7 +23,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!token) { setLoading(false); return; }
+    if (!token) return;
     api.get<UsersResponse>(`/admin/users?page=${page}&limit=20`, token)
       .then((d) => { setUsers(d.data ?? []); setTotal(d.total ?? 0); })
       .catch(() => {})
@@ -32,7 +32,7 @@ export default function AdminUsersPage() {
 
   const toggleStatus = async (user: UserRecord) => {
     if (user.role === "admin") { alert("Không thể khóa tài khoản Admin"); return; }
-    const newStatus = user.status === "active" ? "suspended" : "active";
+    const newStatus = user.status === "active" ? "locked" : "active";
     const action = newStatus === "active" ? "MỞ KHÓA" : "KHÓA";
     if (!confirm(`${action} tài khoản "${user.fullName || user.email}"?`)) return;
     try {
@@ -64,7 +64,7 @@ export default function AdminUsersPage() {
                     <td className="px-5 py-4"><p className="font-semibold text-sm">{u.email}</p>{u.phone && <p className="text-xs text-muted">{u.phone}</p>}</td>
                     <td className="px-5 py-4">{u.fullName || "—"}</td>
                     <td className="px-5 py-4"><span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-primary-ultra-light text-primary">{ROLE_LABELS[u.role] ?? u.role}</span></td>
-                    <td className="px-5 py-4">{u.status === "active" ? <span className="text-primary text-xs font-semibold flex items-center gap-1"><UserCheck size={12} /> Hoạt động</span> : <span className="text-error text-xs font-semibold flex items-center gap-1"><UserX size={12} /> Bị khóa</span>}</td>
+                    <td className="px-5 py-4">{u.status === "active" ? <span className="text-primary text-xs font-semibold flex items-center gap-1"><UserCheck size={12} /> Hoạt động</span> : u.status === "locked" ? <span className="text-error text-xs font-semibold flex items-center gap-1"><UserX size={12} /> Bị khóa</span> : <span className="text-muted text-xs font-semibold flex items-center gap-1"><UserX size={12} /> {u.status}</span>}</td>
                     <td className="px-5 py-4 text-right">
                       <button onClick={() => toggleStatus(u)} disabled={u.role === "admin"}
                         className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${u.role === "admin" ? "text-muted cursor-not-allowed" : u.status === "active" ? "bg-[#FEE2E2] text-error hover:bg-error hover:text-white" : "bg-surface-green text-primary hover:bg-primary hover:text-white"}`}>

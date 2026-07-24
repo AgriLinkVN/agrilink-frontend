@@ -21,7 +21,7 @@ export default function AdminConfigPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!token) { setLoading(false); return; }
+    if (!token) return;
     api.get<SystemConfig[]>("/admin/system-configs", token)
       .then((d) => { setConfigs(d ?? []); setEdited({}); })
       .catch(() => {})

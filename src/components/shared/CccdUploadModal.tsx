@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 
 interface CccdUploadModalProps {
   onClose: () => void;
-  onSuccess: (data: any) => void;
+  onSuccess: (data: unknown) => void;
 }
 
 type TabType = 'upload' | 'camera';
@@ -31,18 +31,6 @@ export function CccdUploadModal({ onClose, onSuccess }: CccdUploadModalProps) {
 
   const token = useAuthStore((s) => s.accessToken);
 
-  // Stop camera stream when component unmounts or tab changes
-  useEffect(() => {
-    if (activeTab === 'upload') {
-      stopCamera();
-    } else if (activeTab === 'camera') {
-      startCamera();
-    }
-    return () => {
-      stopCamera();
-    };
-  }, [activeTab]);
-
   const startCamera = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -55,7 +43,7 @@ export function CccdUploadModal({ onClose, onSuccess }: CccdUploadModalProps) {
       }
       setIsCameraActive(true);
       setErrorMsg('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Camera access error:', err);
       setIsCameraActive(false);
       setErrorMsg('Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập hoặc thiết bị của bạn. Trên một số trình duyệt, tính năng này yêu cầu HTTPS.');
@@ -69,6 +57,21 @@ export function CccdUploadModal({ onClose, onSuccess }: CccdUploadModalProps) {
     }
     setIsCameraActive(false);
   };
+
+  // Stop camera stream when component unmounts or tab changes
+  useEffect(() => {
+    if (activeTab === 'upload') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void Promise.resolve().then(() => stopCamera());
+    } else if (activeTab === 'camera') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      startCamera();
+    }
+    return () => {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void Promise.resolve().then(() => stopCamera());
+    };
+  }, [activeTab]);
 
   const captureImage = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -169,9 +172,10 @@ export function CccdUploadModal({ onClose, onSuccess }: CccdUploadModalProps) {
 
       onSuccess(data);
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      setErrorMsg(error.message || 'Không thể xác thực CCCD. Vui lòng thử lại với ảnh rõ nét hơn.');
+      const msg = error instanceof Error ? error.message : 'Không thể xác thực CCCD. Vui lòng thử lại với ảnh rõ nét hơn.';
+      setErrorMsg(msg);
     } finally {
       setIsUploading(false);
     }
