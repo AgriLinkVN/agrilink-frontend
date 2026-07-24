@@ -47,22 +47,25 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) { setLoading(false); return; }
     fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000"}/api/v1/admin/stats`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
-      .then((d) => setStats(d.data ?? d))
+      .then((d) => {
+        const inner = d?.data ?? d;
+        if (inner?.totalUsers !== undefined) setStats(inner);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [token]);
 
   const statCards = stats
     ? [
-        { title: "Tổng người dùng", value: stats.totalUsers.toLocaleString("vi-VN"), subtitle: `${stats.activeUsers} active`, icon: Users, variant: "green" as const },
-        { title: "Sản phẩm chờ duyệt", value: String(stats.pendingProducts), subtitle: `${stats.totalProducts} tổng`, icon: Package, variant: "default" as const },
-        { title: "Tranh chấp mở", value: String(stats.openDisputes), subtitle: "Cần xử lý", icon: AlertTriangle, variant: "harvest" as const },
-        { title: "Chứng nhận tháng này", value: String(stats.certificationsThisMonth), subtitle: "HTX/DN được duyệt", icon: ShieldCheck, variant: "accent" as const },
+        { title: "Tổng người dùng", value: (stats.totalUsers ?? 0).toLocaleString("vi-VN"), subtitle: `${stats.activeUsers ?? 0} active`, icon: Users, variant: "green" as const },
+        { title: "Sản phẩm chờ duyệt", value: String(stats.pendingProducts ?? 0), subtitle: `${stats.totalProducts ?? 0} tổng`, icon: Package, variant: "default" as const },
+        { title: "Tranh chấp mở", value: String(stats.openDisputes ?? 0), subtitle: "Cần xử lý", icon: AlertTriangle, variant: "harvest" as const },
+        { title: "Chứng nhận tháng này", value: String(stats.certificationsThisMonth ?? 0), subtitle: "HTX/DN được duyệt", icon: ShieldCheck, variant: "accent" as const },
       ]
     : [];
 
