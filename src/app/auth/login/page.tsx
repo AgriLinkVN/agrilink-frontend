@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Leaf, Lock, Eye, EyeOff, ArrowRight,
+  Leaf, Mail, Lock, Eye, EyeOff, ArrowRight,
   ChevronRight, ShieldCheck, Loader2, CheckCircle2,
-  Sprout, Users, User, ShoppingCart, Building2, Package, Truck, Shield
+  Sprout, Users, ShoppingCart, Building2, Package, Truck, Shield
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -57,14 +56,14 @@ export default function LoginPage() {
 
   /* ── Handlers ── */
   const handleSendOtp = async () => {
-    if (email.trim().length < 5) { setError("Vui lòng nhập email hợp lệ."); return; }
+    if (!email.includes("@")) { setError("Vui lòng nhập email hợp lệ."); return; }
     setError("");
     try {
       setLoading(true);
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target: email.trim(), purpose: 'login', type: 'email' })
+        body: JSON.stringify({ target: email.trim().toLowerCase(), purpose: 'login', type: 'email' })
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
@@ -74,8 +73,8 @@ export default function LoginPage() {
       setCountdown(60);
       setOtpDigits(["", "", "", "", "", ""]);
       setTimeout(() => otpRefs.current[0]?.focus(), 300);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Lỗi kết nối máy chủ');
+    } catch (err: any) {
+      setError(err.message || 'Lỗi kết nối máy chủ');
     } finally {
       setLoading(false);
     }
@@ -106,7 +105,7 @@ export default function LoginPage() {
     setLoading(true);
 
     const credential = method === "password" ? password : otpDigits.join("");
-    const result = await login(email.trim(), credential, method);
+    const result = await login(email, credential, method);
 
     if ("error" in result) {
       setError(result.error);
@@ -117,8 +116,8 @@ export default function LoginPage() {
     }
   }
 
-  const fillDemo = (p: string) => {
-    setEmail(p);
+  const fillDemo = (e: string) => {
+    setEmail(e);
     setPassword("demo123");
     setOtpDigits(["1", "2", "3", "4", "5", "6"]);
     setError("");
@@ -136,13 +135,10 @@ export default function LoginPage() {
           ══════════════════════════════════════ */}
       <div className="hidden lg:flex w-[480px] xl:w-[540px] shrink-0 relative flex-col overflow-hidden">
         {/* Background image */}
-        <Image
+        <img
           src="https://images.pexels.com/photos/2382665/pexels-photo-2382665.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
           alt="Ruộng bậc thang Việt Nam"
-          fill
-          priority
-          sizes="540px"
-          className="object-cover"
+          className="absolute inset-0 w-full h-full object-cover"
           style={{ animation: "heroKenBurns 30s ease-in-out infinite alternate" }}
         />
         {/* Gradient overlay */}
@@ -262,8 +258,8 @@ export default function LoginPage() {
                 <Input
                   label="Email"
                   type="email"
-                  placeholder="user@example.com"
-                  leftIcon={<User size={16} />}
+                  placeholder="you@example.com"
+                  leftIcon={<Mail size={16} />}
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setError(""); }}
                   required

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type UserRole } from "@/types";
-import { useAuth } from "@/lib/auth-context";
+import { useAuthStore } from "@/store/authStore";
 
 interface NavItem {
   label: string;
@@ -114,13 +114,13 @@ interface SidebarProps {
 export function Sidebar({ role, userName = "Người dùng", userAvatar }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useAuth();
+  const logout = useAuthStore((s) => s.logout);
   const navItems = ROLE_NAV[role] ?? [];
 
-  function handleLogout() {
+  const handleLogout = () => {
     logout();
-    router.push("/");
-  }
+    router.push("/auth/login");
+  };
 
   return (
     <aside className="w-[260px] shrink-0 h-screen sticky top-0 bg-surface-soft border-r border-hairline flex flex-col">
@@ -193,7 +193,7 @@ export function Sidebar({ role, userName = "Người dùng", userAvatar }: Sideb
           <QrCode size={18} />
           Quét QR truy xuất
         </Link>
-        <button 
+        <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-error hover:bg-red-50 transition-colors w-full"
         >

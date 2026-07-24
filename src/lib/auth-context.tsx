@@ -28,15 +28,6 @@ const AuthContext = createContext<AuthContextValue>({
   logout: () => {},
 });
 
-interface PersistHydrationApi {
-  hasHydrated?: () => boolean;
-  onFinishHydration?: (callback: () => void) => () => void;
-}
-
-function getPersistHydrationApi(): PersistHydrationApi | undefined {
-  return (useAuthStore as typeof useAuthStore & { persist?: PersistHydrationApi }).persist;
-}
-
 /**
  * AuthProvider wraps the app. Its job is now thin: it exposes a `useAuth()`
  * React-Context API to legacy callers (login page, navbar) while delegating
@@ -55,23 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Local flag to suppress UI flicker during Zustand persist rehydration
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    const markHydratedOnNextTick = () => {
-      const timer = window.setTimeout(() => setHydrated(true), 0);
-      return () => window.clearTimeout(timer);
-    };
-
-    const persistApi = getPersistHydrationApi();
-    if (!persistApi) {
-      return markHydratedOnNextTick();
-    }
-
-    if (persistApi.hasHydrated?.()) {
-      return markHydratedOnNextTick();
-    }
-
-    return persistApi.onFinishHydration?.(() => {
-      setHydrated(true);
-    });
+    setHydrated(true);
   }, []);
 
   const login = useCallback(
@@ -81,13 +56,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       method: "password" | "otp" = "password",
     ): Promise<{ dashboard: string } | { error: string }> => {
       try {
-        const normalizedEmail = email.trim();
+        const trimmedEmail = email.trim().toLowerCase();
 
         const endpoint = method === "password" ? "/auth/login" : "/auth/login-otp";
         const payload =
           method === "password"
-            ? { email: normalizedEmail, password: credential }
-            : { target: normalizedEmail, code: credential, purpose: "login" };
+            ? { email: trimmedEmail, password: credential }
+            : { target: trimmedEmail, code: credential, purpose: "login" };
 
         const backend =
           process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
