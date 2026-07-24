@@ -1,27 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useAuthStore } from "@/store/authStore";
 import { api } from "@/lib/api";
 import { Lock, Unlock, UserX, UserCheck, Loader2 } from "lucide-react";
 
 interface UserRecord {
-  id: string;
-  email: string;
-  phone: string;
-  fullName: string;
-  role: string;
-  status: string;
-  createdAt: string;
-  lastLoginAt: string | null;
+  id: string; email: string; phone: string; fullName: string;
+  role: string; status: string; createdAt: string; lastLoginAt: string | null;
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  farmer: "Nông dân", cooperative: "HTX", buyer: "Người mua",
-  enterprise: "Doanh nghiệp", supplier: "NCC", logistics: "Vận chuyển",
-  state_agency: "Cơ quan NN", admin: "Admin",
-};
+interface UsersResponse { data: UserRecord[]; total: number }
+
+const ROLE_LABELS: Record<string, string> = { farmer: "Nông dân", cooperative: "HTX", buyer: "Người mua", enterprise: "Doanh nghiệp", supplier: "NCC", logistics: "Vận chuyển", state_agency: "Cơ quan NN", admin: "Admin" };
 
 export default function AdminUsersPage() {
   const token = useAuthStore((s) => s.accessToken);
@@ -30,26 +22,25 @@ export default function AdminUsersPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  const fetchUsers = useCallback(() => {
-    if (!token) { setLoading(false); return; }
-    api.get<{ data: UserRecord[]; total: number }>(`/admin/users?page=${page}&limit=20`, token)
+  useEffect(() => {
+    if (!token) return;
+    api.get<UsersResponse>(`/admin/users?page=${page}&limit=20`, token)
       .then((d) => { setUsers(d.data ?? []); setTotal(d.total ?? 0); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [token, page]);
 
-  useEffect(() => { fetchUsers(); }, [fetchUsers]);
-
   const toggleStatus = async (user: UserRecord) => {
     if (user.role === "admin") { alert("Không thể khóa tài khoản Admin"); return; }
-    const newStatus = user.status === "active" ? "suspended" : "active";
+    const newStatus = user.status === "active" ? "locked" : "active";
     const action = newStatus === "active" ? "MỞ KHÓA" : "KHÓA";
     if (!confirm(`${action} tài khoản "${user.fullName || user.email}"?`)) return;
     try {
       await api.patch(`/admin/users/${user.id}/status`, { status: newStatus }, token);
-      fetchUsers();
-    } catch (e: any) {
-      alert(e?.message ?? "Lỗi");
+      const d = await api.get<UsersResponse>(`/admin/users?page=${page}&limit=20`, token);
+      setUsers(d.data ?? []); setTotal(d.total ?? 0);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Lỗi");
     }
   };
 
@@ -65,67 +56,31 @@ export default function AdminUsersPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-surface-soft text-muted font-medium border-b border-hairline">
-                <tr>
-                  <th className="px-5 py-3">Email</th>
-                  <th className="px-5 py-3">Họ tên</th>
-                  <th className="px-5 py-3">Vai trò</th>
-                  <th className="px-5 py-3">Trạng thái</th>
-                  <th className="px-5 py-3 text-right">Thao tác</th>
-                </tr>
+                <tr><th className="px-5 py-3">Email</th><th className="px-5 py-3">Họ tên</th><th className="px-5 py-3">Vai trò</th><th className="px-5 py-3">Trạng thái</th><th className="px-5 py-3 text-right">Thao tác</th></tr>
               </thead>
               <tbody className="divide-y divide-hairline-soft text-ink">
                 {users.map((u) => (
                   <tr key={u.id} className="hover:bg-surface-soft transition-colors">
-                    <td className="px-5 py-4">
-                      <p className="font-semibold text-sm">{u.email}</p>
-                      {u.phone && <p className="text-xs text-muted">{u.phone}</p>}
-                    </td>
+                    <td className="px-5 py-4"><p className="font-semibold text-sm">{u.email}</p>{u.phone && <p className="text-xs text-muted">{u.phone}</p>}</td>
                     <td className="px-5 py-4">{u.fullName || "—"}</td>
-                    <td className="px-5 py-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-primary-ultra-light text-primary">
-                        {ROLE_LABELS[u.role] ?? u.role}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      {u.status === "active" ? (
-                        <span className="text-primary text-xs font-semibold flex items-center gap-1"><UserCheck size={12} /> Hoạt động</span>
-                      ) : (
-                        <span className="text-error text-xs font-semibold flex items-center gap-1"><UserX size={12} /> Bị khóa</span>
-                      )}
-                    </td>
+                    <td className="px-5 py-4"><span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-primary-ultra-light text-primary">{ROLE_LABELS[u.role] ?? u.role}</span></td>
+                    <td className="px-5 py-4">{u.status === "active" ? <span className="text-primary text-xs font-semibold flex items-center gap-1"><UserCheck size={12} /> Hoạt động</span> : u.status === "locked" ? <span className="text-error text-xs font-semibold flex items-center gap-1"><UserX size={12} /> Bị khóa</span> : <span className="text-muted text-xs font-semibold flex items-center gap-1"><UserX size={12} /> {u.status}</span>}</td>
                     <td className="px-5 py-4 text-right">
-                      <button
-                        onClick={() => toggleStatus(u)}
-                        disabled={u.role === "admin"}
-                        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                          u.role === "admin"
-                            ? "text-muted cursor-not-allowed"
-                            : u.status === "active"
-                              ? "bg-[#FEE2E2] text-error hover:bg-error hover:text-white"
-                              : "bg-surface-green text-primary hover:bg-primary hover:text-white"
-                        }`}
-                      >
+                      <button onClick={() => toggleStatus(u)} disabled={u.role === "admin"}
+                        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${u.role === "admin" ? "text-muted cursor-not-allowed" : u.status === "active" ? "bg-[#FEE2E2] text-error hover:bg-error hover:text-white" : "bg-surface-green text-primary hover:bg-primary hover:text-white"}`}>
                         {u.status === "active" ? <><Lock size={12} /> Khóa</> : <><Unlock size={12} /> Mở khóa</>}
                       </button>
                     </td>
                   </tr>
                 ))}
-                {users.length === 0 && (
-                  <tr><td colSpan={5} className="px-5 py-10 text-center text-muted">Không có người dùng nào</td></tr>
-                )}
+                {users.length === 0 && <tr><td colSpan={5} className="px-5 py-10 text-center text-muted">Không có người dùng nào</td></tr>}
               </tbody>
             </table>
           </div>
           {total > 20 && (
             <div className="p-4 flex justify-center gap-2 border-t border-hairline">
               {Array.from({ length: Math.ceil(total / 20) }, (_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setPage(i + 1)}
-                  className={`w-8 h-8 rounded-lg text-sm font-semibold transition-colors ${page === i + 1 ? "bg-primary text-white" : "text-muted hover:bg-surface-strong"}`}
-                >
-                  {i + 1}
-                </button>
+                <button key={i} onClick={() => setPage(i + 1)} className={`w-8 h-8 rounded-lg text-sm font-semibold transition-colors ${page === i + 1 ? "bg-primary text-white" : "text-muted hover:bg-surface-strong"}`}>{i + 1}</button>
               ))}
             </div>
           )}

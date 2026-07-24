@@ -10,7 +10,7 @@ interface PendingCounts {
 }
 
 let cachedCounts: PendingCounts = { profiles: 0, products: 0, disputes: 0 };
-let listeners: Set<(c: PendingCounts) => void> = new Set();
+const listeners: Set<(c: PendingCounts) => void> = new Set();
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 function startPolling(token: string) {

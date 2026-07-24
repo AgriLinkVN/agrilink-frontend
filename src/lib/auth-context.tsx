@@ -3,7 +3,6 @@
 import {
   createContext,
   useContext,
-  useEffect,
   useCallback,
   useState,
 } from "react";
@@ -44,10 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearAuth = useAuthStore((s) => s.logout);
 
   // Local flag to suppress UI flicker during Zustand persist rehydration
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
+  const [hydrated] = useState(true);
 
   const login = useCallback(
     async (
