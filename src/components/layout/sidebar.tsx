@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { type UserRole } from "@/types";
 import { useAuthStore } from "@/store/authStore";
+import { useAdminPendingCounts } from "@/hooks/useAdminPendingCounts";
 
 interface NavItem {
   label: string;
@@ -116,7 +117,17 @@ export function Sidebar({ role, userName = "Người dùng", userAvatar }: Sideb
   const pathname = usePathname();
   const router = useRouter();
   const logout = useAuthStore((s) => s.logout);
-  const navItems = ROLE_NAV[role] ?? [];
+  const { counts } = useAdminPendingCounts();
+
+  const baseItems = ROLE_NAV[role] ?? [];
+  const navItems = role === "admin"
+    ? baseItems.map((item) => {
+        if (item.href === "/dashboard/admin/profiles" && counts.profiles > 0) return { ...item, badge: String(counts.profiles) };
+        if (item.href === "/dashboard/admin/products" && counts.products > 0) return { ...item, badge: String(counts.products) };
+        if (item.href === "/dashboard/admin/disputes" && counts.disputes > 0) return { ...item, badge: String(counts.disputes) };
+        return item;
+      })
+    : baseItems;
 
   const handleLogout = () => {
     logout();

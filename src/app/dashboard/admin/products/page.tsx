@@ -28,6 +28,17 @@ export default function AdminPendingProductsPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [detailProduct, setDetailProduct] = useState<any>(null);
+
+  const fetchDetail = async (productId: string) => {
+    if (!token) return;
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000"}/api/v1/admin/products/${productId}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    const data = await res.json();
+    setDetailProduct(data?.data ?? data);
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-pending-products", page],
@@ -160,6 +171,7 @@ export default function AdminPendingProductsPage() {
                         size="sm"
                         variant="secondary"
                         className="h-8 px-2"
+                        onClick={() => fetchDetail(p.id)}
                       >
                         <Eye size={14} />
                       </Button>
@@ -171,6 +183,87 @@ export default function AdminPendingProductsPage() {
           </div>
         )}
       </div>
+
+      {/* Product Detail Modal */}
+      <Dialog.Root open={!!detailProduct} onOpenChange={() => setDetailProduct(null)}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" />
+          <Dialog.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-2xl translate-x-[-50%] translate-y-[-50%] gap-4 border bg-white p-6 shadow-xl sm:rounded-xl max-h-[85vh] overflow-y-auto">
+            {detailProduct && (
+              <>
+                <Dialog.Title className="text-lg font-semibold">{detailProduct.name}</Dialog.Title>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted">Trạng thái</p>
+                    <p className="font-semibold">{detailProduct.status}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted">Giá</p>
+                    <p className="font-semibold text-primary">{Number(detailProduct.pricePerUnit ?? detailProduct.price).toLocaleString("vi-VN")}đ/{detailProduct.unit}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted">Người bán</p>
+                    <p className="font-semibold">{detailProduct.seller?.fullName ?? "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted">Số lượng</p>
+                    <p className="font-semibold">{detailProduct.availableQuantity} {detailProduct.unit}</p>
+                  </div>
+                  {detailProduct.variety && (
+                    <div>
+                      <p className="text-muted">Giống</p>
+                      <p className="font-semibold">{detailProduct.variety}</p>
+                    </div>
+                  )}
+                  {detailProduct.farmingType && (
+                    <div>
+                      <p className="text-muted">Phương thức canh tác</p>
+                      <p className="font-semibold">{detailProduct.farmingType}</p>
+                    </div>
+                  )}
+                </div>
+                {detailProduct.description && (
+                  <div>
+                    <p className="text-muted text-sm">Mô tả</p>
+                    <p className="text-sm mt-1">{detailProduct.description}</p>
+                  </div>
+                )}
+                {detailProduct.rejectionReason && (
+                  <div className="p-3 bg-[#FEE2E2] rounded-lg">
+                    <p className="text-sm font-semibold text-error">Lý do từ chối</p>
+                    <p className="text-sm">{detailProduct.rejectionReason}</p>
+                  </div>
+                )}
+                {detailProduct.images?.length > 0 && (
+                  <div>
+                    <p className="text-sm text-muted mb-2">Hình ảnh</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {detailProduct.images.map((img: any) => (
+                        <img key={img.id} src={img.imageUrl} alt="" className="rounded-lg w-full h-32 object-cover border" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {detailProduct.certifications?.length > 0 && (
+                  <div>
+                    <p className="text-sm text-muted mb-2">Chứng nhận</p>
+                    {detailProduct.certifications.map((cert: any) => (
+                      <div key={cert.id} className="text-xs text-muted flex gap-2 items-center">
+                        <span className="font-semibold">{cert.certType}</span>
+                        {cert.certNumber && <span>— {cert.certNumber}</span>}
+                        {cert.isVerified ? <Check size={12} className="text-primary"/> : <X size={12} className="text-error"/>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+            <Dialog.Close className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100">
+              <X className="h-4 w-4" />
+            </Dialog.Close>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
 
       {/* Reject Modal using Radix Dialog */}
       <Dialog.Root open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
