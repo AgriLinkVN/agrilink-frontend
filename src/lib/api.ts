@@ -170,23 +170,19 @@ export type StorageImageType =
   | 'ads'
   | 'reviews'
   | 'profile'
-  | 'cccd'
-  | 'business_license'
-  | 'document'
   | 'avatar'
   | `avatar_${string}`;
+
+export type PrivateStorageAssetType =
+  | 'CERTIFICATION'
+  | 'KYC_IDENTITY'
+  | 'BUSINESS_LICENSE';
 
 interface StorageImageUploadResult {
   secure_url: string;
 }
 
-interface StorageDocumentUploadResult {
-  path: string;
-  fullPath: string;
-}
-
 interface StorageDownloadUrlResult {
-  path: string;
   signedUrl: string;
   expiresIn: number;
 }
@@ -233,28 +229,53 @@ export async function uploadImageToStorage(
   return data.secure_url;
 }
 
-export async function uploadDocumentToStorage(
+export async function uploadPrivateDocument(
   file: File,
-  path: string,
+  assetType: PrivateStorageAssetType,
   token?: string | null,
-): Promise<StorageDocumentUploadResult> {
-  const form = new FormData();
-  form.append('file', file);
-  form.append('path', path);
+): Promise<string> {
+  if (!token) throw new Error('Vui lòng đăng nhập để tải tài liệu.');
+  if (file.size < 1 || file.size > 10 * 1024 * 1024) {
+    throw new Error('Tài liệu phải có kích thước từ 1 byte đến 10 MB.');
+  }
 
-  return uploadForm<StorageDocumentUploadResult>(
-    '/storage/files/upload',
-    form,
+  const contentType = file.type || 'application/octet-stream';
+  const intent = await api.post<{
+    fileId: string;
+    uploadUrl: string;
+    expiresAt: string;
+  }>(
+    '/storage/uploads/intents',
+    {
+      assetType,
+      originalName: file.name,
+      declaredMime: contentType,
+      sizeBytes: file.size,
+    },
     token,
   );
+  const upload = await fetch(intent.uploadUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': contentType,
+      'cache-control': 'max-age=3600',
+      'x-upsert': 'false',
+    },
+    body: file,
+  });
+  if (!upload.ok) {
+    throw new Error('Không thể tải tài liệu lên kho lưu trữ riêng tư.');
+  }
+  await api.post(`/storage/uploads/${intent.fileId}/complete`, {}, token);
+  return intent.fileId;
 }
 
-export async function getDocumentDownloadUrl(
-  path: string,
+export async function getStoredFileDownloadUrl(
+  fileId: string,
   token?: string | null,
 ): Promise<StorageDownloadUrlResult> {
   return api.get<StorageDownloadUrlResult>(
-    `/storage/files/download-url?path=${encodeURIComponent(path)}`,
+    `/storage/files/${fileId}/download-url`,
     token,
   );
 }
@@ -263,7 +284,7 @@ export async function getDocumentDownloadUrl(
 
 export async function uploadToCloudinary(
   file: File,
-  folder: 'ads' | 'reviews' | 'products' | 'certifications' | 'profiles' | 'forum' | 'misc' = 'misc',
+  folder: 'ads' | 'reviews' | 'products' | 'profiles' | 'forum' | 'misc' = 'misc',
 ): Promise<string> {
   const form = new FormData();
   form.append('file', file);

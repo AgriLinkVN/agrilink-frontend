@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
-import { api, uploadDocumentToStorage, uploadImageToStorage } from "@/lib/api";
+import { api, uploadPrivateDocument, uploadImageToStorage } from "@/lib/api";
 
 import { StepBasicInfo } from "./components/step-basic-info";
 import { StepUploadImages } from "./components/step-upload-images";
@@ -26,16 +26,6 @@ const STEPS = [
   { id: 3, label: "Chứng nhận", icon: Award },
   { id: 4, label: "Xem trước", icon: Eye },
 ];
-
-function buildCertificationPath(certType: string, file: File) {
-  const safeType = (certType || "other")
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  const extension = file.name.split(".").pop()?.toLowerCase() || "bin";
-
-  return `certifications/${safeType}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
-}
 
 interface CreatedProduct {
   id: string;
@@ -70,6 +60,20 @@ export default function NewProductPage() {
   };
 
   const handleSubmit = async () => {
+    if (!accessToken) {
+      setSubmitError("Vui lòng đăng nhập để đăng sản phẩm.");
+      return;
+    }
+    const missingDocument = formData.certifications.some(
+      (certification) => certification.certType && !certification.documentFile,
+    );
+    if (missingDocument) {
+      setSubmitError(
+        "Mỗi chứng nhận cần có một tài liệu để cơ quan quản lý duyệt.",
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -89,22 +93,21 @@ export default function NewProductPage() {
         formData.certifications
           .filter((c) => c.certType)
           .map(async (cert) => {
-            let documentUrl: string | null = null;
-            if (cert.documentFile) {
-              const storedDocument = await uploadDocumentToStorage(
-                cert.documentFile,
-                buildCertificationPath(cert.certType, cert.documentFile),
-                accessToken,
-              );
-              documentUrl = storedDocument.path;
+            if (!cert.documentFile) {
+              throw new Error("Thiếu tài liệu chứng nhận.");
             }
+            const storedFileId = await uploadPrivateDocument(
+              cert.documentFile,
+              "CERTIFICATION",
+              accessToken,
+            );
             return {
               certType: cert.certType,
               certNumber: cert.certNumber || null,
               issuedBy: cert.issuedBy || null,
               issuedDate: cert.issuedDate || null,
               expiryDate: cert.expiryDate || null,
-              documentUrl,
+              storedFileId,
             };
           })
       );

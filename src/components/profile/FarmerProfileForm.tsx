@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CloudinaryUpload } from '../shared/CloudinaryUpload';
+import { PrivateDocumentUpload } from '../shared/PrivateDocumentUpload';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
@@ -9,8 +9,8 @@ interface FarmerProfileState {
   residenceAddress: string;
   bio: string;
   cccdNumber: string;
-  cccdFrontUrl: string;
-  cccdBackUrl: string;
+  cccdFrontFileId: string;
+  cccdBackFileId: string;
 }
 
 export function FarmerProfileForm() {
@@ -18,8 +18,8 @@ export function FarmerProfileForm() {
     residenceAddress: '',
     bio: '',
     cccdNumber: '',
-    cccdFrontUrl: '',
-    cccdBackUrl: '',
+    cccdFrontFileId: '',
+    cccdBackFileId: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -38,6 +38,10 @@ export function FarmerProfileForm() {
     try {
       if (!token) {
         alert("Bạn chưa đăng nhập. Vui lòng đăng nhập lại!");
+        return;
+      }
+      if (!formData.cccdFrontFileId || !formData.cccdBackFileId) {
+        alert("Vui lòng tải đủ hai mặt CCCD.");
         return;
       }
       await api.put('/profiles/farmer', formData, token);
@@ -99,17 +103,17 @@ export function FarmerProfileForm() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <CloudinaryUpload 
-            label="Ảnh CCCD Mặt trước" 
-            value={formData.cccdFrontUrl} 
-            onChange={(url) => handleUpload('cccdFrontUrl', url)} 
-            type="cccd"
+          <PrivateDocumentUpload
+            label="Ảnh CCCD Mặt trước"
+            value={formData.cccdFrontFileId}
+            onChange={(fileId) => handleUpload('cccdFrontFileId', fileId)}
+            assetType="KYC_IDENTITY"
           />
-          <CloudinaryUpload 
-            label="Ảnh CCCD Mặt sau" 
-            value={formData.cccdBackUrl} 
-            onChange={(url) => handleUpload('cccdBackUrl', url)} 
-            type="cccd"
+          <PrivateDocumentUpload
+            label="Ảnh CCCD Mặt sau"
+            value={formData.cccdBackFileId}
+            onChange={(fileId) => handleUpload('cccdBackFileId', fileId)}
+            assetType="KYC_IDENTITY"
           />
         </div>
       </div>
