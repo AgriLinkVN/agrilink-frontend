@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useAuthStore } from "@/store/authStore";
 import { api } from "@/lib/api";
-import { Settings, Save, Loader2, Check } from "lucide-react";
+import { Settings, Save, Loader2 } from "lucide-react";
 
 interface SystemConfig {
   key: string;
@@ -20,15 +20,13 @@ export default function AdminConfigPage() {
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
 
-  const fetchConfigs = useCallback(() => {
+  useEffect(() => {
     if (!token) { setLoading(false); return; }
     api.get<SystemConfig[]>("/admin/system-configs", token)
       .then((d) => { setConfigs(d ?? []); setEdited({}); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [token]);
-
-  useEffect(() => { fetchConfigs(); }, [fetchConfigs]);
 
   const save = async (key: string) => {
     if (!token || !edited[key]) return;
@@ -37,8 +35,9 @@ export default function AdminConfigPage() {
       await api.patch(`/admin/system-configs/${key}`, { value: edited[key] }, token);
       setConfigs((prev) => prev.map((c) => (c.key === key ? { ...c, value: edited[key] } : c)));
       setEdited((prev) => { const n = { ...prev }; delete n[key]; return n; });
-    } catch (e: any) {
-      alert(e?.message ?? "Lỗi lưu");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Lỗi lưu";
+      alert(msg);
     } finally {
       setSaving((s) => ({ ...s, [key]: false }));
     }

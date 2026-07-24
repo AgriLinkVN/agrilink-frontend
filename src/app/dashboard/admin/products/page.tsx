@@ -28,7 +28,7 @@ export default function AdminPendingProductsPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
-  const [detailProduct, setDetailProduct] = useState<any>(null);
+  const [detailProduct, setDetailProduct] = useState<Record<string, unknown> | null>(null);
 
   const fetchDetail = async (productId: string) => {
     if (!token) return;
@@ -238,7 +238,7 @@ export default function AdminPendingProductsPage() {
                   <div>
                     <p className="text-sm text-muted mb-2">Hình ảnh</p>
                     <div className="grid grid-cols-3 gap-2">
-                      {detailProduct.images.map((img: any) => (
+                      {detailProduct.images.map((img: { id: string; imageUrl: string }) => (
                         <img key={img.id} src={img.imageUrl} alt="" className="rounded-lg w-full h-32 object-cover border" />
                       ))}
                     </div>
@@ -247,7 +247,7 @@ export default function AdminPendingProductsPage() {
                 {detailProduct.certifications?.length > 0 && (
                   <div>
                     <p className="text-sm text-muted mb-2">Chứng nhận</p>
-                    {detailProduct.certifications.map((cert: any) => (
+                    {detailProduct.certifications.map((cert: { id: string; certType: string; certNumber?: string; isVerified: boolean }) => (
                       <div key={cert.id} className="text-xs text-muted flex gap-2 items-center">
                         <span className="font-semibold">{cert.certType}</span>
                         {cert.certNumber && <span>— {cert.certNumber}</span>}
@@ -278,7 +278,7 @@ export default function AdminPendingProductsPage() {
                 </Dialog.Title>
               </div>
               <Dialog.Description className="text-sm text-muted">
-                Sản phẩm "{selectedProduct?.name}" sẽ bị trả về trạng thái từ chối. Vui lòng nhập lý do để người bán có thể khắc phục.
+                Sản phẩm &ldquo;{selectedProduct?.name}&rdquo; sẽ bị trả về trạng thái từ chối. Vui lòng nhập lý do để người bán có thể khắc phục.
               </Dialog.Description>
             </div>
             
