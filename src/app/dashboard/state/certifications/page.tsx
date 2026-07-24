@@ -7,7 +7,7 @@ import { Award, Check, ExternalLink, FileText, RefreshCcw, X } from "lucide-reac
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { api, getDocumentDownloadUrl } from "@/lib/api";
+import { api, getStoredFileDownloadUrl } from "@/lib/api";
 import { CERT_TYPE_LABELS } from "@/lib/products-api";
 import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,7 @@ interface PendingCertification {
   issuedBy: string | null;
   issuedDate: string | null;
   expiryDate: string | null;
-  documentUrl: string | null;
+  storedFileId: string | null;
   status: "pending" | "verified" | "rejected";
   rejectionReason: string | null;
   createdAt: string;
@@ -145,7 +145,7 @@ export default function StateCertificationsPage() {
   };
 
   const openCertificationDocument = async (cert: PendingCertification) => {
-    if (!cert.documentUrl) return;
+    if (!cert.storedFileId) return;
     if (!accessToken) {
       setActionError("Vui lòng đăng nhập để mở giấy chứng nhận.");
       return;
@@ -155,12 +155,10 @@ export default function StateCertificationsPage() {
     setActionError(null);
     setNotice(null);
     try {
-      if (/^https?:\/\//i.test(cert.documentUrl)) {
-        window.open(cert.documentUrl, "_blank", "noopener,noreferrer");
-        return;
-      }
-
-      const data = await getDocumentDownloadUrl(cert.documentUrl, accessToken);
+      const data = await getStoredFileDownloadUrl(
+        cert.storedFileId,
+        accessToken,
+      );
       window.open(data.signedUrl, "_blank", "noopener,noreferrer");
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Không mở được giấy chứng nhận");
@@ -256,7 +254,7 @@ export default function StateCertificationsPage() {
                       </div>
 
                       <div className="flex flex-wrap gap-2 mt-3">
-                        {cert.documentUrl && (
+                        {cert.storedFileId && (
                           <Button
                             variant="ghost"
                             size="sm"
