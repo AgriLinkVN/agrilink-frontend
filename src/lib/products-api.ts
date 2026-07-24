@@ -17,7 +17,7 @@ export interface ProductCertification {
   issuedBy: string | null;
   issuedDate: string | null;
   expiryDate: string | null;
-  documentUrl: string | null;
+  storedFileId: string | null;
   isVerified: boolean;
   status?: "pending" | "verified" | "rejected";
   verifiedAt?: string | null;
@@ -400,7 +400,6 @@ export interface ProductDetailCertification {
   issuedBy: string | null;
   issuedDate: string | null;
   expiryDate: string | null;
-  documentUrl: string | null;
   isVerified: boolean;
   status: "pending" | "verified" | "rejected";
   verifiedBy: string | null;
@@ -493,7 +492,7 @@ function adaptLegacyToDetail(p: Product): ProductDetail {
       id: c.id, certType: c.certType as ProductDetailCertification["certType"],
       certNumber: c.certNumber, issuedBy: c.issuedBy,
       issuedDate: c.issuedDate, expiryDate: c.expiryDate,
-      documentUrl: c.documentUrl, isVerified: true,
+      isVerified: true,
       status: "verified",
       verifiedBy: null,
       verifiedAt: null,

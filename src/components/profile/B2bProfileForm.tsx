@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CloudinaryUpload } from '../shared/CloudinaryUpload';
+import { PrivateDocumentUpload } from '../shared/PrivateDocumentUpload';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
@@ -9,13 +9,14 @@ interface B2bProfileState {
   taxCode: string;
   address: string;
   companyName: string; 
-  businessLicenseUrl: string; 
+  businessLicenseFileId: string;
   cooperativeName: string; 
   representativeName: string; 
   representativePhone: string; 
-  cooperativeCertUrl: string; 
-  representativeCccdFrontUrl: string; 
-  representativeCccdBackUrl: string; 
+  cooperativeCertFileId: string;
+  representativeCccdFrontFileId: string;
+  representativeCccdBackFileId: string;
+  membersListFileId: string;
 }
 
 interface B2bProfileFormProps {
@@ -27,13 +28,14 @@ export function B2bProfileForm({ role }: B2bProfileFormProps) {
     taxCode: '',
     address: '',
     companyName: '',
-    businessLicenseUrl: '',
+    businessLicenseFileId: '',
     cooperativeName: '',
     representativeName: '',
     representativePhone: '',
-    cooperativeCertUrl: '',
-    representativeCccdFrontUrl: '',
-    representativeCccdBackUrl: '',
+    cooperativeCertFileId: '',
+    representativeCccdFrontFileId: '',
+    representativeCccdBackFileId: '',
+    membersListFileId: '',
   });
 
   const isCooperative = role === 'COOPERATIVE';
@@ -56,6 +58,19 @@ export function B2bProfileForm({ role }: B2bProfileFormProps) {
     try {
       if (!token) {
         alert("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
+        return;
+      }
+      if (!formData.businessLicenseFileId) {
+        alert("Vui lòng tải giấy phép kinh doanh.");
+        return;
+      }
+      if (
+        isCooperative &&
+        (!formData.cooperativeCertFileId ||
+          !formData.representativeCccdFrontFileId ||
+          !formData.representativeCccdBackFileId)
+      ) {
+        alert("Vui lòng tải chứng nhận HTX và đủ hai mặt CCCD người đại diện.");
         return;
       }
       await api.put('/profiles/b2b', formData, token);
@@ -159,46 +174,44 @@ export function B2bProfileForm({ role }: B2bProfileFormProps) {
       <div className="space-y-6">
         <h3 className="text-lg font-semibold text-slate-700 border-t border-slate-200 pt-6">Giấy tờ pháp lý (Hình ảnh)</h3>
         
-        {isEnterprise && (
+        {(isEnterprise || isSupplier || isCooperative) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <CloudinaryUpload 
-              label="Ảnh Giấy phép Kinh doanh" 
-              value={formData.businessLicenseUrl} 
-              onChange={(url) => handleUpload('businessLicenseUrl', url)} 
-              type="business_license"
+            <PrivateDocumentUpload
+              label="Ảnh Giấy phép Kinh doanh"
+              value={formData.businessLicenseFileId}
+              onChange={(fileId) => handleUpload('businessLicenseFileId', fileId)}
+              assetType="BUSINESS_LICENSE"
             />
           </div>
         )}
 
         {isCooperative && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <CloudinaryUpload 
-              label="Ảnh Giấy chứng nhận HTX" 
-              value={formData.cooperativeCertUrl} 
-              onChange={(url) => handleUpload('cooperativeCertUrl', url)} 
-              type="document"
+            <PrivateDocumentUpload
+              label="Ảnh Giấy chứng nhận HTX"
+              value={formData.cooperativeCertFileId}
+              onChange={(fileId) => handleUpload('cooperativeCertFileId', fileId)}
+              assetType="BUSINESS_LICENSE"
+            />
+            <PrivateDocumentUpload
+              label="Danh sách thành viên"
+              value={formData.membersListFileId}
+              onChange={(fileId) => handleUpload('membersListFileId', fileId)}
+              assetType="BUSINESS_LICENSE"
+            />
+            <PrivateDocumentUpload
+              label="Ảnh CCCD Mặt trước (Đại diện)"
+              value={formData.representativeCccdFrontFileId}
+              onChange={(fileId) => handleUpload('representativeCccdFrontFileId', fileId)}
+              assetType="KYC_IDENTITY"
+            />
+            <PrivateDocumentUpload
+              label="Ảnh CCCD Mặt sau (Đại diện)"
+              value={formData.representativeCccdBackFileId}
+              onChange={(fileId) => handleUpload('representativeCccdBackFileId', fileId)}
+              assetType="KYC_IDENTITY"
             />
           </div>
-        )}
-
-        {isSupplier && (
-          <>
-            <h4 className="text-md font-semibold text-slate-600 mt-6 mb-2">Định danh Người đại diện</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <CloudinaryUpload 
-                label="Ảnh CCCD Mặt trước (Đại diện)" 
-                value={formData.representativeCccdFrontUrl} 
-                onChange={(url) => handleUpload('representativeCccdFrontUrl', url)} 
-                type="cccd"
-              />
-              <CloudinaryUpload 
-                label="Ảnh CCCD Mặt sau (Đại diện)" 
-                value={formData.representativeCccdBackUrl} 
-                onChange={(url) => handleUpload('representativeCccdBackUrl', url)} 
-                type="cccd"
-              />
-            </div>
-          </>
         )}
       </div>
 
