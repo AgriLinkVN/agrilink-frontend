@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Users, Package, AlertTriangle, ShieldCheck } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useAuthStore } from "@/store/authStore";
+import { api } from "@/lib/api";
 
 const ROLE_COLORS: Record<string, string> = { farmer: "#16a34a", cooperative: "#2563eb", buyer: "#f59e0b", enterprise: "#8b5cf6", supplier: "#06b6d4", logistics: "#ec4899", state_agency: "#64748b", admin: "#ef4444" };
 
@@ -23,9 +24,8 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000"}/api/v1/admin/stats`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.json())
-      .then((d) => { const inner = d?.data ?? d; if (inner?.totalUsers !== undefined) setStats(inner); })
+    api.get<AdminStats>("/admin/stats", token)
+      .then(setStats)
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [token]);

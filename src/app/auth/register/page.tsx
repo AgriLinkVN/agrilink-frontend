@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { type UserRole } from "@/types";
 import { useAuth } from "@/lib/auth-context";
+import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors/get-error-message";
 
 const ROLES: { value: UserRole; label: string; icon: string; desc: string }[] = [
   { value: "farmer", label: "Nông dân / Hộ sản xuất", icon: "👨‍🌾", desc: "Đăng bán nông sản, xem giá, nhận đơn" },
@@ -47,21 +49,16 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/send-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target: email.trim().toLowerCase(), type: "email", purpose: "register" }),
+      await api.post("/auth/send-otp", {
+        target: email.trim().toLowerCase(),
+        type: "email",
+        purpose: "register",
       });
-      
-      const data = await res.json();
-      
-      if (res.ok) {
-        setStep(3); // Go to OTP and Password step
-      } else {
-        setError(data.message || "Không thể gửi OTP. Vui lòng thử lại.");
-      }
-    } catch (err) {
-      setError("Lỗi kết nối đến máy chủ");
+      setStep(3);
+    } catch (error) {
+      setError(
+        getErrorMessage(error, "Không thể gửi OTP. Vui lòng thử lại."),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -78,54 +75,38 @@ export default function RegisterPage() {
     
     try {
       // 1. Verify OTP
-      const otpRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target: email.trim().toLowerCase(), code: otpCode, purpose: "register" }),
+      await api.post("/auth/verify-otp", {
+        target: email.trim().toLowerCase(),
+        code: otpCode,
+        purpose: "register",
       });
 
-      if (!otpRes.ok) {
-        const otpData = await otpRes.json();
-        setError(otpData.message || "OTP không hợp lệ hoặc đã hết hạn.");
-        setIsLoading(false);
-        return;
-      }
-
-      // 2. Register
-      const regRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          password: password,
-          fullName: fullName,
-          role: selectedRole
-        }),
+      await api.post("/auth/register", {
+        email: email.trim().toLowerCase(),
+        password,
+        fullName,
+        role: selectedRole,
       });
-      
-      const regData = await regRes.json();
-      
-      if (regRes.ok) {
-        setSuccessMsg("Đăng ký thành công! Đang chuyển hướng...");
-        
-        // Auto login with the created credentials
-        const loginResult = await login(email, password, "password");
-        if ("error" in loginResult) {
-          // If auto-login fails, redirect to login page
-          setTimeout(() => {
-            router.push("/auth/login");
-          }, 1500);
-        } else {
-          // If auto-login succeeds, redirect to dashboard
-          setTimeout(() => {
-            router.push(loginResult.dashboard);
-          }, 1000);
-        }
+
+      setSuccessMsg("Đăng ký thành công! Đang chuyển hướng...");
+
+      const loginResult = await login(email, password, "password");
+      if ("error" in loginResult) {
+        setTimeout(() => {
+          router.push("/auth/login");
+        }, 1500);
       } else {
-        setError(regData.message || "Đăng ký thất bại. Số điện thoại có thể đã tồn tại.");
+        setTimeout(() => {
+          router.push(loginResult.dashboard);
+        }, 1000);
       }
-    } catch (err) {
-      setError("Lỗi kết nối đến máy chủ");
+    } catch (error) {
+      setError(
+        getErrorMessage(
+          error,
+          "Đăng ký thất bại. Vui lòng kiểm tra thông tin và thử lại.",
+        ),
+      );
     } finally {
       setIsLoading(false);
     }

@@ -1,11 +1,11 @@
 import { io, Socket } from 'socket.io-client';
+import { getWebSocketBaseUrl } from '@/config/runtime-config';
 
 let socket: Socket | null = null;
 let currentToken: string | null = null;
 
 function getNamespaceUrl(): string {
-  const backend = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:5000';
-  return `${backend}/notifications`;
+  return `${getWebSocketBaseUrl()}/notifications`;
 }
 
 /**

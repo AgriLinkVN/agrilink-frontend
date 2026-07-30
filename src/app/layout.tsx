@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { getBuildSafeSiteUrl } from "@/config/runtime-config";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://agrilink.vn";
+const SITE_URL = getBuildSafeSiteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

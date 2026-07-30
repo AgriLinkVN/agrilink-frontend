@@ -14,17 +14,12 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DemoDataBadge } from "@/components/demo/demo-data-badge";
 import { Navbar } from "@/components/layout/navbar";
 import { ResilientVietnamMap } from "@/components/map/resilient-vietnam-map";
 import type { VietnamMapStyle } from "@/components/map/vietnam-mapbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { REGION_LABELS_VI, type Region } from "@/data/province-mapping";
-import {
-  getP4DataSource,
-  type ProductSummary,
-} from "@/features/p4-demo";
 import { cn } from "@/lib/utils";
 import {
   vietnamProvinces,
@@ -97,9 +92,6 @@ const DEFAULT_FILTERS: AppliedFilters = {
   product: "Tất cả",
   farming: "Tất cả",
 };
-
-const DEMO_DATA_SOURCE = getP4DataSource("mock");
-const DEMO_METADATA = DEMO_DATA_SOURCE.getMetadata();
 
 function normalizeSearch(value: string) {
   return value
@@ -220,7 +212,7 @@ function MapStyleSwitch({
   );
 }
 
-export function MapExperience({ isDemo }: { isDemo: boolean }) {
+export function MapExperience() {
   const searchAreaRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -238,20 +230,6 @@ export function MapExperience({ isDemo }: { isDemo: boolean }) {
     useState<AppliedFilters>(DEFAULT_FILTERS);
   const [mapStyle, setMapStyle] = useState<VietnamMapStyle>("outdoors");
   const [isMapboxReady, setIsMapboxReady] = useState(false);
-  const [demoProducts, setDemoProducts] = useState<ProductSummary[]>([]);
-
-  useEffect(() => {
-    let isActive = true;
-
-    void DEMO_DATA_SOURCE.listProducts().then((products) => {
-      if (isActive) setDemoProducts(products);
-    });
-
-    return () => {
-      isActive = false;
-    };
-  }, []);
-
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
       if (
@@ -321,16 +299,6 @@ export function MapExperience({ isDemo }: { isDemo: boolean }) {
     [filteredProvinces, hasActiveSearchOrFilter],
   );
 
-  const selectedPriceProduct = useMemo(
-    () =>
-      selectedProvince
-        ? demoProducts.find((product) =>
-            product.provinceCodes.includes(selectedProvince.code),
-          ) ?? null
-        : null,
-    [demoProducts, selectedProvince],
-  );
-
   const selectedProvinceMatchesFilters =
     !selectedProvince ||
     filteredProvinces.some(
@@ -383,11 +351,6 @@ export function MapExperience({ isDemo }: { isDemo: boolean }) {
     const firstResult = filteredProvinces[0];
     if (firstResult) selectProvince(firstResult);
   };
-
-  const priceHref =
-    selectedProvince && selectedPriceProduct
-      ? `/prices?demo=1&province=${encodeURIComponent(selectedProvince.code)}&product=${encodeURIComponent(selectedPriceProduct.id)}`
-      : null;
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-canvas">
@@ -577,12 +540,6 @@ export function MapExperience({ isDemo }: { isDemo: boolean }) {
               >
                 Xóa lọc
               </button>
-            </div>
-          ) : null}
-
-          {isDemo && !searchOpen && !filterOpen ? (
-            <div className="mt-2 w-fit">
-              <DemoDataBadge metadata={DEMO_METADATA} />
             </div>
           ) : null}
 
@@ -809,31 +766,6 @@ export function MapExperience({ isDemo }: { isDemo: boolean }) {
                 </div>
               </div>
 
-              {priceHref && selectedPriceProduct ? (
-                <div className="mt-5">
-                  <p className="mb-2 text-sm text-muted">
-                    Có dữ liệu giá minh họa cho{" "}
-                    <strong className="text-ink">
-                      {selectedPriceProduct.name}
-                    </strong>
-                  </p>
-                  <Button className="h-12 w-full text-base" asChild>
-                    <a href={priceHref}>
-                      Xem giá minh họa tại tỉnh này
-                      <ChevronRight aria-hidden="true" size={18} />
-                    </a>
-                  </Button>
-                </div>
-              ) : (
-                <div className="mt-5">
-                  <Button className="h-12 w-full text-base" disabled>
-                    Chưa có giá minh họa tại tỉnh này
-                  </Button>
-                  <p className="mt-2 text-center text-xs text-muted">
-                    Hãy chọn Đồng Tháp, Lâm Đồng hoặc Cần Thơ để chạy demo giá.
-                  </p>
-                </div>
-              )}
             </div>
           </aside>
         ) : null}

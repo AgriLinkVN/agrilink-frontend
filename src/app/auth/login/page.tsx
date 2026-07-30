@@ -1,31 +1,22 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Leaf, Mail, Lock, Eye, EyeOff, ArrowRight,
   ChevronRight, ShieldCheck, Loader2, CheckCircle2,
-  Sprout, Users, ShoppingCart, Building2, Package, Truck, Shield
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
+import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors/get-error-message";
 
 /* ─── Types ─── */
 type Method = "password" | "otp";
 type OtpStep = "idle" | "sent" | "verified";
-
-/* ─── Demo accounts quick-fill ─── */
-const DEMO_ACCOUNTS = [
-  { role: "Nông dân", email: "farmer@agrilink.vn", icon: Sprout },
-  { role: "HTX", email: "cooperative@agrilink.vn", icon: Users },
-  { role: "Người mua", email: "buyer@agrilink.vn", icon: ShoppingCart },
-  { role: "Doanh nghiệp", email: "enterprise@agrilink.vn", icon: Building2 },
-  { role: "Nhà cung cấp", email: "supplier@agrilink.vn", icon: Package },
-  { role: "Logistics", email: "logistics@agrilink.vn", icon: Truck },
-  { role: "Admin", email: "admin@agrilink.vn", icon: Shield },
-];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -60,21 +51,17 @@ export default function LoginPage() {
     setError("");
     try {
       setLoading(true);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target: email.trim().toLowerCase(), purpose: 'login', type: 'email' })
+      await api.post("/auth/send-otp", {
+        target: email.trim().toLowerCase(),
+        purpose: "login",
+        type: "email",
       });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.message || 'Lỗi gửi OTP');
-      }
       setOtpStep("sent");
       setCountdown(60);
       setOtpDigits(["", "", "", "", "", ""]);
       setTimeout(() => otpRefs.current[0]?.focus(), 300);
     } catch (err: unknown) {
-      setError(err.message || 'Lỗi kết nối máy chủ');
+      setError(getErrorMessage(err, "Lỗi kết nối máy chủ"));
     } finally {
       setLoading(false);
     }
@@ -116,13 +103,6 @@ export default function LoginPage() {
     }
   }
 
-  const fillDemo = (e: string) => {
-    setEmail(e);
-    setPassword("demo123");
-    setOtpDigits(["1", "2", "3", "4", "5", "6"]);
-    setError("");
-  };
-
   const fmt = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
@@ -135,9 +115,12 @@ export default function LoginPage() {
           ══════════════════════════════════════ */}
       <div className="hidden lg:flex w-[480px] xl:w-[540px] shrink-0 relative flex-col overflow-hidden">
         {/* Background image */}
-        <img
+        <Image
           src="https://images.pexels.com/photos/2382665/pexels-photo-2382665.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
           alt="Ruộng bậc thang Việt Nam"
+          fill
+          priority
+          sizes="(min-width: 1280px) 540px, 480px"
           className="absolute inset-0 w-full h-full object-cover"
           style={{ animation: "heroKenBurns 30s ease-in-out infinite alternate" }}
         />
@@ -332,9 +315,6 @@ export default function LoginPage() {
                             />
                           ))}
                         </div>
-                        <p className="text-xs text-muted text-center">
-                          💡 Demo: nhập <span className="font-mono font-semibold text-ink">123456</span>
-                        </p>
                       </div>
                     )}
                   </div>
@@ -388,32 +368,6 @@ export default function LoginPage() {
                 <p className="text-xs text-muted leading-relaxed">
                   Thông tin được mã hóa SSL. AgriLink tuân thủ PDPA Việt Nam.
                 </p>
-              </div>
-
-              {/* Demo accounts */}
-              <div className="mt-4 p-4 bg-[#FFFBEB] rounded-2xl border border-[#FDE68A]">
-                <p className="text-xs text-muted mb-4 font-medium text-center">Tài khoản demo · mật khẩu: <span className="font-mono text-ink">demo123</span> · OTP: <span className="font-mono text-ink">123456</span></p>
-                <div className="grid grid-cols-2 gap-2 mt-3">
-                  {DEMO_ACCOUNTS.map((acc) => {
-                    const IconComponent = acc.icon;
-                    return (
-                      <button
-                        key={acc.role}
-                        type="button"
-                        onClick={() => fillDemo(acc.email)}
-                        className="flex items-center gap-2 p-2 rounded-lg bg-white border border-amber-200 hover:border-amber-400 hover:bg-amber-50 text-left transition-colors group"
-                      >
-                        <div className="w-8 h-8 rounded-md bg-amber-100 flex items-center justify-center text-amber-700 group-hover:scale-110 transition-transform">
-                          <IconComponent size={16} />
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold text-ink">{acc.role}</div>
-                          <div className="text-[10px] text-muted-soft">{acc.email}</div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
             </div>
           )}

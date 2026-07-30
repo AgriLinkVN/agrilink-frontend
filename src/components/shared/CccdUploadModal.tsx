@@ -1,13 +1,20 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import Image from 'next/image';
 import { X, Camera, UploadCloud, Check, Loader2, RotateCcw, AlertCircle } from 'lucide-react';
-import { api } from '@/lib/api';
+import { uploadPrivateDocument } from '@/lib/api';
+import { getErrorMessage } from '@/lib/errors/get-error-message';
 import { useAuthStore } from '@/store/authStore';
+
+interface CccdUploadResult {
+  frontFileId: string;
+  backFileId: string;
+}
 
 interface CccdUploadModalProps {
   onClose: () => void;
-  onSuccess: (data: unknown) => void;
+  onSuccess: (data: CccdUploadResult) => void;
 }
 
 type TabType = 'upload' | 'camera';
@@ -26,52 +33,81 @@ export function CccdUploadModal({ onClose, onSuccess }: CccdUploadModalProps) {
   // Camera state
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const cameraRequestRef = useRef(0);
   const [isCameraActive, setIsCameraActive] = useState(false);
 
   const token = useAuthStore((s) => s.accessToken);
 
-  const startCamera = async () => {
+  const releaseCamera = useCallback(() => {
+    cameraRequestRef.current += 1;
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
+  const stopCamera = useCallback(() => {
+    releaseCamera();
+    setIsCameraActive(false);
+  }, [releaseCamera]);
+
+  const startCamera = useCallback(async () => {
+    const requestId = cameraRequestRef.current + 1;
+    cameraRequestRef.current = requestId;
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' } // Prefer back camera on mobile
+        video: { facingMode: 'environment' },
       });
-      setStream(mediaStream);
+
+      if (cameraRequestRef.current !== requestId) {
+        mediaStream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
+      streamRef.current = mediaStream;
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
-        videoRef.current.play();
+        await videoRef.current.play();
       }
       setIsCameraActive(true);
       setErrorMsg('');
-    } catch (err: unknown) {
-      console.error('Camera access error:', err);
+    } catch (error: unknown) {
+      console.error('Camera access error:', error);
+      if (cameraRequestRef.current !== requestId) return;
       setIsCameraActive(false);
       setErrorMsg('Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập hoặc thiết bị của bạn. Trên một số trình duyệt, tính năng này yêu cầu HTTPS.');
     }
-  };
+  }, []);
 
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-    setIsCameraActive(false);
-  };
+  useEffect(() => releaseCamera, [releaseCamera]);
 
-  // Stop camera stream when component unmounts or tab changes
-  useEffect(() => {
-    if (activeTab === 'upload') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      void Promise.resolve().then(() => stopCamera());
-    } else if (activeTab === 'camera') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      startCamera();
-    }
-    return () => {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      void Promise.resolve().then(() => stopCamera());
-    };
-  }, [activeTab]);
+  const changeTab = useCallback(
+    (tab: TabType) => {
+      if (tab === 'upload') {
+        stopCamera();
+      } else if (tab !== activeTab) {
+        void startCamera();
+      }
+      setActiveTab(tab);
+    },
+    [activeTab, startCamera, stopCamera],
+  );
+
+  useEffect(
+    () => () => {
+      if (frontPreview) URL.revokeObjectURL(frontPreview);
+    },
+    [frontPreview],
+  );
+
+  useEffect(
+    () => () => {
+      if (backPreview) URL.revokeObjectURL(backPreview);
+    },
+    [backPreview],
+  );
 
   const captureImage = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -99,10 +135,10 @@ export function CccdUploadModal({ onClose, onSuccess }: CccdUploadModalProps) {
       } else {
         setBackImage(blob);
         setBackPreview(previewUrl);
-        stopCamera(); // Done capturing both
+        stopCamera();
       }
     }, 'image/jpeg', 0.9);
-  }, [step]);
+  }, [step, stopCamera]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, side: StepType) => {
     const file = e.target.files?.[0];
@@ -133,7 +169,7 @@ export function CccdUploadModal({ onClose, onSuccess }: CccdUploadModalProps) {
     setStep('front');
     setErrorMsg('');
     if (activeTab === 'camera') {
-      startCamera();
+      void startCamera();
     }
   };
 
@@ -151,31 +187,30 @@ export function CccdUploadModal({ onClose, onSuccess }: CccdUploadModalProps) {
     setErrorMsg('');
 
     try {
-      const formData = new FormData();
-      formData.append('frontFile', frontImage, 'cccd_front.jpg');
-      formData.append('backFile', backImage, 'cccd_back.jpg');
+      const frontFile =
+        frontImage instanceof File
+          ? frontImage
+          : new File([frontImage], 'cccd-front.jpg', { type: 'image/jpeg' });
+      const backFile =
+        backImage instanceof File
+          ? backImage
+          : new File([backImage], 'cccd-back.jpg', { type: 'image/jpeg' });
 
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-      const res = await fetch(`${backendUrl}/api/v1/storage/cccd/verify-full`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData,
-      });
+      const [frontFileId, backFileId] = await Promise.all([
+        uploadPrivateDocument(frontFile, 'KYC_IDENTITY', token),
+        uploadPrivateDocument(backFile, 'KYC_IDENTITY', token),
+      ]);
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Lỗi hệ thống khi phân tích CCCD.');
-      }
-
-      onSuccess(data);
+      onSuccess({ frontFileId, backFileId });
       onClose();
     } catch (error: unknown) {
       console.error(error);
-      const msg = error instanceof Error ? error.message : 'Không thể xác thực CCCD. Vui lòng thử lại với ảnh rõ nét hơn.';
-      setErrorMsg(msg);
+      setErrorMsg(
+        getErrorMessage(
+          error,
+          'Không thể tải CCCD. Vui lòng thử lại với ảnh rõ nét hơn.',
+        ),
+      );
     } finally {
       setIsUploading(false);
     }
@@ -198,13 +233,13 @@ export function CccdUploadModal({ onClose, onSuccess }: CccdUploadModalProps) {
           <div className="flex border-b border-slate-200">
             <button
               className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition ${activeTab === 'upload' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-slate-500 hover:bg-slate-50'}`}
-              onClick={() => setActiveTab('upload')}
+              onClick={() => changeTab('upload')}
             >
               <UploadCloud size={18} /> Tải file từ máy
             </button>
             <button
               className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition ${activeTab === 'camera' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-slate-500 hover:bg-slate-50'}`}
-              onClick={() => setActiveTab('camera')}
+              onClick={() => changeTab('camera')}
             >
               <Camera size={18} /> Chụp từ Camera
             </button>
@@ -226,7 +261,7 @@ export function CccdUploadModal({ onClose, onSuccess }: CccdUploadModalProps) {
                   <span className="font-semibold text-slate-700 text-sm">Mặt trước CCCD <span className="text-red-500">*</span></span>
                   <label className="relative flex flex-col items-center justify-center h-48 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-primary transition group overflow-hidden bg-slate-50">
                     {frontPreview ? (
-                      <img src={frontPreview} alt="Mặt trước" className="w-full h-full object-contain" />
+                      <Image src={frontPreview} alt="Mặt trước" fill unoptimized className="object-contain" />
                     ) : (
                       <div className="flex flex-col items-center justify-center text-slate-400 group-hover:text-primary">
                         <UploadCloud size={32} className="mb-2" />
@@ -242,7 +277,7 @@ export function CccdUploadModal({ onClose, onSuccess }: CccdUploadModalProps) {
                   <span className="font-semibold text-slate-700 text-sm">Mặt sau CCCD <span className="text-red-500">*</span></span>
                   <label className="relative flex flex-col items-center justify-center h-48 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-primary transition group overflow-hidden bg-slate-50">
                     {backPreview ? (
-                      <img src={backPreview} alt="Mặt sau" className="w-full h-full object-contain" />
+                      <Image src={backPreview} alt="Mặt sau" fill unoptimized className="object-contain" />
                     ) : (
                       <div className="flex flex-col items-center justify-center text-slate-400 group-hover:text-primary">
                         <UploadCloud size={32} className="mb-2" />
@@ -302,11 +337,15 @@ export function CccdUploadModal({ onClose, onSuccess }: CccdUploadModalProps) {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="flex flex-col items-center">
                         <span className="text-sm font-medium mb-2">Mặt trước</span>
-                        <img src={frontPreview} className="w-full rounded-lg border border-slate-200" alt="Mặt trước" />
+                        <div className="relative w-full aspect-[1.586]">
+                          <Image src={frontPreview} fill unoptimized className="rounded-lg border border-slate-200 object-contain" alt="Mặt trước" />
+                        </div>
                       </div>
                       <div className="flex flex-col items-center">
                         <span className="text-sm font-medium mb-2">Mặt sau</span>
-                        <img src={backPreview} className="w-full rounded-lg border border-slate-200" alt="Mặt sau" />
+                        <div className="relative w-full aspect-[1.586]">
+                          <Image src={backPreview} fill unoptimized className="rounded-lg border border-slate-200 object-contain" alt="Mặt sau" />
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -35,8 +35,8 @@ export function Navbar() {
       : undefined;
   const userName = legacyFullName || user?.full_name || user?.phone || "User";
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     setUserMenuOpen(false);
     router.push("/");
   }
@@ -253,7 +253,10 @@ export function Navbar() {
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => { handleLogout(); setMobileOpen(false); }}
+                    onClick={() => {
+                      void handleLogout();
+                      setMobileOpen(false);
+                    }}
                   >
                     <LogOut size={15} /> Đăng xuất
                   </Button>

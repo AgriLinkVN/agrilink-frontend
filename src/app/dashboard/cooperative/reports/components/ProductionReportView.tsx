@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/ui/stat-card';
 import { useAuthStore } from '@/store/authStore';
 import type { ProductionReport } from '@/types/cooperative';
+import { getApiBaseUrl } from '@/config/runtime-config';
 
 export function ProductionReportView() {
   const { accessToken } = useAuthStore();
@@ -39,8 +40,7 @@ export function ProductionReportView() {
 
   const downloadCsv = async () => {
     if (!accessToken) return;
-    const backend = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:5000';
-    const url = `${backend}/api/v1/cooperatives/me/reports/production.csv?from=${from}&to=${to}`;
+    const url = `${getApiBaseUrl()}/cooperatives/me/reports/production.csv?from=${from}&to=${to}`;
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });

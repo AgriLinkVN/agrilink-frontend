@@ -1,5 +1,5 @@
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:5000';
-const BASE = `${BACKEND}/api/v1`;
+import { getApiBaseUrl } from '@/config/runtime-config';
+import { getErrorMessage } from '@/lib/errors/get-error-message';
 
 /**
  * Rich error thrown by `api.*` helpers when the response is not OK.
@@ -8,19 +8,56 @@ const BASE = `${BACKEND}/api/v1`;
  */
 export class ApiError extends Error {
   readonly status: number;
-  readonly body: Record<string, unknown>;
-  constructor(status: number, body: Record<string, unknown>) {
-    const msg =
-      typeof body.message === 'string'
-        ? body.message
-        : Array.isArray(body.message)
-          ? body.message.join(', ')
-          : `HTTP ${status}`;
-    super(msg);
+  readonly body: ApiErrorBody;
+
+  constructor(status: number, body: unknown) {
+    super(getErrorMessage(body, `HTTP ${status}`));
     this.status = status;
-    this.body = body;
+    this.body = toApiErrorBody(body);
     this.name = 'ApiError';
   }
+}
+
+interface ApiErrorBody {
+  message?: unknown;
+  code?: unknown;
+  affectedBulkListings?: unknown;
+  [key: string]: unknown;
+}
+
+interface ApiEnvelope<T> {
+  data: T;
+}
+
+interface AccessTokenResponse {
+  accessToken: string;
+}
+
+function hasData<T>(value: unknown): value is ApiEnvelope<T> {
+  return typeof value === 'object' && value !== null && 'data' in value;
+}
+
+function hasAccessToken(value: unknown): value is AccessTokenResponse {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'accessToken' in value &&
+    typeof value.accessToken === 'string'
+  );
+}
+
+function toApiErrorBody(value: unknown): ApiErrorBody {
+  return typeof value === 'object' && value !== null
+    ? (value as ApiErrorBody)
+    : {};
+}
+
+async function parseJson(response: Response): Promise<unknown> {
+  return response.json().catch(() => null);
+}
+
+function unwrapData<T>(payload: unknown): T {
+  return (hasData<T>(payload) ? payload.data : payload) as T;
 }
 
 // ── Auto-refresh token ────────────────────────────────────────────────────────
@@ -31,21 +68,21 @@ async function tryRefreshToken(): Promise<string | null> {
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
     try {
-      const res = await fetch(`${BASE}/auth/refresh`, {
+      const res = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
       });
       if (!res.ok) return null;
-      const json = await res.json();
-      const token = json?.data?.accessToken ?? json?.accessToken;
+      const json = await parseJson(res);
+      const authData = hasData<unknown>(json) ? json.data : json;
+      const token = hasAccessToken(authData) ? authData.accessToken : null;
       if (token) {
         // Update zustand store dynamically
         const { useAuthStore } = await import('@/store/authStore');
         const user = useAuthStore.getState().user;
         if (user) useAuthStore.getState().setAuth(token, user);
-        try { localStorage.setItem('agrilink_access_token', token); } catch {}
       }
-      return token ?? null;
+      return token;
     } catch {
       return null;
     } finally {
@@ -59,7 +96,6 @@ async function redirectToLogin() {
   if (typeof window === 'undefined') return;
   const { useAuthStore } = await import('@/store/authStore');
   useAuthStore.getState().logout();
-  try { localStorage.removeItem('agrilink_access_token'); localStorage.removeItem('agrilink_user'); } catch {}
   window.location.href = '/auth/login';
 }
 
@@ -70,38 +106,55 @@ async function request<T>(
   options: RequestInit = {},
   token?: string | null,
 ): Promise<T> {
+  const baseUrl = getApiBaseUrl();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...((options.headers as Record<string, string>) ?? {}),
   };
 
-  const res = await fetch(`${BASE}${path}`, { ...options, headers, credentials: 'include' });
+  const res = await fetch(`${baseUrl}${path}`, {
+    ...options,
+    headers,
+    credentials: 'include',
+  });
 
   if (res.status === 204) return undefined as T;
 
-  if (res.status === 401 && token && path !== '/auth/refresh') {
+  const authEndpoint =
+    path === '/auth/login' ||
+    path === '/auth/login-otp' ||
+    path === '/auth/refresh';
+
+  if (res.status === 401 && token && !authEndpoint) {
     const newToken = await tryRefreshToken();
     if (newToken) {
       // Retry with new token
       headers.Authorization = `Bearer ${newToken}`;
-      const retryRes = await fetch(`${BASE}${path}`, { ...options, headers, credentials: 'include' });
+      const retryRes = await fetch(`${baseUrl}${path}`, {
+        ...options,
+        headers,
+        credentials: 'include',
+      });
+      if (retryRes.status === 204) return undefined as T;
       if (retryRes.ok) {
-        const json = await retryRes.json();
-        return json.data as T;
+        return unwrapData<T>(await parseJson(retryRes));
       }
+      const retryBody = await parseJson(retryRes);
+      if (retryRes.status === 401) {
+        await redirectToLogin();
+      }
+      throw new ApiError(retryRes.status, retryBody);
     }
-    redirectToLogin();
+    await redirectToLogin();
     throw new ApiError(401, { message: 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.' });
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body as Record<string, unknown>);
+    throw new ApiError(res.status, await parseJson(res));
   }
 
-  const json = (await res.json()) as { data: T };
-  return json.data;
+  return unwrapData<T>(await parseJson(res));
 }
 
 export const api = {
@@ -140,7 +193,7 @@ export async function apiGet<T>(
   params?: Record<string, string | number | undefined>,
   signal?: AbortSignal,
 ): Promise<T> {
-  const url = new URL(`${BASE}${path}`);
+  const url = new URL(`${getApiBaseUrl()}${path}`);
   if (params) {
     for (const [k, v] of Object.entries(params)) {
       if (v !== undefined && v !== null && v !== '') {
@@ -155,12 +208,10 @@ export async function apiGet<T>(
   });
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body as Record<string, unknown>);
+    throw new ApiError(res.status, await parseJson(res));
   }
 
-  const json = (await res.json()) as { data: T };
-  return json.data;
+  return unwrapData<T>(await parseJson(res));
 }
 
 // ── Storage uploads via backend ───────────────────────────────────────────────
@@ -192,23 +243,33 @@ async function uploadForm<T>(
   form: FormData,
   token?: string | null,
 ): Promise<T> {
+  const baseUrl = getApiBaseUrl();
   const headers: HeadersInit = {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${baseUrl}${path}`, {
     method: 'POST',
     headers,
     body: form,
+    credentials: 'include',
   });
 
-  const json = (await res.json().catch(() => ({}))) as { data?: T } & Record<string, unknown>;
+  const json = await parseJson(res);
 
   if (!res.ok) {
     throw new ApiError(res.status, json);
   }
 
-  return (json.data ?? json) as T;
+  return unwrapData<T>(json);
+}
+
+export async function uploadMultipart<T>(
+  path: string,
+  form: FormData,
+  token?: string | null,
+): Promise<T> {
+  return uploadForm<T>(path, form, token);
 }
 
 export async function uploadImageToStorage(

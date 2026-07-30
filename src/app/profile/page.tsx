@@ -16,6 +16,8 @@ import { useAuth, ROLE_LABELS } from "@/lib/auth-context";
 import { ImageCropperModal } from "@/components/shared/ImageCropperModal";
 import { useAuthStore } from "@/store/authStore";
 import type { User as AuthUser } from "@/types";
+import { api, uploadImageToStorage } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors/get-error-message";
 
 const TABS = [
   { id: "profile", label: "Hồ sơ cá nhân", icon: User },
@@ -55,51 +57,33 @@ export default function ProfilePage() {
     setIsUploadingAvatar(true);
     
     try {
-      const formData = new FormData();
-      // Gắn blob với một filename giả để upload
-      formData.append('file', croppedBlob, 'avatar.jpg');
-      formData.append('type', 'avatar_' + (user.role || ''));
-
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || `http://${window.location.hostname}:3001`;
       const token = useAuthStore.getState().accessToken;
-      
-      const response = await fetch(`${backendUrl}/api/v1/storage/images/upload`, {
-        method: 'POST',
-        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-        body: formData
-      });
-      
-      const json = await response.json();
-      const secureUrl = json.data?.secure_url || json.secure_url;
-      
-      if (response.ok && secureUrl) {
-        // Cập nhật URL vào database
-        const updateRes = await fetch(`${backendUrl}/api/v1/users/me`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify({ avatarUrl: secureUrl })
-        });
-
-        if (updateRes.ok) {
-          const updateJson = (await updateRes.json()) as { data?: AuthUser };
-          if (token && updateJson.data) {
-            useAuthStore.getState().setAuth(token, updateJson.data);
-          }
-          alert('Cập nhật avatar thành công!');
-          setSelectedImageForCrop(null); // Đóng modal
-        } else {
-          alert('Tải ảnh lên Cloudinary thành công nhưng lỗi khi lưu vào hồ sơ');
-        }
-      } else {
-        console.error('API Error Response:', json);
-        alert(`Lỗi upload: ${json.message || 'Không có phản hồi secure_url'}`);
+      if (!token) {
+        throw new Error("Vui lòng đăng nhập để cập nhật avatar.");
       }
-    } catch (e) {
-      console.error('Lỗi upload avatar (network/catch):', e);
-      alert(`Lỗi upload avatar: ${e instanceof Error ? e.message : 'Không thể kết nối tới server'}`);
+
+      const avatarFile = new File([croppedBlob], "avatar.jpg", {
+        type: croppedBlob.type || "image/jpeg",
+      });
+      const secureUrl = await uploadImageToStorage(
+        avatarFile,
+        `avatar_${user.role}`,
+        token,
+      );
+      const updatedUser = await api.patch<AuthUser>(
+        "/users/me",
+        { avatarUrl: secureUrl },
+        token,
+      );
+
+      useAuthStore.getState().setAuth(token, updatedUser);
+      alert("Cập nhật avatar thành công!");
+      setSelectedImageForCrop(null);
+    } catch (error) {
+      console.error("Lỗi upload avatar:", error);
+      alert(
+        `Lỗi upload avatar: ${getErrorMessage(error, "Không thể kết nối tới server")}`,
+      );
     } finally {
       setIsUploadingAvatar(false);
     }

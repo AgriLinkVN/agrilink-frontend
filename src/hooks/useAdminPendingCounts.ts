@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 
 interface PendingCounts {
@@ -9,58 +10,68 @@ interface PendingCounts {
   disputes: number;
 }
 
-let cachedCounts: PendingCounts = { profiles: 0, products: 0, disputes: 0 };
-const listeners: Set<(c: PendingCounts) => void> = new Set();
-let pollTimer: ReturnType<typeof setInterval> | null = null;
-
-function startPolling(token: string) {
-  if (pollTimer) return;
-  const backend = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
-
-  const poll = () => {
-    fetch(`${backend}/api/v1/admin/stats`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        const data = d?.data ?? d;
-        if (data?.pendingProfiles) {
-          const next: PendingCounts = {
-            profiles: data.pendingProfiles?.total ?? 0,
-            products: data.pendingProducts ?? 0,
-            disputes: data.openDisputes ?? 0,
-          };
-          cachedCounts = next;
-          listeners.forEach((fn) => fn(next));
-        }
-      })
-      .catch(() => {});
-  };
-
-  poll();
-  pollTimer = setInterval(poll, 30000);
+interface AdminStats {
+  pendingProfiles?: { total?: number };
+  pendingProducts?: number;
+  openDisputes?: number;
 }
 
-function subscribe(cb: (c: PendingCounts) => void) {
-  listeners.add(cb);
-  return () => { listeners.delete(cb); };
+const EMPTY_COUNTS: PendingCounts = {
+  profiles: 0,
+  products: 0,
+  disputes: 0,
+};
+
+let cachedCounts = EMPTY_COUNTS;
+const listeners = new Set<() => void>();
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function publish(counts: PendingCounts): void {
+  cachedCounts = counts;
+  listeners.forEach((listener) => listener());
+}
+
+function getSnapshot(): PendingCounts {
+  return cachedCounts;
+}
+
+function getServerSnapshot(): PendingCounts {
+  return EMPTY_COUNTS;
 }
 
 export function useAdminPendingCounts() {
-  const token = useAuthStore((s) => s.accessToken);
-  const cbRef = useRef<(c: PendingCounts) => void>();
+  const token = useAuthStore((state) => state.accessToken);
+  const counts = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   useEffect(() => {
     if (!token) return;
-    startPolling(token);
-    return subscribe((c) => {
-      cbRef.current?.(c);
-    });
+
+    let active = true;
+    const poll = async () => {
+      try {
+        const stats = await api.get<AdminStats>("/admin/stats", token);
+        if (!active) return;
+        publish({
+          profiles: stats.pendingProfiles?.total ?? 0,
+          products: stats.pendingProducts ?? 0,
+          disputes: stats.openDisputes ?? 0,
+        });
+      } catch {
+        // A temporary polling failure must not disrupt dashboard navigation.
+      }
+    };
+
+    void poll();
+    const timer = window.setInterval(() => void poll(), 30_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
   }, [token]);
 
-  const setCallback = useCallback((cb: (c: PendingCounts) => void) => {
-    cbRef.current = cb;
-  }, []);
-
-  return { counts: cachedCounts, setCallback };
+  return { counts };
 }

@@ -1,8 +1,7 @@
 import type { MetadataRoute } from "next";
+import { getApiBaseUrl, getSiteUrl } from "@/config/runtime-config";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://agrilink.vn";
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
-const BASE = `${BACKEND}/api/v1`;
+export const dynamic = "force-dynamic";
 
 interface SitemapProduct {
   id: string;
@@ -32,7 +31,7 @@ async function fetchSitemapProducts(): Promise<SitemapProduct[]> {
       sortBy: "createdAt",
       order: "DESC",
     });
-    const res = await fetch(`${BASE}/products?${qs}`, {
+    const res = await fetch(`${getApiBaseUrl()}/products?${qs}`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return [];
@@ -45,16 +44,17 @@ async function fetchSitemapProducts(): Promise<SitemapProduct[]> {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const siteUrl = getSiteUrl();
   const now = new Date();
   const staticRoutes = STATIC_ROUTES.map((route) => ({
-    url: `${SITE_URL}${route.path}`,
+    url: `${siteUrl}${route.path}`,
     lastModified: now,
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }));
 
   const productRoutes = (await fetchSitemapProducts()).map((product) => ({
-    url: `${SITE_URL}/products/${product.id}`,
+    url: `${siteUrl}/products/${product.id}`,
     lastModified: product.updatedAt ?? product.updated_at ?? now,
     changeFrequency: "daily" as const,
     priority: 0.8,
