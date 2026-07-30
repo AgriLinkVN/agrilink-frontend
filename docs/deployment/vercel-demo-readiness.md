@@ -106,6 +106,7 @@ intentionally not performed in Demo Mode:
 | P4 map runtime | PASS | missing-token, WebGL and online states valid |
 | Demo build | PASS | Next.js 16.2.11, 52 routes, no API URL |
 | Real build | PASS | Next.js 16.2.11, URL `https://example.invalid` |
+| Vercel Preview | PASS | PR #51 deployment completed with Vercel `Ready` status |
 | Unit tests | SKIPPED | Repository has no unit test command/framework |
 | Browser smoke | PASS | Password/OTP, refresh, marketplace, search, detail, wishlist, review, profile, notifications, admin, map fallback, 404 |
 | Browser console | PASS | 0 console errors and 0 page errors before expected 404 |
@@ -131,8 +132,9 @@ intentionally not performed in Demo Mode:
   appears and P4 data remains available.
 - Lint retains nine non-blocking UI warnings for existing image tags and camera
   hook dependencies; there are no lint errors.
-- This report verifies local readiness only. No Vercel deployment has been
-  performed or claimed.
+- Vercel Preview was deployed automatically for PR #51. Deployment Protection
+  redirects unauthenticated visitors to Vercel Login, so remote browser smoke
+  requires project access. This is not a production deployment.
 
 ## Vercel Settings
 
