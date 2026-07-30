@@ -7,13 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search, Building2, Factory } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-
-const API = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+import { api } from "@/lib/api";
 const getToken = () => useAuthStore.getState().accessToken;
-
-interface ApiEnvelope<T> {
-  data?: T;
-}
 
 interface OrganizationProfile {
   id: string;
@@ -30,12 +25,8 @@ interface OrganizationsResponse {
   enterprises?: OrganizationProfile[];
 }
 
-function apiFetch<T>(path: string, signal?: AbortSignal): Promise<ApiEnvelope<T> | T> {
-  const token = getToken();
-  return fetch(`${API}/api/v1${path}`, {
-    signal,
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  }).then((r) => r.json());
+function apiFetch<T>(path: string): Promise<T> {
+  return api.get<T>(path, getToken());
 }
 
 export default function StateCooperativesPage() {
@@ -44,14 +35,8 @@ export default function StateCooperativesPage() {
   const [search, setSearch] = useState("");
   const { data, isPending: loading } = useQuery({
     queryKey: ["state", "organizations"],
-    queryFn: async ({ signal }) => {
-      const res = await apiFetch<OrganizationsResponse>("/admin/cooperatives-enterprises", signal);
-      return (
-        "data" in Object(res)
-          ? (res as ApiEnvelope<OrganizationsResponse>).data
-          : res
-      ) as OrganizationsResponse | undefined;
-    },
+    queryFn: () =>
+      apiFetch<OrganizationsResponse>("/admin/cooperatives-enterprises"),
     staleTime: 60_000,
   });
 

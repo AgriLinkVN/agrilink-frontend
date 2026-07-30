@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { type UserRole } from "@/types";
 import { useAuth } from "@/lib/auth-context";
+import { runtimeConfig, getApiBaseUrl } from "@/config/runtime-config";
+import { DEMO_OTP } from "@/demo/fixtures";
 
 const ROLES: { value: UserRole; label: string; icon: string; desc: string }[] = [
   { value: "farmer", label: "Nông dân / Hộ sản xuất", icon: "👨‍🌾", desc: "Đăng bán nông sản, xem giá, nhận đơn" },
@@ -47,7 +49,12 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/send-otp`, {
+      if (runtimeConfig.demoMode) {
+        setStep(3);
+        setSuccessMsg(`Mã OTP demo là ${DEMO_OTP}.`);
+        return;
+      }
+      const res = await fetch(`${getApiBaseUrl()}/auth/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ target: email.trim().toLowerCase(), type: "email", purpose: "register" }),
@@ -60,7 +67,7 @@ export default function RegisterPage() {
       } else {
         setError(data.message || "Không thể gửi OTP. Vui lòng thử lại.");
       }
-    } catch (err) {
+    } catch {
       setError("Lỗi kết nối đến máy chủ");
     } finally {
       setIsLoading(false);
@@ -77,8 +84,19 @@ export default function RegisterPage() {
     setIsLoading(true);
     
     try {
+      if (runtimeConfig.demoMode) {
+        if (otpCode !== DEMO_OTP) {
+          setError(`Mã OTP demo phải là ${DEMO_OTP}.`);
+          return;
+        }
+        setSuccessMsg(
+          "Demo Mode không tạo tài khoản thật. Đang chuyển đến danh sách tài khoản demo...",
+        );
+        setTimeout(() => router.push("/auth/login"), 1200);
+        return;
+      }
       // 1. Verify OTP
-      const otpRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/verify-otp`, {
+      const otpRes = await fetch(`${getApiBaseUrl()}/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ target: email.trim().toLowerCase(), code: otpCode, purpose: "register" }),
@@ -92,7 +110,7 @@ export default function RegisterPage() {
       }
 
       // 2. Register
-      const regRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/register`, {
+      const regRes = await fetch(`${getApiBaseUrl()}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -124,7 +142,7 @@ export default function RegisterPage() {
       } else {
         setError(regData.message || "Đăng ký thất bại. Số điện thoại có thể đã tồn tại.");
       }
-    } catch (err) {
+    } catch {
       setError("Lỗi kết nối đến máy chủ");
     } finally {
       setIsLoading(false);

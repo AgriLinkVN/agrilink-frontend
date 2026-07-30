@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 import { connectSocket, disconnectSocket } from '@/lib/socket';
 import { api } from '@/lib/api';
 import { type Notification } from '@/types/notification';
+import { runtimeConfig } from '@/config/runtime-config';
 
 export function useNotifications() {
   const { accessToken } = useAuthStore();
@@ -64,6 +65,11 @@ export function useNotifications() {
       disconnectSocket();
       setNotifications([]);
       setUnreadCount(0);
+      setConnected(false);
+      return;
+    }
+
+    if (runtimeConfig.demoMode) {
       setConnected(false);
       return;
     }

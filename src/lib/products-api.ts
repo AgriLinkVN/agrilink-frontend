@@ -2,6 +2,8 @@
  * Products API — fetch from backend, fallback to mock data when backend unreachable.
  * All types mirror the DB schema / ProductsService response shape.
  */
+import { runtimeConfig, getApiBaseUrl } from "@/config/runtime-config";
+import { demoProducts } from "@/demo/fixtures";
 
 export interface ProductImage {
   id: string;
@@ -245,13 +247,10 @@ export function getProductProvince(product: Product): string {
 
 export function getPrimaryImage(product: Product): string {
   const primary = product.images.find((img) => img.isPrimary) ?? product.images[0];
-  return primary?.imageUrl ?? "https://images.unsplash.com/photo-1506617420156-8e4536971650?w=600&q=80";
+  return primary?.imageUrl ?? "/logo.png";
 }
 
 // ── API fetch functions ────────────────────────────────────────
-
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
-const BASE = `${BACKEND}/api/v1`;
 
 // ── Categories API ─────────────────────────────────────────────
 
@@ -281,8 +280,9 @@ function isAbortError(error: unknown): boolean {
 }
 
 export async function fetchCategories(signal?: AbortSignal): Promise<Category[]> {
+  if (runtimeConfig.demoMode) return FALLBACK_CATEGORIES;
   try {
-    const res = await fetch(`${BASE}/products/categories`, { cache: "no-store", signal });
+    const res = await fetch(`${getApiBaseUrl()}/products/categories`, { cache: "no-store", signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     const list: Category[] = json?.data ?? json;
@@ -292,8 +292,78 @@ export async function fetchCategories(signal?: AbortSignal): Promise<Category[]>
     return FALLBACK_CATEGORIES;
   } catch (error) {
     if (isAbortError(error)) throw error;
-    return FALLBACK_CATEGORIES;
+    throw error;
   }
+}
+
+function getDemoProducts(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  farmingType?: string;
+  categoryId?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sellerId?: string;
+  status?: string;
+  sortBy?: "createdAt" | "pricePerUnit" | "name" | "soldCount" | "avgRating";
+  order?: "ASC" | "DESC";
+}): ProductListResponse {
+  const requestedStatus = params?.status ?? "active";
+  let products = demoProducts.filter(
+    (product) => product.status === requestedStatus,
+  );
+  const normalizedSearch = params?.search?.trim().toLocaleLowerCase("vi");
+  if (normalizedSearch) {
+    products = products.filter((product) =>
+      `${product.name} ${product.description ?? ""}`
+        .toLocaleLowerCase("vi")
+        .includes(normalizedSearch),
+    );
+  }
+  if (params?.farmingType) {
+    products = products.filter(
+      (product) => product.farmingType === params.farmingType,
+    );
+  }
+  if (params?.categoryId && params.categoryId !== "all") {
+    products = products.filter(
+      (product) => product.categoryId === params.categoryId,
+    );
+  }
+  if (params?.minPrice != null) {
+    products = products.filter(
+      (product) => product.pricePerUnit >= params.minPrice!,
+    );
+  }
+  if (params?.maxPrice != null) {
+    products = products.filter(
+      (product) => product.pricePerUnit <= params.maxPrice!,
+    );
+  }
+  if (params?.sellerId) {
+    products = products.filter(
+      (product) => product.sellerId === params.sellerId,
+    );
+  }
+  const sortBy = params?.sortBy ?? "createdAt";
+  const direction = params?.order === "ASC" ? 1 : -1;
+  products = [...products].sort((left, right) => {
+    const leftValue = left[sortBy] ?? 0;
+    const rightValue = right[sortBy] ?? 0;
+    if (typeof leftValue === "string" && typeof rightValue === "string") {
+      return leftValue.localeCompare(rightValue, "vi") * direction;
+    }
+    return (Number(leftValue) - Number(rightValue)) * direction;
+  });
+  const total = products.length;
+  const page = Math.max(1, params?.page ?? 1);
+  const limit = Math.max(1, params?.limit ?? 20);
+  const offset = (page - 1) * limit;
+  return {
+    data: products.slice(offset, offset + limit),
+    total,
+  };
 }
 
 export async function fetchProducts(params?: {
@@ -309,6 +379,7 @@ export async function fetchProducts(params?: {
   sortBy?: "createdAt" | "pricePerUnit" | "name" | "soldCount" | "avgRating";
   order?: "ASC" | "DESC";
 }, signal?: AbortSignal): Promise<ProductListResponse> {
+  if (runtimeConfig.demoMode) return getDemoProducts(params);
   try {
     const qs = new URLSearchParams();
     qs.set("limit", String(params?.limit ?? 20));
@@ -323,7 +394,7 @@ export async function fetchProducts(params?: {
     if (params?.sortBy) qs.set("sortBy", params.sortBy);
     if (params?.order) qs.set("order", params.order);
 
-    const res = await fetch(`${BASE}/products?${qs}`, { cache: "no-store", signal });
+    const res = await fetch(`${getApiBaseUrl()}/products?${qs}`, { cache: "no-store", signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     // ResponseInterceptor wraps: { statusCode, message, data: { data: [...], total: N } }
@@ -337,10 +408,10 @@ export async function fetchProducts(params?: {
         total: payload.total ?? payload.data.length,
       };
     }
-    return { data: MOCK_PRODUCTS, total: MOCK_PRODUCTS.length };
+    throw new Error("Phản hồi danh sách sản phẩm không hợp lệ.");
   } catch (error) {
     if (isAbortError(error)) throw error;
-    return { data: MOCK_PRODUCTS, total: MOCK_PRODUCTS.length };
+    throw error;
   }
 }
 
@@ -348,6 +419,15 @@ export async function fetchSellerProducts(
   sellerId: string,
   limit = 24,
 ): Promise<ProductListResponse> {
+  if (runtimeConfig.demoMode) {
+    return getDemoProducts({
+      sellerId,
+      limit,
+      status: "active",
+      sortBy: "createdAt",
+      order: "DESC",
+    });
+  }
   try {
     const qs = new URLSearchParams({
       sellerId,
@@ -357,13 +437,12 @@ export async function fetchSellerProducts(
       sortBy: "createdAt",
       order: "DESC",
     });
-    const res = await fetch(`${BASE}/products?${qs}`, { cache: "no-store" });
+    const res = await fetch(`${getApiBaseUrl()}/products?${qs}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     return (json?.data ?? json) as ProductListResponse;
-  } catch {
-    const data = MOCK_PRODUCTS.filter((product) => product.sellerId === sellerId);
-    return { data, total: data.length };
+  } catch (error) {
+    throw error;
   }
 }
 
@@ -498,11 +577,31 @@ function adaptLegacyToDetail(p: Product): ProductDetail {
       verifiedAt: null,
       rejectionReason: null,
     })),
-    seller: null,
+    seller: p.id.startsWith("demo-")
+      ? {
+          id: p.sellerId,
+          fullName: "Nông dân Demo",
+          phone: "0900000002",
+          avatarUrl: null,
+          sellerType: p.sellerType,
+          bio: "Hồ sơ người bán mô phỏng của AgriLink.",
+          farmName: "Nông trại Demo AgriLink",
+          experienceYears: 8,
+          province: {
+            id: "demo-province",
+            name: getProductProvince(p),
+            code: null,
+          },
+        }
+      : null,
   };
 }
 
 export async function fetchProductDetail(id: string): Promise<ProductDetail | null> {
+  if (runtimeConfig.demoMode) {
+    const product = demoProducts.find((item) => item.id === id);
+    return product ? adaptLegacyToDetail(product) : null;
+  }
   // Mock IDs fallback (legacy compatibility)
   if (/^\d+$/.test(id)) {
     const m = MOCK_PRODUCTS[parseInt(id, 10) - 1] ?? MOCK_PRODUCTS[0];
@@ -514,7 +613,7 @@ export async function fetchProductDetail(id: string): Promise<ProductDetail | nu
   }
 
   try {
-    const res = await fetch(`${BASE}/products/${id}`, { cache: "no-store" });
+    const res = await fetch(`${getApiBaseUrl()}/products/${id}`, { cache: "no-store" });
     if (!res.ok) {
       if (res.status === 404) return null;
       throw new Error(`HTTP ${res.status}`);
@@ -527,6 +626,9 @@ export async function fetchProductDetail(id: string): Promise<ProductDetail | nu
 }
 
 export async function fetchProduct(id: string): Promise<Product | null> {
+  if (runtimeConfig.demoMode) {
+    return demoProducts.find((product) => product.id === id) ?? null;
+  }
   if (/^\d+$/.test(id)) {
     return MOCK_PRODUCTS[parseInt(id, 10) - 1] ?? MOCK_PRODUCTS[0];
   }
@@ -534,7 +636,7 @@ export async function fetchProduct(id: string): Promise<Product | null> {
     return MOCK_PRODUCTS.find((p) => p.id === id) ?? null;
   }
   try {
-    const res = await fetch(`${BASE}/products/${id}`, { cache: "no-store" });
+    const res = await fetch(`${getApiBaseUrl()}/products/${id}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     // ResponseInterceptor wraps: { statusCode, message, data: <Product> }

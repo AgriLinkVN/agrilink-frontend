@@ -10,6 +10,7 @@ import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Badge, FarmingBadge } from "@/components/ui/badge";
 import { ReviewSection } from "@/components/reviews/ReviewSection";
+import { runtimeConfig } from "@/config/runtime-config";
 import {
   fetchProduct,
   fetchProducts,
@@ -386,8 +387,9 @@ export default async function ProductDetailPage({ params }: PageProps) {
         )}
       </div>
 
-      {/* Reviews — only for real UUID products */}
-      {/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId) && (
+      {/* Real products use UUIDs; deterministic demo IDs are also reviewable. */}
+      {(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId) ||
+        (runtimeConfig.demoMode && productId.startsWith("demo-"))) && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <ReviewSection productId={productId} />
         </div>

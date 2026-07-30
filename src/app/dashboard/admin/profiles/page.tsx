@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useAuthStore } from "@/store/authStore";
 import { api } from "@/lib/api";
 import { Check, X, Building2, Sprout, Loader2 } from "lucide-react";
+import { runtimeConfig } from "@/config/runtime-config";
 
 interface ProfileRecord {
   id: string;
@@ -23,6 +24,7 @@ export default function AdminProfilesPage() {
   const token = useAuthStore((s) => s.accessToken);
   const [data, setData] = useState<ProfilesData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [feedback, setFeedback] = useState("");
 
   useEffect(() => {
     if (!token) return;
@@ -45,6 +47,9 @@ export default function AdminProfilesPage() {
       // refetch
       const d = await api.get<ProfilesData>("/admin/pending-profiles", token);
       setData(d);
+      if (runtimeConfig.demoMode) {
+        setFeedback("Đã cập nhật dữ liệu demo.");
+      }
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : "Lỗi");
     }
@@ -60,6 +65,14 @@ export default function AdminProfilesPage() {
 
   return (
     <DashboardLayout role="admin" pageTitle="Duyệt hồ sơ đăng ký" pageDescription="Phê duyệt hoặc từ chối hồ sơ HTX, Doanh nghiệp, NCC, Nông dân">
+      {feedback && (
+        <div
+          role="status"
+          className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
+        >
+          {feedback}
+        </div>
+      )}
       {loading ? (
         <div className="flex items-center justify-center h-64 text-muted"><Loader2 className="w-6 h-6 animate-spin" /></div>
       ) : allProfiles.length === 0 ? (

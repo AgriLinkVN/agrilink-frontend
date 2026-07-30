@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { QueryProvider } from "@/components/providers/QueryProvider";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://agrilink.vn";
+import { DemoBanner } from "@/components/demo/demo-banner";
+import { runtimeConfig } from "@/config/runtime-config";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
+  metadataBase: new URL(runtimeConfig.siteUrl),
   title: {
     default: "AgriLink Vietnam — Nền tảng nông sản sạch",
     template: "%s | AgriLink Vietnam",
@@ -40,6 +40,7 @@ export default function RootLayout({
   return (
     <html lang="vi" className="h-full antialiased" data-scroll-behavior="smooth">
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <DemoBanner />
         <AuthProvider>
           <QueryProvider>{children}</QueryProvider>
         </AuthProvider>

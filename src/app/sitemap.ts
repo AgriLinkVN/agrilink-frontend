@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
+import { runtimeConfig, getApiBaseUrl } from "@/config/runtime-config";
+import { demoProducts } from "@/demo/fixtures";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://agrilink.vn";
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
-const BASE = `${BACKEND}/api/v1`;
+const SITE_URL = runtimeConfig.siteUrl;
 
 interface SitemapProduct {
   id: string;
@@ -24,6 +24,7 @@ const STATIC_ROUTES: { path: string; changeFrequency: MetadataRoute.Sitemap[numb
 ];
 
 async function fetchSitemapProducts(): Promise<SitemapProduct[]> {
+  if (runtimeConfig.demoMode) return demoProducts;
   try {
     const qs = new URLSearchParams({
       page: "1",
@@ -32,7 +33,7 @@ async function fetchSitemapProducts(): Promise<SitemapProduct[]> {
       sortBy: "createdAt",
       order: "DESC",
     });
-    const res = await fetch(`${BASE}/products?${qs}`, {
+    const res = await fetch(`${getApiBaseUrl()}/products?${qs}`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return [];

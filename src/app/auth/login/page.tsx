@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -11,21 +12,46 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
+import { getErrorMessage } from "@/lib/errors/get-error-message";
+import { authDataSource } from "@/lib/auth-data-source";
+import { runtimeConfig } from "@/config/runtime-config";
+import { DEMO_OTP, DEMO_PASSWORD, demoUsers } from "@/demo/fixtures";
 
 /* ─── Types ─── */
 type Method = "password" | "otp";
 type OtpStep = "idle" | "sent" | "verified";
 
 /* ─── Demo accounts quick-fill ─── */
-const DEMO_ACCOUNTS = [
-  { role: "Nông dân", email: "farmer@agrilink.vn", icon: Sprout },
-  { role: "HTX", email: "cooperative@agrilink.vn", icon: Users },
-  { role: "Người mua", email: "buyer@agrilink.vn", icon: ShoppingCart },
-  { role: "Doanh nghiệp", email: "enterprise@agrilink.vn", icon: Building2 },
-  { role: "Nhà cung cấp", email: "supplier@agrilink.vn", icon: Package },
-  { role: "Logistics", email: "logistics@agrilink.vn", icon: Truck },
-  { role: "Admin", email: "admin@agrilink.vn", icon: Shield },
-];
+const DEMO_ROLE_ICONS = {
+  farmer: Sprout,
+  cooperative: Users,
+  buyer: ShoppingCart,
+  enterprise: Building2,
+  supplier: Package,
+  logistics: Truck,
+  admin: Shield,
+} as const;
+
+const DEMO_ROLE_LABELS = {
+  farmer: "Nông dân",
+  cooperative: "HTX",
+  buyer: "Người mua",
+  enterprise: "Doanh nghiệp",
+  supplier: "Nhà cung cấp",
+  logistics: "Logistics",
+  admin: "Admin",
+} as const;
+
+const DEMO_ACCOUNTS = demoUsers
+  .filter((user) => user.role in DEMO_ROLE_ICONS)
+  .map((user) => {
+    const role = user.role as keyof typeof DEMO_ROLE_ICONS;
+    return {
+      role: DEMO_ROLE_LABELS[role],
+      email: user.email ?? "",
+      icon: DEMO_ROLE_ICONS[role],
+    };
+  });
 
 export default function LoginPage() {
   const router = useRouter();
@@ -60,21 +86,13 @@ export default function LoginPage() {
     setError("");
     try {
       setLoading(true);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target: email.trim().toLowerCase(), purpose: 'login', type: 'email' })
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.message || 'Lỗi gửi OTP');
-      }
+      await authDataSource.sendLoginOtp(email.trim().toLowerCase());
       setOtpStep("sent");
       setCountdown(60);
       setOtpDigits(["", "", "", "", "", ""]);
       setTimeout(() => otpRefs.current[0]?.focus(), 300);
     } catch (err: unknown) {
-      setError(err.message || 'Lỗi kết nối máy chủ');
+      setError(getErrorMessage(err, "Lỗi kết nối máy chủ"));
     } finally {
       setLoading(false);
     }
@@ -118,8 +136,8 @@ export default function LoginPage() {
 
   const fillDemo = (e: string) => {
     setEmail(e);
-    setPassword("demo123");
-    setOtpDigits(["1", "2", "3", "4", "5", "6"]);
+    setPassword(DEMO_PASSWORD);
+    setOtpDigits(DEMO_OTP.split(""));
     setError("");
   };
 
@@ -135,9 +153,12 @@ export default function LoginPage() {
           ══════════════════════════════════════ */}
       <div className="hidden lg:flex w-[480px] xl:w-[540px] shrink-0 relative flex-col overflow-hidden">
         {/* Background image */}
-        <img
-          src="https://images.pexels.com/photos/2382665/pexels-photo-2382665.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
+        <Image
+          src="/demo/agrilink-farm-hero.webp"
           alt="Ruộng bậc thang Việt Nam"
+          fill
+          priority
+          sizes="(min-width: 1280px) 540px, 480px"
           className="absolute inset-0 w-full h-full object-cover"
           style={{ animation: "heroKenBurns 30s ease-in-out infinite alternate" }}
         />
@@ -332,9 +353,11 @@ export default function LoginPage() {
                             />
                           ))}
                         </div>
-                        <p className="text-xs text-muted text-center">
-                          💡 Demo: nhập <span className="font-mono font-semibold text-ink">123456</span>
-                        </p>
+                        {runtimeConfig.demoMode && (
+                          <p className="text-xs text-muted text-center">
+                            Chế độ Demo: nhập <span className="font-mono font-semibold text-ink">{DEMO_OTP}</span>
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -391,8 +414,9 @@ export default function LoginPage() {
               </div>
 
               {/* Demo accounts */}
+              {runtimeConfig.demoMode && (
               <div className="mt-4 p-4 bg-[#FFFBEB] rounded-2xl border border-[#FDE68A]">
-                <p className="text-xs text-muted mb-4 font-medium text-center">Tài khoản demo · mật khẩu: <span className="font-mono text-ink">demo123</span> · OTP: <span className="font-mono text-ink">123456</span></p>
+                <p className="text-xs text-muted mb-4 font-medium text-center">Tài khoản demo · mật khẩu: <span className="font-mono text-ink">{DEMO_PASSWORD}</span> · OTP: <span className="font-mono text-ink">{DEMO_OTP}</span></p>
                 <div className="grid grid-cols-2 gap-2 mt-3">
                   {DEMO_ACCOUNTS.map((acc) => {
                     const IconComponent = acc.icon;
@@ -415,6 +439,7 @@ export default function LoginPage() {
                   })}
                 </div>
               </div>
+              )}
             </div>
           )}
         </div>

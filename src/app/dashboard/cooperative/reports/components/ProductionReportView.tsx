@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/ui/stat-card';
 import { useAuthStore } from '@/store/authStore';
 import type { ProductionReport } from '@/types/cooperative';
+import { runtimeConfig, getApiBaseUrl } from '@/config/runtime-config';
 
 export function ProductionReportView() {
   const { accessToken } = useAuthStore();
@@ -39,8 +40,22 @@ export function ProductionReportView() {
 
   const downloadCsv = async () => {
     if (!accessToken) return;
-    const backend = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:5000';
-    const url = `${backend}/api/v1/cooperatives/me/reports/production.csv?from=${from}&to=${to}`;
+    if (runtimeConfig.demoMode) {
+      const csv = [
+        'thang,du_kien,thuc_te',
+        ...(data?.byMonth ?? []).map(
+          (item) => `${item.month},${item.estimated},${item.actual}`,
+        ),
+      ].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `bao-cao-demo-${from}_${to}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      return;
+    }
+    const url = `${getApiBaseUrl()}/cooperatives/me/reports/production.csv?from=${from}&to=${to}`;
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });

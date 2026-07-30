@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ProductDetailImage } from "@/lib/products-api";
 
 const PLACEHOLDER =
-  "https://images.unsplash.com/photo-1506617420156-8e4536971650?w=800&q=80";
+  "/demo/agricultural-produce.webp";
 
 interface Props {
   images: ProductDetailImage[];

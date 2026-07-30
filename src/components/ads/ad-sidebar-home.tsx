@@ -85,7 +85,7 @@ const RIGHT_ADS: SideAd[] = [
   },
   {
     id: "hr3",
-    imageUrl: "https://images.unsplash.com/photo-1586771107445-d3ca888129ce?w=300&h=200&fit=crop&auto=format",
+    imageUrl: "/demo/agricultural-produce.webp",
     title: "Nhà kính thông minh",
     subtitle: "Điều khiển nhiệt độ, độ ẩm tự động IoT",
     cta: "Xem giải pháp",

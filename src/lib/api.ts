@@ -1,5 +1,5 @@
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:5000';
-const BASE = `${BACKEND}/api/v1`;
+import { runtimeConfig, getApiBaseUrl } from '@/config/runtime-config';
+import { demoApiRequest } from '@/demo/demo-api';
 
 /**
  * Rich error thrown by `api.*` helpers when the response is not OK.
@@ -28,10 +28,11 @@ export class ApiError extends Error {
 let refreshPromise: Promise<string | null> | null = null;
 
 async function tryRefreshToken(): Promise<string | null> {
+  if (runtimeConfig.demoMode) return null;
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
     try {
-      const res = await fetch(`${BASE}/auth/refresh`, {
+      const res = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -70,13 +71,27 @@ async function request<T>(
   options: RequestInit = {},
   token?: string | null,
 ): Promise<T> {
+  const method = (options.method ?? 'GET').toUpperCase() as
+    | 'GET'
+    | 'POST'
+    | 'PATCH'
+    | 'PUT'
+    | 'DELETE';
+  if (runtimeConfig.demoMode) {
+    const body =
+      typeof options.body === 'string' && options.body.length > 0
+        ? (JSON.parse(options.body) as unknown)
+        : undefined;
+    return demoApiRequest<T>(method, path, body, token);
+  }
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...((options.headers as Record<string, string>) ?? {}),
   };
 
-  const res = await fetch(`${BASE}${path}`, { ...options, headers, credentials: 'include' });
+  const res = await fetch(`${getApiBaseUrl()}${path}`, { ...options, headers, credentials: 'include' });
 
   if (res.status === 204) return undefined as T;
 
@@ -85,7 +100,7 @@ async function request<T>(
     if (newToken) {
       // Retry with new token
       headers.Authorization = `Bearer ${newToken}`;
-      const retryRes = await fetch(`${BASE}${path}`, { ...options, headers, credentials: 'include' });
+      const retryRes = await fetch(`${getApiBaseUrl()}${path}`, { ...options, headers, credentials: 'include' });
       if (retryRes.ok) {
         const json = await retryRes.json();
         return json.data as T;
@@ -140,14 +155,20 @@ export async function apiGet<T>(
   params?: Record<string, string | number | undefined>,
   signal?: AbortSignal,
 ): Promise<T> {
-  const url = new URL(`${BASE}${path}`);
+  const query = new URLSearchParams();
   if (params) {
     for (const [k, v] of Object.entries(params)) {
       if (v !== undefined && v !== null && v !== '') {
-        url.searchParams.set(k, String(v));
+        query.set(k, String(v));
       }
     }
   }
+  const pathWithQuery = query.size > 0 ? `${path}?${query}` : path;
+  if (runtimeConfig.demoMode) {
+    return demoApiRequest<T>('GET', pathWithQuery);
+  }
+
+  const url = new URL(`${getApiBaseUrl()}${pathWithQuery}`);
 
   const res = await fetch(url.toString(), {
     signal,
@@ -192,11 +213,14 @@ async function uploadForm<T>(
   form: FormData,
   token?: string | null,
 ): Promise<T> {
+  if (runtimeConfig.demoMode) {
+    throw new Error('Demo Mode không tải tệp lên máy chủ.');
+  }
   const headers: HeadersInit = {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${getApiBaseUrl()}${path}`, {
     method: 'POST',
     headers,
     body: form,
@@ -216,6 +240,9 @@ export async function uploadImageToStorage(
   type: StorageImageType = 'product',
   token?: string | null,
 ): Promise<string> {
+  if (runtimeConfig.demoMode) {
+    return URL.createObjectURL(file);
+  }
   const form = new FormData();
   form.append('file', file);
   form.append('type', type);
@@ -237,6 +264,9 @@ export async function uploadPrivateDocument(
   if (!token) throw new Error('Vui lòng đăng nhập để tải tài liệu.');
   if (file.size < 1 || file.size > 10 * 1024 * 1024) {
     throw new Error('Tài liệu phải có kích thước từ 1 byte đến 10 MB.');
+  }
+  if (runtimeConfig.demoMode) {
+    return `demo-file:${file.name}`;
   }
 
   const contentType = file.type || 'application/octet-stream';
@@ -286,6 +316,9 @@ export async function uploadToCloudinary(
   file: File,
   folder: 'ads' | 'reviews' | 'products' | 'profiles' | 'forum' | 'misc' = 'misc',
 ): Promise<string> {
+  if (runtimeConfig.demoMode) {
+    return URL.createObjectURL(file);
+  }
   const form = new FormData();
   form.append('file', file);
   form.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET ?? '');

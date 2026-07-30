@@ -6,13 +6,8 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Loader2, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
-
-const API = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+import { api } from "@/lib/api";
 const getToken = () => useAuthStore.getState().accessToken;
-
-interface ApiEnvelope<T> {
-  data?: T;
-}
 
 interface AuditLog {
   id: string;
@@ -34,12 +29,8 @@ interface PaginatedAuditLogs {
 const hasChanges = (changes: unknown): changes is object =>
   changes !== null && changes !== undefined;
 
-function apiFetch<T>(path: string, signal?: AbortSignal): Promise<ApiEnvelope<T> | T> {
-  const token = getToken();
-  return fetch(`${API}/api/v1${path}`, {
-    signal,
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  }).then((r) => r.json());
+function apiFetch<T>(path: string): Promise<T> {
+  return api.get<T>(path, getToken());
 }
 
 export default function StateAuditLogsPage() {
@@ -49,13 +40,10 @@ export default function StateAuditLogsPage() {
 
   const { data: payload, isPending: loading } = useQuery({
     queryKey: ["state", "audit-logs", page, limit],
-    queryFn: async ({ signal }) => {
-      const res = await apiFetch<PaginatedAuditLogs>(
+    queryFn: async () => {
+      return apiFetch<PaginatedAuditLogs>(
         `/admin/audit-logs?page=${page}&limit=${limit}`,
-        signal,
       );
-      const data = "data" in Object(res) ? (res as ApiEnvelope<PaginatedAuditLogs>).data ?? res : res;
-      return data as PaginatedAuditLogs;
     },
     placeholderData: keepPreviousData,
     staleTime: 30_000,

@@ -36,13 +36,11 @@ import {
   type ProductDetail,
   type ProductDetailSeller,
 } from "@/lib/products-api";
+import { runtimeConfig, getApiBaseUrl } from "@/config/runtime-config";
 import {
   SellerProfileTabs,
   type SellerReviewItem,
 } from "./_components/SellerProfileTabs";
-
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
-const BASE = `${BACKEND}/api/v1`;
 
 type SellerType = ProductDetailSeller["sellerType"];
 
@@ -147,12 +145,29 @@ async function fetchSellerReviews(products: Product[]): Promise<{
   total: number;
   average: number | null;
 }> {
+  if (runtimeConfig.demoMode) {
+    const reviews = products.slice(0, 2).map((product, index) => ({
+      id: `demo-seller-review-${index + 1}`,
+      productId: product.id,
+      productName: product.name,
+      reviewerName: index === 0 ? "Người mua Demo" : "Doanh nghiệp Demo",
+      rating: index === 0 ? 5 : 4,
+      comment: "Đánh giá mô phỏng cho hồ sơ người bán.",
+      sellerReply: null,
+      createdAt: `2026-07-${26 - index}T09:00:00.000Z`,
+    }));
+    return {
+      reviews,
+      total: reviews.length,
+      average: average(reviews.map((review) => review.rating)),
+    };
+  }
   const reviewGroups = await Promise.all(
     products.slice(0, 8).map(async (product) => {
       if (product.id.startsWith("mock-")) return { reviews: [] as SellerReviewItem[], total: 0 };
 
       try {
-        const res = await fetch(`${BASE}/reviews/product/${product.id}?page=1&limit=3`, {
+        const res = await fetch(`${getApiBaseUrl()}/reviews/product/${product.id}?page=1&limit=3`, {
           cache: "no-store",
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

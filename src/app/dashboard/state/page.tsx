@@ -12,13 +12,9 @@ import {
   Loader2, FileText, Building2, ChevronRight, Download,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-
-const API = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+import { api } from "@/lib/api";
+import { runtimeConfig, getApiBaseUrl } from "@/config/runtime-config";
 const getToken = () => useAuthStore.getState().accessToken;
-
-interface ApiEnvelope<T> {
-  data?: T;
-}
 
 interface StateStats {
   activeUsers?: number;
@@ -59,18 +55,8 @@ interface PaginatedDisputes {
   data?: Dispute[];
 }
 
-function unwrapApi<T>(value: ApiEnvelope<T> | T): T | undefined {
-  return value && typeof value === "object" && "data" in value
-    ? (value as ApiEnvelope<T>).data
-    : (value as T);
-}
-
-function apiFetch<T>(path: string, signal?: AbortSignal): Promise<ApiEnvelope<T> | T> {
-  const token = getToken();
-  return fetch(`${API}/api/v1${path}`, {
-    signal,
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  }).then((r) => r.json());
+function apiFetch<T>(path: string): Promise<T> {
+  return api.get<T>(path, getToken());
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -87,8 +73,21 @@ export default function StateAgencyDashboardPage() {
   async function handleExportPdf() {
     setExporting(true);
     try {
+      if (runtimeConfig.demoMode) {
+        const blob = new Blob(
+          ["AgriLink Demo\nBáo cáo hệ thống sử dụng dữ liệu mô phỏng."],
+          { type: "text/plain;charset=utf-8" },
+        );
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "agrilink-demo-system-report.txt";
+        anchor.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
       const token = getToken();
-      const res = await fetch(`${API}/api/v1/admin/reports/system.pdf`, {
+      const res = await fetch(`${getApiBaseUrl()}/admin/reports/system.pdf`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error("Export failed");
@@ -106,25 +105,26 @@ export default function StateAgencyDashboardPage() {
 
   const { data, isPending: loading } = useQuery({
     queryKey: ["state", "dashboard"],
-    queryFn: async ({ signal }) => {
+    queryFn: async () => {
       const [statsRes, profilesRes, disputesRes] = await Promise.all([
-        apiFetch<StateStats>("/admin/stats", signal),
-        apiFetch<PendingProfilesResponse>("/admin/pending-profiles", signal),
-        apiFetch<PaginatedDisputes | Dispute[]>("/admin/disputes?status=open&limit=5", signal),
+        apiFetch<StateStats>("/admin/stats"),
+        apiFetch<PendingProfilesResponse>("/admin/pending-profiles"),
+        apiFetch<PaginatedDisputes | Dispute[]>("/admin/disputes?status=open&limit=5"),
       ]);
 
-      const raw = unwrapApi(profilesRes) ?? {};
+      const raw = profilesRes ?? {};
       const flat: PendingProfile[] = [
         ...(raw.cooperative ?? []).map((p) => ({ ...p, _type: "cooperative" as const })),
         ...(raw.enterprise ?? []).map((p) => ({ ...p, _type: "enterprise" as const })),
         ...(raw.farmer ?? []).map((p) => ({ ...p, _type: "farmer" as const })),
         ...(raw.supplier ?? []).map((p) => ({ ...p, _type: "supplier" as const })),
       ];
-      const dr = unwrapApi(disputesRes);
       return {
-        stats: unwrapApi(statsRes) ?? null,
+        stats: statsRes ?? null,
         pendingProfiles: flat.slice(0, 5),
-        disputes: Array.isArray(dr) ? dr.slice(0, 5) : (dr?.data ?? []).slice(0, 5),
+        disputes: Array.isArray(disputesRes)
+          ? disputesRes.slice(0, 5)
+          : (disputesRes.data ?? []).slice(0, 5),
       };
     },
     staleTime: 30_000,

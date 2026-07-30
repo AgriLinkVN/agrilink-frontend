@@ -8,6 +8,7 @@ import {
 } from "react";
 import type { User, UserRole } from "@/types";
 import { useAuthStore } from "@/store/authStore";
+import { authDataSource } from "@/lib/auth-data-source";
 
 interface AuthContextValue {
   user: User | null;
@@ -54,44 +55,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const trimmedEmail = email.trim().toLowerCase();
 
-        const endpoint = method === "password" ? "/auth/login" : "/auth/login-otp";
-        const payload =
-          method === "password"
-            ? { email: trimmedEmail, password: credential }
-            : { target: trimmedEmail, code: credential, purpose: "login" };
-
-        const backend =
-          process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
-
-        const res = await fetch(`${backend}/api/v1${endpoint}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          return {
-            error:
-              (errorData as { message?: string }).message ??
-              "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
-          };
-        }
-
-        const data = (await res.json()) as {
-          data?: { accessToken?: string };
-          accessToken?: string;
-        };
-        const token = data.data?.accessToken ?? data.accessToken;
-        if (!token) return { error: "Không nhận được token từ máy chủ." };
-
-        const userRes = await fetch(`${backend}/api/v1/users/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!userRes.ok) return { error: "Không thể lấy thông tin người dùng." };
-
-        const userPayload = (await userRes.json()) as { data?: User } & User;
-        const userData = (userPayload.data ?? userPayload) as User;
+        const { accessToken: token, user: userData } =
+          await authDataSource.login(
+            trimmedEmail,
+            credential,
+            method,
+          );
 
         // Single source of truth — persisted by zustand
         setAuth(token, userData);
@@ -105,8 +74,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const dashboard = ROLE_DASHBOARD[userData.role] ?? "/";
         return { dashboard };
       } catch (error) {
-        console.error("Login error:", error);
-        return { error: "Lỗi kết nối máy chủ. Vui lòng thử lại sau." };
+        return {
+          error:
+            error instanceof Error
+              ? error.message
+              : "Lỗi kết nối máy chủ. Vui lòng thử lại sau.",
+        };
       }
     },
     [setAuth],

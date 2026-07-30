@@ -16,6 +16,7 @@ import { useAuth, ROLE_LABELS } from "@/lib/auth-context";
 import { ImageCropperModal } from "@/components/shared/ImageCropperModal";
 import { useAuthStore } from "@/store/authStore";
 import type { User as AuthUser } from "@/types";
+import { runtimeConfig, getApiBaseUrl } from "@/config/runtime-config";
 
 const TABS = [
   { id: "profile", label: "Hồ sơ cá nhân", icon: User },
@@ -55,15 +56,26 @@ export default function ProfilePage() {
     setIsUploadingAvatar(true);
     
     try {
+      const token = useAuthStore.getState().accessToken;
+      if (runtimeConfig.demoMode) {
+        const previewUrl = URL.createObjectURL(croppedBlob);
+        if (token) {
+          useAuthStore.getState().setAuth(token, {
+            ...user,
+            avatar_url: previewUrl,
+          });
+        }
+        setSelectedImageForCrop(null);
+        alert("Đã cập nhật ảnh xem trước trong Demo Mode. Ảnh chưa được tải lên.");
+        return;
+      }
+
       const formData = new FormData();
       // Gắn blob với một filename giả để upload
       formData.append('file', croppedBlob, 'avatar.jpg');
       formData.append('type', 'avatar_' + (user.role || ''));
 
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || `http://${window.location.hostname}:3001`;
-      const token = useAuthStore.getState().accessToken;
-      
-      const response = await fetch(`${backendUrl}/api/v1/storage/images/upload`, {
+      const response = await fetch(`${getApiBaseUrl()}/storage/images/upload`, {
         method: 'POST',
         headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
         body: formData
@@ -74,7 +86,7 @@ export default function ProfilePage() {
       
       if (response.ok && secureUrl) {
         // Cập nhật URL vào database
-        const updateRes = await fetch(`${backendUrl}/api/v1/users/me`, {
+        const updateRes = await fetch(`${getApiBaseUrl()}/users/me`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',

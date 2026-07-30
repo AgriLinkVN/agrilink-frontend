@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { useAuthStore } from "@/store/authStore";
+import { api } from "@/lib/api";
 
 interface PendingCounts {
   profiles: number;
@@ -15,15 +16,13 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 function startPolling(token: string) {
   if (pollTimer) return;
-  const backend = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
-
   const poll = () => {
-    fetch(`${backend}/api/v1/admin/stats`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        const data = d?.data ?? d;
+    api.get<{
+      pendingProfiles?: { total?: number };
+      pendingProducts?: number;
+      openDisputes?: number;
+    }>("/admin/stats", token)
+      .then((data) => {
         if (data?.pendingProfiles) {
           const next: PendingCounts = {
             profiles: data.pendingProfiles?.total ?? 0,
@@ -48,7 +47,7 @@ function subscribe(cb: (c: PendingCounts) => void) {
 
 export function useAdminPendingCounts() {
   const token = useAuthStore((s) => s.accessToken);
-  const cbRef = useRef<(c: PendingCounts) => void>();
+  const cbRef = useRef<((c: PendingCounts) => void) | undefined>(undefined);
 
   useEffect(() => {
     if (!token) return;

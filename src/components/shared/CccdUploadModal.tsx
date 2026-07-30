@@ -2,8 +2,8 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Camera, UploadCloud, Check, Loader2, RotateCcw, AlertCircle } from 'lucide-react';
-import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
+import { runtimeConfig, getApiBaseUrl } from '@/config/runtime-config';
 
 interface CccdUploadModalProps {
   onClose: () => void;
@@ -151,12 +151,20 @@ export function CccdUploadModal({ onClose, onSuccess }: CccdUploadModalProps) {
     setErrorMsg('');
 
     try {
+      if (runtimeConfig.demoMode) {
+        onSuccess({
+          demo: true,
+          verified: true,
+          message: 'CCCD chỉ được xem trước, không gửi đến dịch vụ xác thực.',
+        });
+        onClose();
+        return;
+      }
       const formData = new FormData();
       formData.append('frontFile', frontImage, 'cccd_front.jpg');
       formData.append('backFile', backImage, 'cccd_back.jpg');
 
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-      const res = await fetch(`${backendUrl}/api/v1/storage/cccd/verify-full`, {
+      const res = await fetch(`${getApiBaseUrl()}/storage/cccd/verify-full`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

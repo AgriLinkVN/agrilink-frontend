@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Check, X, Eye, Loader2, AlertTriangle, Info } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { format } from "date-fns";
+import { runtimeConfig } from "@/config/runtime-config";
 
 type Product = {
   id: string;
@@ -21,23 +22,46 @@ type Product = {
   updatedAt: string;
 };
 
+type AdminProductDetail = {
+  id: string;
+  name: string;
+  description?: string | null;
+  status: string;
+  price?: number;
+  pricePerUnit?: number;
+  unit: string;
+  seller?: { id?: string; fullName?: string } | null;
+  availableQuantity?: number;
+  variety?: string | null;
+  farmingType?: string | null;
+  rejectionReason?: string | null;
+  images?: { id: string; imageUrl: string }[];
+  certifications?: {
+    id: string;
+    certType: string;
+    certNumber?: string;
+    isVerified: boolean;
+  }[];
+};
+
 export default function AdminPendingProductsPage() {
   const token = useAuthStore((s) => s.accessToken);
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
-  const [detailProduct, setDetailProduct] = useState<Record<string, unknown> | null>(null);
+  const [detailProduct, setDetailProduct] =
+    useState<AdminProductDetail | null>(null);
+  const [feedback, setFeedback] = useState("");
 
   const fetchDetail = async (productId: string) => {
     if (!token) return;
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000"}/api/v1/admin/products/${productId}`,
-      { headers: { Authorization: `Bearer ${token}` } },
+    const product = await api.get<AdminProductDetail>(
+      `/admin/products/${productId}`,
+      token,
     );
-    const data = await res.json();
-    setDetailProduct(data?.data ?? data);
+    setDetailProduct(product);
   };
 
   const { data, isLoading } = useQuery({
@@ -74,6 +98,9 @@ export default function AdminPendingProductsPage() {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-pending-products"] });
+      if (runtimeConfig.demoMode) {
+        setFeedback("Đã cập nhật dữ liệu demo.");
+      }
       setIsRejectModalOpen(false);
       setRejectReason("");
       setSelectedProduct(null);
@@ -111,6 +138,14 @@ export default function AdminPendingProductsPage() {
       pageTitle="Duyệt sản phẩm"
       pageDescription="Quản lý danh sách sản phẩm chờ kiểm duyệt từ người bán"
     >
+      {feedback && (
+        <div
+          role="status"
+          className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
+        >
+          {feedback}
+        </div>
+      )}
       <div className="bg-white rounded-xl border border-hairline card-shadow overflow-hidden">
         <div className="p-5 border-b border-hairline flex items-center justify-between">
           <h2 className="font-semibold text-ink">Danh sách chờ duyệt ({data?.total || 0})</h2>
@@ -234,7 +269,7 @@ export default function AdminPendingProductsPage() {
                     <p className="text-sm">{detailProduct.rejectionReason}</p>
                   </div>
                 )}
-                {detailProduct.images?.length > 0 && (
+                {detailProduct.images && detailProduct.images.length > 0 && (
                   <div>
                     <p className="text-sm text-muted mb-2">Hình ảnh</p>
                     <div className="grid grid-cols-3 gap-2">
@@ -244,7 +279,8 @@ export default function AdminPendingProductsPage() {
                     </div>
                   </div>
                 )}
-                {detailProduct.certifications?.length > 0 && (
+                {detailProduct.certifications &&
+                  detailProduct.certifications.length > 0 && (
                   <div>
                     <p className="text-sm text-muted mb-2">Chứng nhận</p>
                     {detailProduct.certifications.map((cert: { id: string; certType: string; certNumber?: string; isVerified: boolean }) => (

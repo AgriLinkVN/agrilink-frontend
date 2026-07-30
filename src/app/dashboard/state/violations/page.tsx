@@ -5,13 +5,8 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-
-const API = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+import { api } from "@/lib/api";
 const getToken = () => useAuthStore.getState().accessToken;
-
-interface ApiEnvelope<T> {
-  data?: T;
-}
 
 interface ViolatingProduct {
   id: string;
@@ -29,12 +24,8 @@ interface ViolatingProductsResponse {
   total?: number;
 }
 
-function apiFetch<T>(path: string, signal?: AbortSignal): Promise<ApiEnvelope<T> | T> {
-  const token = getToken();
-  return fetch(`${API}/api/v1${path}`, {
-    signal,
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  }).then((r) => r.json());
+function apiFetch<T>(path: string): Promise<T> {
+  return api.get<T>(path, getToken());
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -46,17 +37,10 @@ export default function StateViolationsPage() {
   const user = useAuthStore((s) => s.user);
   const { data, isPending: loading } = useQuery({
     queryKey: ["state", "violating-products"],
-    queryFn: async ({ signal }) => {
-      const res = await apiFetch<ViolatingProductsResponse>(
+    queryFn: () =>
+      apiFetch<ViolatingProductsResponse>(
         "/admin/products/violating?limit=50",
-        signal,
-      );
-      return (
-        "data" in Object(res)
-          ? (res as ApiEnvelope<ViolatingProductsResponse>).data
-          : res
-      ) as ViolatingProductsResponse | undefined;
-    },
+      ),
     staleTime: 30_000,
   });
 

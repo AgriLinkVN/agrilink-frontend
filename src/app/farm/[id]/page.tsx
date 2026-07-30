@@ -9,8 +9,13 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { FarmingBadge } from "@/components/ui/badge";
-import { getPrimaryImage, type Product } from "@/lib/products-api";
+import {
+  fetchSellerProducts,
+  getPrimaryImage,
+  type Product,
+} from "@/lib/products-api";
 import { MapboxCanvas } from "@/components/map/mapbox-canvas";
+import { runtimeConfig, getApiBaseUrl } from "@/config/runtime-config";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -36,8 +41,8 @@ const MOCK_FARM_PROFILES: Record<string, FarmProfile & { displayName: string; av
     userId: "mock-user-1",
     farmName: "Nông trại Xanh Tiền Giang",
     displayName: "Nguyễn Văn Hùng",
-    avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&auto=format",
-    coverUrl: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200&h=400&fit=crop&auto=format",
+    avatarUrl: "/logo.png",
+    coverUrl: "/demo/agrilink-farm-hero.webp",
     farmAreaHectares: 4.5,
     farmingType: "vietgap",
     region: "south",
@@ -56,12 +61,15 @@ const MOCK_FARM_PROFILES: Record<string, FarmProfile & { displayName: string; av
 
 // ── Fetch functions ────────────────────────────────────────────
 
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
-const BASE = `${BACKEND}/api/v1`;
-
 async function fetchFarmProfile(userId: string) {
+  if (runtimeConfig.demoMode) {
+    return {
+      ...MOCK_FARM_PROFILES.default,
+      userId,
+    };
+  }
   try {
-    const res = await fetch(`${BASE}/farm/${userId}`, { cache: "no-store" });
+    const res = await fetch(`${getApiBaseUrl()}/farm/${userId}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     return (json?.data ?? json) as FarmProfile;
@@ -72,11 +80,8 @@ async function fetchFarmProfile(userId: string) {
 
 async function fetchFarmProducts(sellerId: string): Promise<Product[]> {
   try {
-    const res = await fetch(`${BASE}/products?sellerId=${sellerId}&status=active&limit=12`, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    const payload = json?.data ?? json;
-    return payload?.data ?? [];
+    const response = await fetchSellerProducts(sellerId, 12);
+    return response.data;
   } catch {
     return [];
   }
@@ -364,9 +369,9 @@ export default async function FarmProfilePage({ params }: PageProps) {
                 /* Mock product grid khi backend chưa có data */
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {[
-                    { name: "Xoài cát Hòa Lộc", price: "45.000đ/kg", img: "https://images.unsplash.com/photo-1553279768-865429fa0078?w=300&h=200&fit=crop&auto=format", type: "vietgap" },
-                    { name: "Sầu riêng Ri6", price: "85.000đ/kg", img: "https://images.unsplash.com/photo-1541696490-8744a5dc0228?w=300&h=200&fit=crop&auto=format", type: "vietgap" },
-                    { name: "Thanh long ruột đỏ", price: "35.000đ/kg", img: "https://images.unsplash.com/photo-1527325678964-54921661f888?w=300&h=200&fit=crop&auto=format", type: "organic" },
+                    { name: "Xoài cát Hòa Lộc", price: "45.000đ/kg", img: "/demo/agricultural-produce.webp", type: "vietgap" },
+                    { name: "Sầu riêng Ri6", price: "85.000đ/kg", img: "/demo/agricultural-produce.webp", type: "vietgap" },
+                    { name: "Thanh long ruột đỏ", price: "35.000đ/kg", img: "/demo/agricultural-produce.webp", type: "organic" },
                   ].map(p => (
                     <div key={p.name} className="bg-white rounded-xl border border-hairline overflow-hidden">
                       <div className="relative h-36">
