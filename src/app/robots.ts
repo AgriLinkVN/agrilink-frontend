@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { getBuildSafeSiteUrl } from "@/config/runtime-config";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://agrilink.vn";
+const SITE_URL = getBuildSafeSiteUrl();
 
 export default function robots(): MetadataRoute.Robots {
   return {

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { getBuildSafeSiteUrl } from "@/config/runtime-config";
 import { fetchProductDetail } from "@/lib/products-api";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
@@ -12,7 +13,7 @@ import { WishlistButton } from "./_components/WishlistButton";
 import { ShareButton } from "./_components/ShareButton";
 import { SimilarProducts } from "./_components/SimilarProducts";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://agrilink.vn";
+const SITE_URL = getBuildSafeSiteUrl();
 
 interface PageProps {
   params: Promise<{ id: string }>;

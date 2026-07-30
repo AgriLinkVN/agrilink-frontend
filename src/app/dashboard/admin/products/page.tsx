@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useAuthStore } from "@/store/authStore";
@@ -21,23 +22,52 @@ type Product = {
   updatedAt: string;
 };
 
+interface ProductDetailImage {
+  id: string;
+  imageUrl: string;
+}
+
+interface ProductDetailCertification {
+  id: string;
+  certType: string;
+  certNumber?: string;
+  isVerified: boolean;
+}
+
+interface AdminProductDetail {
+  id: string;
+  name: string;
+  status: string;
+  pricePerUnit?: number;
+  price?: number;
+  unit: string;
+  seller?: { fullName?: string | null } | null;
+  availableQuantity: number;
+  variety?: string | null;
+  farmingType?: string | null;
+  description?: string | null;
+  rejectionReason?: string | null;
+  images?: ProductDetailImage[];
+  certifications?: ProductDetailCertification[];
+}
+
 export default function AdminPendingProductsPage() {
   const token = useAuthStore((s) => s.accessToken);
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
+  const page = 1;
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
-  const [detailProduct, setDetailProduct] = useState<Record<string, unknown> | null>(null);
+  const [detailProduct, setDetailProduct] =
+    useState<AdminProductDetail | null>(null);
 
   const fetchDetail = async (productId: string) => {
     if (!token) return;
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000"}/api/v1/admin/products/${productId}`,
-      { headers: { Authorization: `Bearer ${token}` } },
+    const product = await api.get<AdminProductDetail>(
+      `/admin/products/${productId}`,
+      token,
     );
-    const data = await res.json();
-    setDetailProduct(data?.data ?? data);
+    setDetailProduct(product);
   };
 
   const { data, isLoading } = useQuery({
@@ -234,20 +264,22 @@ export default function AdminPendingProductsPage() {
                     <p className="text-sm">{detailProduct.rejectionReason}</p>
                   </div>
                 )}
-                {detailProduct.images?.length > 0 && (
+                {(detailProduct.images?.length ?? 0) > 0 && (
                   <div>
                     <p className="text-sm text-muted mb-2">Hình ảnh</p>
                     <div className="grid grid-cols-3 gap-2">
-                      {detailProduct.images.map((img: { id: string; imageUrl: string }) => (
-                        <img key={img.id} src={img.imageUrl} alt="" className="rounded-lg w-full h-32 object-cover border" />
+                      {detailProduct.images?.map((img) => (
+                        <div key={img.id} className="relative h-32">
+                          <Image src={img.imageUrl} alt="" fill sizes="200px" className="rounded-lg object-cover border" />
+                        </div>
                       ))}
                     </div>
                   </div>
                 )}
-                {detailProduct.certifications?.length > 0 && (
+                {(detailProduct.certifications?.length ?? 0) > 0 && (
                   <div>
                     <p className="text-sm text-muted mb-2">Chứng nhận</p>
-                    {detailProduct.certifications.map((cert: { id: string; certType: string; certNumber?: string; isVerified: boolean }) => (
+                    {detailProduct.certifications?.map((cert) => (
                       <div key={cert.id} className="text-xs text-muted flex gap-2 items-center">
                         <span className="font-semibold">{cert.certType}</span>
                         {cert.certNumber && <span>— {cert.certNumber}</span>}

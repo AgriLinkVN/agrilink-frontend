@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { notFound } from "next/navigation";
 import {
   MapPin, Sprout, Award, Package2, Calendar, ChevronRight,
   Phone, MessageCircle, Star, Leaf, ShieldCheck, Clock,
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { FarmingBadge } from "@/components/ui/badge";
 import { getPrimaryImage, type Product } from "@/lib/products-api";
 import { MapboxCanvas } from "@/components/map/mapbox-canvas";
+import { getApiBaseUrl } from "@/config/runtime-config";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -26,60 +28,31 @@ interface FarmProfile {
   address: string | null;
   bio: string | null;
   experienceYears: number | null;
+  trustScore: number;
+  totalSales: number;
 }
-
-// ── Mock data (fallback when BE unreachable) ───────────────────
-
-const MOCK_FARM_PROFILES: Record<string, FarmProfile & { displayName: string; avatarUrl: string; coverUrl: string; phone: string; totalSales: number; responseRate: string; trustScore: number; provinceLabel: string }> = {
-  default: {
-    id: "mock-farm-1",
-    userId: "mock-user-1",
-    farmName: "Nông trại Xanh Tiền Giang",
-    displayName: "Nguyễn Văn Hùng",
-    avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&auto=format",
-    coverUrl: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200&h=400&fit=crop&auto=format",
-    farmAreaHectares: 4.5,
-    farmingType: "vietgap",
-    region: "south",
-    provinceId: "82",
-    districtId: null,
-    address: "Ấp 3, Xã Cai Lậy, Tiền Giang",
-    bio: "Hộ nông dân 3 đời trồng xoài cát Hòa Lộc và sầu riêng Ri6. Áp dụng kỹ thuật VietGAP từ năm 2018, cam kết truy xuất nguồn gốc minh bạch.",
-    experienceYears: 15,
-    phone: "0912 345 678",
-    totalSales: 1240,
-    responseRate: "94%",
-    trustScore: 4.8,
-    provinceLabel: "Tiền Giang",
-  },
-};
 
 // ── Fetch functions ────────────────────────────────────────────
 
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
-const BASE = `${BACKEND}/api/v1`;
-
-async function fetchFarmProfile(userId: string) {
-  try {
-    const res = await fetch(`${BASE}/farm/${userId}`, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    return (json?.data ?? json) as FarmProfile;
-  } catch {
-    return null;
-  }
+async function fetchFarmProfile(userId: string): Promise<FarmProfile | null> {
+  const res = await fetch(`${getApiBaseUrl()}/farm/${userId}`, {
+    cache: "no-store",
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  return (json?.data ?? json) as FarmProfile;
 }
 
 async function fetchFarmProducts(sellerId: string): Promise<Product[]> {
-  try {
-    const res = await fetch(`${BASE}/products?sellerId=${sellerId}&status=active&limit=12`, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    const payload = json?.data ?? json;
-    return payload?.data ?? [];
-  } catch {
-    return [];
-  }
+  const res = await fetch(
+    `${getApiBaseUrl()}/products?sellerId=${sellerId}&status=active&limit=12`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  const payload = json?.data ?? json;
+  return payload?.data ?? [];
 }
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -124,18 +97,19 @@ export default async function FarmProfilePage({ params }: PageProps) {
     fetchFarmProducts(userId),
   ]);
 
-  // Use mock if backend unreachable
-  const mock = MOCK_FARM_PROFILES.default;
-  const profile = profileRaw ?? mock;
-  const farmName = profile.farmName ?? mock.farmName;
-  const displayName = (profile as typeof mock).displayName ?? mock.displayName;
-  const avatarUrl = (profile as typeof mock).avatarUrl ?? mock.avatarUrl;
-  const coverUrl = (profile as typeof mock).coverUrl ?? mock.coverUrl;
-  const phone = (profile as typeof mock).phone ?? mock.phone;
-  const trustScore = (profile as typeof mock).trustScore ?? mock.trustScore;
-  const totalSales = (profile as typeof mock).totalSales ?? mock.totalSales;
-  const responseRate = (profile as typeof mock).responseRate ?? mock.responseRate;
-  const provinceLabel = (profile as typeof mock).provinceLabel ?? mock.provinceLabel;
+  if (!profileRaw) notFound();
+
+  const profile = profileRaw;
+  const farmName = profile.farmName ?? "Nông trại AgriLink";
+  const displayName = farmName;
+  const avatarUrl = "/logo.png";
+  const coverUrl =
+    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200&h=400&fit=crop&auto=format";
+  const phone = "";
+  const trustScore = profile.trustScore;
+  const totalSales = profile.totalSales;
+  const responseRate = "—";
+  const provinceLabel = profile.address ?? "Việt Nam";
 
   const displayProducts = products.length > 0 ? products : [] as Product[];
 
@@ -210,9 +184,11 @@ export default async function FarmProfilePage({ params }: PageProps) {
 
             {/* Action buttons */}
             <div className="hidden sm:flex items-center gap-2 pb-1">
-              <Button size="sm" variant="secondary" className="bg-white/90 hover:bg-white text-ink">
-                <Phone size={14} /> {phone}
-              </Button>
+              {phone && (
+                <Button size="sm" variant="secondary" className="bg-white/90 hover:bg-white text-ink">
+                  <Phone size={14} /> {phone}
+                </Button>
+              )}
               <Button size="sm">
                 <MessageCircle size={14} /> Nhắn tin
               </Button>

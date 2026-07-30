@@ -1,6 +1,7 @@
+import { getApiBaseUrl } from "@/config/runtime-config";
+
 /**
- * Products API — fetch from backend, fallback to mock data when backend unreachable.
- * All types mirror the DB schema / ProductsService response shape.
+ * Product contracts mirror the backend ProductsService response shape.
  */
 
 export interface ProductImage {
@@ -56,6 +57,7 @@ export interface Product {
   images: ProductImage[];
   certifications?: ProductCertification[];
   category?: ProductCategory | null;
+  seller?: ProductDetailSeller | null;
 }
 
 export interface ProductListResponse {
@@ -250,9 +252,6 @@ export function getPrimaryImage(product: Product): string {
 
 // ── API fetch functions ────────────────────────────────────────
 
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
-const BASE = `${BACKEND}/api/v1`;
-
 // ── Categories API ─────────────────────────────────────────────
 
 export interface Category {
@@ -281,19 +280,17 @@ function isAbortError(error: unknown): boolean {
 }
 
 export async function fetchCategories(signal?: AbortSignal): Promise<Category[]> {
-  try {
-    const res = await fetch(`${BASE}/products/categories`, { cache: "no-store", signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    const list: Category[] = json?.data ?? json;
-    if (Array.isArray(list) && list.length > 0) {
-      return [{ id: "all", name: "Tất cả", slug: "all", sortOrder: 0 }, ...list];
-    }
-    return FALLBACK_CATEGORIES;
-  } catch (error) {
-    if (isAbortError(error)) throw error;
-    return FALLBACK_CATEGORIES;
+  const res = await fetch(`${getApiBaseUrl()}/products/categories`, {
+    cache: "no-store",
+    signal,
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  const list: Category[] = json?.data ?? json;
+  if (Array.isArray(list)) {
+    return [{ id: "all", name: "Tất cả", slug: "all", sortOrder: 0 }, ...list];
   }
+  throw new Error("Invalid categories response");
 }
 
 export async function fetchProducts(params?: {
@@ -323,7 +320,10 @@ export async function fetchProducts(params?: {
     if (params?.sortBy) qs.set("sortBy", params.sortBy);
     if (params?.order) qs.set("order", params.order);
 
-    const res = await fetch(`${BASE}/products?${qs}`, { cache: "no-store", signal });
+    const res = await fetch(`${getApiBaseUrl()}/products?${qs}`, {
+      cache: "no-store",
+      signal,
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     // ResponseInterceptor wraps: { statusCode, message, data: { data: [...], total: N } }
@@ -337,10 +337,10 @@ export async function fetchProducts(params?: {
         total: payload.total ?? payload.data.length,
       };
     }
-    return { data: MOCK_PRODUCTS, total: MOCK_PRODUCTS.length };
+    throw new Error("Invalid products response");
   } catch (error) {
     if (isAbortError(error)) throw error;
-    return { data: MOCK_PRODUCTS, total: MOCK_PRODUCTS.length };
+    throw error;
   }
 }
 
@@ -348,23 +348,20 @@ export async function fetchSellerProducts(
   sellerId: string,
   limit = 24,
 ): Promise<ProductListResponse> {
-  try {
-    const qs = new URLSearchParams({
-      sellerId,
-      limit: String(limit),
-      page: "1",
-      status: "active",
-      sortBy: "createdAt",
-      order: "DESC",
-    });
-    const res = await fetch(`${BASE}/products?${qs}`, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    return (json?.data ?? json) as ProductListResponse;
-  } catch {
-    const data = MOCK_PRODUCTS.filter((product) => product.sellerId === sellerId);
-    return { data, total: data.length };
-  }
+  const qs = new URLSearchParams({
+    sellerId,
+    limit: String(limit),
+    page: "1",
+    status: "active",
+    sortBy: "createdAt",
+    order: "DESC",
+  });
+  const res = await fetch(`${getApiBaseUrl()}/products?${qs}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  return (json?.data ?? json) as ProductListResponse;
 }
 
 // ── Product Detail (full response with seller + location populated) ─────
@@ -454,92 +451,24 @@ export interface ProductDetail {
   seller: ProductDetailSeller | null;
 }
 
-/** Adapt legacy Product (mock) → ProductDetail for fallback only. */
-function adaptLegacyToDetail(p: Product): ProductDetail {
-  return {
-    id: p.id,
-    name: p.name,
-    description: p.description,
-    sku: null,
-    variety: null,
-    pricePerUnit: p.pricePerUnit,
-    unit: p.unit,
-    availableQuantity: p.availableQuantity,
-    minOrderQuantity: p.minOrderQuantity,
-    farmingType: p.farmingType,
-    status: p.status,
-    harvestDate: p.harvestDate,
-    expiryDate: p.expiryDate,
-    rejectionReason: null,
-    isFeatured: false,
-    viewCount: p.viewCount,
-    soldCount: 0,
-    avgRating: 0,
-    farmLatitude: null,
-    farmLongitude: null,
-    createdAt: p.createdAt,
-    updatedAt: p.updatedAt,
-    province: null,
-    district: null,
-    category: p.category
-      ? { id: p.category.id, name: p.category.name, slug: p.category.slug, iconUrl: null, description: null, parent: null }
-      : null,
-    images: p.images.map((img) => ({
-      id: img.id, imageUrl: img.imageUrl, altText: null,
-      sortOrder: img.sortOrder, isPrimary: img.isPrimary,
-    })),
-    certifications: (p.certifications ?? []).map((c) => ({
-      id: c.id, certType: c.certType as ProductDetailCertification["certType"],
-      certNumber: c.certNumber, issuedBy: c.issuedBy,
-      issuedDate: c.issuedDate, expiryDate: c.expiryDate,
-      isVerified: true,
-      status: "verified",
-      verifiedBy: null,
-      verifiedAt: null,
-      rejectionReason: null,
-    })),
-    seller: null,
-  };
-}
-
 export async function fetchProductDetail(id: string): Promise<ProductDetail | null> {
-  // Mock IDs fallback (legacy compatibility)
-  if (/^\d+$/.test(id)) {
-    const m = MOCK_PRODUCTS[parseInt(id, 10) - 1] ?? MOCK_PRODUCTS[0];
-    return m ? adaptLegacyToDetail(m) : null;
+  const res = await fetch(`${getApiBaseUrl()}/products/${id}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    throw new Error(`HTTP ${res.status}`);
   }
-  if (id.startsWith("mock-")) {
-    const m = MOCK_PRODUCTS.find((p) => p.id === id);
-    return m ? adaptLegacyToDetail(m) : null;
-  }
-
-  try {
-    const res = await fetch(`${BASE}/products/${id}`, { cache: "no-store" });
-    if (!res.ok) {
-      if (res.status === 404) return null;
-      throw new Error(`HTTP ${res.status}`);
-    }
-    const json = await res.json();
-    return (json?.data ?? json) as ProductDetail;
-  } catch {
-    return null;
-  }
+  const json = await res.json();
+  return (json?.data ?? json) as ProductDetail;
 }
 
 export async function fetchProduct(id: string): Promise<Product | null> {
-  if (/^\d+$/.test(id)) {
-    return MOCK_PRODUCTS[parseInt(id, 10) - 1] ?? MOCK_PRODUCTS[0];
-  }
-  if (id.startsWith("mock-")) {
-    return MOCK_PRODUCTS.find((p) => p.id === id) ?? null;
-  }
-  try {
-    const res = await fetch(`${BASE}/products/${id}`, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    // ResponseInterceptor wraps: { statusCode, message, data: <Product> }
-    return (json?.data ?? json) as Product;
-  } catch {
-    return null;
-  }
+  const res = await fetch(`${getApiBaseUrl()}/products/${id}`, {
+    cache: "no-store",
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  return (json?.data ?? json) as Product;
 }

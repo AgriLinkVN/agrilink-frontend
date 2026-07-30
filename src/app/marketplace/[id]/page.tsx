@@ -21,13 +21,6 @@ import {
 import { notFound } from "next/navigation";
 import { AdBanner } from "@/components/ads/ad-banner";
 
-// Mock seller info (no users table join yet — seller data from products only)
-const MOCK_SELLER: Record<string, { name: string; sellerType: string; phone: string; trustScore: number; totalSales: number; responseRate: string }> = {
-  farmer: { name: "Hộ nông dân", sellerType: "farmer", phone: "0900 000 000", trustScore: 4.7, totalSales: 1200, responseRate: "92%" },
-  cooperative: { name: "Hợp tác xã", sellerType: "cooperative", phone: "0900 000 001", trustScore: 4.9, totalSales: 8900, responseRate: "98%" },
-  supplier: { name: "Nhà cung cấp", sellerType: "supplier", phone: "0900 000 002", trustScore: 4.8, totalSales: 5000, responseRate: "95%" },
-};
-
 const SELLER_TYPE_LABEL: Record<string, { label: string; icon: React.ElementType }> = {
   farmer: { label: "Hộ cá nhân", icon: User },
   cooperative: { label: "Hợp tác xã", icon: Building2 },
@@ -62,9 +55,11 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
   const imageUrl = getPrimaryImage(product);
   const province = getProductProvince(product);
-  const sellerInfo = MOCK_SELLER[product.sellerType] ?? MOCK_SELLER.farmer;
-  const SellerIcon = SELLER_TYPE_LABEL[product.sellerType]?.icon ?? User;
-  const sellerLabel = SELLER_TYPE_LABEL[product.sellerType]?.label ?? "Người bán";
+  const sellerType = product.seller?.sellerType ?? product.sellerType;
+  const sellerName = product.seller?.fullName ?? "Người bán AgriLink";
+  const sellerPhone = product.seller?.phone ?? null;
+  const SellerIcon = SELLER_TYPE_LABEL[sellerType]?.icon ?? User;
+  const sellerLabel = SELLER_TYPE_LABEL[sellerType]?.label ?? "Người bán";
   const qrCode = `QR-${product.id.slice(0, 8).toUpperCase()}`;
   const verifiedCertifications = getVerifiedCertifications(product.certifications);
 
@@ -253,7 +248,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                     <SellerIcon size={22} className="text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-ink">{sellerInfo.name}</h3>
+                    <h3 className="font-semibold text-ink">{sellerName}</h3>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <Badge variant="vietgap">{sellerLabel} · Đã xác thực</Badge>
                       <span className="text-xs text-muted flex items-center gap-1">
@@ -263,28 +258,17 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 text-center border-y border-hairline py-4 mb-4">
-                  <div>
-                    <div className="text-xl font-bold text-primary">{sellerInfo.trustScore}</div>
-                    <div className="text-xs text-muted">Điểm tin cậy</div>
-                  </div>
-                  <div>
-                    <div className="text-xl font-bold text-ink">{sellerInfo.totalSales.toLocaleString("vi-VN")}</div>
-                    <div className="text-xs text-muted">Giao dịch</div>
-                  </div>
-                  <div>
-                    <div className="text-xl font-bold text-ink">{sellerInfo.responseRate}</div>
-                    <div className="text-xs text-muted">Phản hồi</div>
-                  </div>
-                </div>
-
                 <div className="flex gap-2">
                   <Button variant="secondary" size="sm" className="flex-1">
                     <MessageCircle size={14} /> Nhắn tin
                   </Button>
-                  <Button variant="ghost" size="sm" className="flex-1">
-                    <Phone size={14} /> Gọi ngay
-                  </Button>
+                  {sellerPhone ? (
+                    <Button variant="ghost" size="sm" className="flex-1" asChild>
+                      <a href={`tel:${sellerPhone}`}>
+                        <Phone size={14} /> Gọi ngay
+                      </a>
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             </div>

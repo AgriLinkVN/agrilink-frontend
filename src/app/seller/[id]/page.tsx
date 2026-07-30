@@ -40,9 +40,7 @@ import {
   SellerProfileTabs,
   type SellerReviewItem,
 } from "./_components/SellerProfileTabs";
-
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
-const BASE = `${BACKEND}/api/v1`;
+import { getApiBaseUrl } from "@/config/runtime-config";
 
 type SellerType = ProductDetailSeller["sellerType"];
 
@@ -149,12 +147,11 @@ async function fetchSellerReviews(products: Product[]): Promise<{
 }> {
   const reviewGroups = await Promise.all(
     products.slice(0, 8).map(async (product) => {
-      if (product.id.startsWith("mock-")) return { reviews: [] as SellerReviewItem[], total: 0 };
-
       try {
-        const res = await fetch(`${BASE}/reviews/product/${product.id}?page=1&limit=3`, {
-          cache: "no-store",
-        });
+        const res = await fetch(
+          `${getApiBaseUrl()}/reviews/product/${product.id}?page=1&limit=3`,
+          { cache: "no-store" },
+        );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         const payload = (json?.data ?? json) as ReviewsPayload;

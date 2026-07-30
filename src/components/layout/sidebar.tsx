@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type UserRole } from "@/types";
-import { useAuthStore } from "@/store/authStore";
+import { useAuth } from "@/lib/auth-context";
 import { useAdminPendingCounts } from "@/hooks/useAdminPendingCounts";
 
 interface NavItem {
@@ -116,7 +116,7 @@ interface SidebarProps {
 export function Sidebar({ role, userName = "Người dùng", userAvatar }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const logout = useAuthStore((s) => s.logout);
+  const { logout } = useAuth();
   const { counts } = useAdminPendingCounts();
 
   const baseItems = ROLE_NAV[role] ?? [];
@@ -129,8 +129,8 @@ export function Sidebar({ role, userName = "Người dùng", userAvatar }: Sideb
       })
     : baseItems;
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push("/auth/login");
   };
 

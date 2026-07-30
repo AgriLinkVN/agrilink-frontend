@@ -5,8 +5,8 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { getApiBaseUrl } from "@/config/runtime-config";
 
-const API = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
 const getToken = () => useAuthStore.getState().accessToken;
 
 interface ApiEnvelope<T> {
@@ -31,7 +31,7 @@ interface ViolatingProductsResponse {
 
 function apiFetch<T>(path: string, signal?: AbortSignal): Promise<ApiEnvelope<T> | T> {
   const token = getToken();
-  return fetch(`${API}/api/v1${path}`, {
+  return fetch(`${getApiBaseUrl()}${path}`, {
     signal,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   }).then((r) => r.json());

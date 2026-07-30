@@ -12,8 +12,8 @@ import {
   Loader2, FileText, Building2, ChevronRight, Download,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { getApiBaseUrl } from "@/config/runtime-config";
 
-const API = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
 const getToken = () => useAuthStore.getState().accessToken;
 
 interface ApiEnvelope<T> {
@@ -67,7 +67,7 @@ function unwrapApi<T>(value: ApiEnvelope<T> | T): T | undefined {
 
 function apiFetch<T>(path: string, signal?: AbortSignal): Promise<ApiEnvelope<T> | T> {
   const token = getToken();
-  return fetch(`${API}/api/v1${path}`, {
+  return fetch(`${getApiBaseUrl()}${path}`, {
     signal,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   }).then((r) => r.json());
@@ -88,7 +88,7 @@ export default function StateAgencyDashboardPage() {
     setExporting(true);
     try {
       const token = getToken();
-      const res = await fetch(`${API}/api/v1/admin/reports/system.pdf`, {
+      const res = await fetch(`${getApiBaseUrl()}/admin/reports/system.pdf`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error("Export failed");

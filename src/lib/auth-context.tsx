@@ -4,10 +4,12 @@ import {
   createContext,
   useContext,
   useCallback,
-  useState,
+  useSyncExternalStore,
 } from "react";
 import type { User, UserRole } from "@/types";
 import { useAuthStore } from "@/store/authStore";
+import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors/get-error-message";
 
 interface AuthContextValue {
   user: User | null;
@@ -17,33 +19,39 @@ interface AuthContextValue {
     credential: string,
     method?: "password" | "otp",
   ) => Promise<{ dashboard: string } | { error: string }>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   isLoading: true,
   login: async () => ({ error: "Not initialized" }),
-  logout: () => {},
+  logout: async () => {},
 });
 
-/**
- * AuthProvider wraps the app. Its job is now thin: it exposes a `useAuth()`
- * React-Context API to legacy callers (login page, navbar) while delegating
- * **all** state to the Zustand `useAuthStore`. That makes P5 components which
- * read from `useAuthStore.accessToken` see the same value as P1/P6 components
- * reading from `useAuth().user` — single source of truth.
- *
- * Migration target: callers should switch to `useAuthStore` directly.
- */
+interface AccessTokenResponse {
+  accessToken: string;
+}
+
+function subscribeToHydration(onStoreChange: () => void): () => void {
+  const unsubscribeHydrate = useAuthStore.persist.onHydrate(onStoreChange);
+  const unsubscribeFinish = useAuthStore.persist.onFinishHydration(onStoreChange);
+  return () => {
+    unsubscribeHydrate();
+    unsubscribeFinish();
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Read straight from the persisted Zustand store
   const user = useAuthStore((s) => s.user);
+  const accessToken = useAuthStore((s) => s.accessToken);
   const setAuth = useAuthStore((s) => s.setAuth);
   const clearAuth = useAuthStore((s) => s.logout);
-
-  // Local flag to suppress UI flicker during Zustand persist rehydration
-  const [hydrated] = useState(true);
+  const hydrated = useSyncExternalStore(
+    subscribeToHydration,
+    () => useAuthStore.persist.hasHydrated(),
+    () => false,
+  );
 
   const login = useCallback(
     async (
@@ -60,65 +68,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ? { email: trimmedEmail, password: credential }
             : { target: trimmedEmail, code: credential, purpose: "login" };
 
-        const backend =
-          process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
-
-        const res = await fetch(`${backend}/api/v1${endpoint}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          return {
-            error:
-              (errorData as { message?: string }).message ??
-              "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
-          };
+        const auth = await api.post<AccessTokenResponse>(endpoint, payload);
+        if (!auth.accessToken) {
+          return { error: "Không nhận được token từ máy chủ." };
         }
 
-        const data = (await res.json()) as {
-          data?: { accessToken?: string };
-          accessToken?: string;
-        };
-        const token = data.data?.accessToken ?? data.accessToken;
-        if (!token) return { error: "Không nhận được token từ máy chủ." };
-
-        const userRes = await fetch(`${backend}/api/v1/users/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!userRes.ok) return { error: "Không thể lấy thông tin người dùng." };
-
-        const userPayload = (await userRes.json()) as { data?: User } & User;
-        const userData = (userPayload.data ?? userPayload) as User;
-
-        // Single source of truth — persisted by zustand
+        const userData = await api.get<User>("/users/me", auth.accessToken);
+        const token = auth.accessToken;
         setAuth(token, userData);
-
-        // Keep legacy keys in sync for any consumer still reading raw localStorage
-        try {
-          localStorage.setItem("agrilink_access_token", token);
-          localStorage.setItem("agrilink_user", JSON.stringify(userData));
-        } catch {}
 
         const dashboard = ROLE_DASHBOARD[userData.role] ?? "/";
         return { dashboard };
       } catch (error) {
         console.error("Login error:", error);
-        return { error: "Lỗi kết nối máy chủ. Vui lòng thử lại sau." };
+        return {
+          error: getErrorMessage(
+            error,
+            "Lỗi kết nối máy chủ. Vui lòng thử lại sau.",
+          ),
+        };
       }
     },
     [setAuth],
   );
 
-  const logout = useCallback(() => {
-    clearAuth();
+  const logout = useCallback(async () => {
     try {
-      localStorage.removeItem("agrilink_user");
-      localStorage.removeItem("agrilink_access_token");
-    } catch {}
-  }, [clearAuth]);
+      if (accessToken) {
+        await api.post<void>("/auth/logout", undefined, accessToken);
+      }
+    } catch (error) {
+      console.error("Logout request failed:", error);
+    } finally {
+      clearAuth();
+    }
+  }, [accessToken, clearAuth]);
 
   return (
     <AuthContext.Provider value={{ user, isLoading: !hydrated, login, logout }}>
