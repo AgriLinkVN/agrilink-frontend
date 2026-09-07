@@ -252,14 +252,17 @@ docs:     Cập nhật tài liệu
 
 ## Biến môi trường
 
-Dự án hiện chưa cần `.env` (mock data). Khi tích hợp backend:
+Ứng dụng dùng các biến môi trường public để kết nối tới backend thật. Với môi
+trường local, sao chép template trước khi chạy:
 
 ```bash
 cp .env.example .env.local
 ```
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
+NEXT_PUBLIC_WS_URL=http://localhost:5000
 ```
 
 ---

@@ -17,7 +17,8 @@ Use `.env.example` as the source checklist for frontend deployment variables.
 Required for Product pages:
 
 - `NEXT_PUBLIC_SITE_URL`
-- `NEXT_PUBLIC_BACKEND_URL`
+- `NEXT_PUBLIC_API_URL` (including `/api/v1`)
+- `NEXT_PUBLIC_WS_URL`
 - `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`
 - `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`
 
@@ -41,7 +42,8 @@ npm run build
 
 Production requirements:
 
-- `NEXT_PUBLIC_BACKEND_URL` must point to the deployed backend origin, not localhost.
+- `NEXT_PUBLIC_API_URL` must point to the deployed backend API, include `/api/v1`, and not use localhost.
+- `NEXT_PUBLIC_WS_URL` must point to the deployed backend origin without `/api/v1`.
 - `NEXT_PUBLIC_SITE_URL` must match the public frontend domain for canonical URLs, sitemap, Open Graph, and robots.
 - The backend `CORS_ORIGINS` value must include the frontend domain.
 - Remote image hosts used by product images must stay covered in `next.config.ts`.
